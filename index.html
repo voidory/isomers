@@ -280,6 +280,18 @@ body.mobile .nbr-row{min-height:54px;padding:8px 10px;border-width:2px;box-shado
 body.mobile .nbr-row .xf{font-size:19px}
 body.mobile .nbr-h{font-size:13px}
 
+details.fam{margin:6px 0 8px}
+details.fam>summary{cursor:pointer;font-family:var(--hand);font-size:15px;padding:5px 8px;border:2px solid var(--ink);border-radius:var(--wob);background:var(--card);list-style:none;display:flex;align-items:center;gap:6px}
+details.fam>summary::-webkit-details-marker{display:none}
+details.fam>summary::before{content:'▶';font-size:11px;transition:transform .2s}
+details.fam[open]>summary::before{transform:rotate(90deg)}
+.famn{margin-left:auto;font-size:12px;color:var(--ink2)}
+.fam-note{font-size:13px;color:var(--ink2);margin:6px 2px}
+.xfams{display:flex;gap:8px;overflow-x:auto;flex:none;padding:2px 2px 6px;scrollbar-width:none}
+.xfams::-webkit-scrollbar{display:none}
+.xfam{flex:none;border:2px solid var(--ink);border-radius:20px 8px 20px 8px;background:var(--card);padding:8px 14px;font-family:var(--hand);font-size:14.5px;min-height:42px}
+.xfam.on{background:var(--ink);color:var(--paper)}
+
 /* ---------- tablets / small laptops: desktop layout, tightened ---------- */
 @media (min-width:768px) and (max-width:1150px){
   .study{grid-template-columns:260px 1fr}
@@ -583,7 +595,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
  <div class="modal" id="builder" hidden>
   <div class="bsheet sketch" role="dialog" aria-label="Build from an exam drawing">
     <div class="bhead"><h3>Build from an exam drawing</h3><button class="btn" id="bClose">✕ close</button></div>
-    <p class="bintro">1 · pick the geometry · 2 · pick the layout that looks like your paper · 3 · click each position to place a ligand (keys A–F switch letter). Use <b>chelate link</b> to join two adjacent positions with a ring.</p>
+    <p class="bintro">1 · pick the geometry · 2 · pick the layout that looks like your paper · 3 · click each position to place a ligand (keys A–F switch letter). Use <b>chelate link</b> to join two adjacent positions with a ring; linking a third position to one of them makes a tridentate ligand (read as flexible, like dien).</p>
     <div class="brow" id="bGeom"></div>
     <div class="blayouts" id="bLayouts"></div>
     <div class="bmain">
@@ -621,7 +633,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
     <section class="mscreen" data-tab="build" id="tabBuild" hidden>
       <div class="bsteps seg" id="bSteps"><button data-step="1">1 · Shape</button><button data-step="2">2 · Ligands</button></div>
       <p class="bstep-hint s1">Choose the shape, then the layout that looks like the drawing on your paper.</p>
-      <p class="bstep-hint s2">Tap each position to place a ligand. ⌒ joins two neighbouring positions into a chelate ring.</p>
+      <p class="bstep-hint s2">Tap each position to place a ligand. ⌒ joins two neighbouring positions into a chelate ring; two rings through one position make a tridentate ligand.</p>
       <div id="bHost"></div>
     </section>
     <section class="mscreen" data-tab="quiz" id="tabQuiz" hidden><div id="qHost"></div></section>
@@ -828,20 +840,44 @@ function uniquePerms(arr){
     for(const k of keys) if(counts[k]>0){counts[k]--;cur.push(k);rec();cur.pop();counts[k]++;} })();
   return out;
 }
+/* multidentate ligand specs: 'AB' = bidentate (letters = its two donor ends);
+   'ABA:x' = linear tridentate, donors in chain order, x = flexible (fac or mer), m = mer only (rigid, terpy-like),
+   f = fac only; 'AAA:c' = cyclic/tripodal tridentate capping a face (tacn-like): all three donors linked */
+const lig=s=>{const [L,mode]=s.split(':');return {L,mode:mode||''};};
+const ligDent=s=>lig(s).L.length;
+function normItem(s){const {L,mode}=lig(s);
+  if(L.length===2) return L.split('').sort().join('');
+  if(mode==='c') return L.split('').sort().join('')+':c';
+  const r=L.split('').reverse().join('');return (L<r?L:r)+':'+mode;}
 function enumerateRaw(G,mono,chel){
   const out=[], labels=new Array(G.n).fill(null), edges=[];
-  const letters=mono.split('');
+  const letters=mono.split(''), adj=(i,j)=>G.edges.some(e=>(e[0]===i&&e[1]===j)||(e[0]===j&&e[1]===i));
+  const E=(i,j)=>i<j?[i,j]:[j,i];
   function fill(){
     const free=[]; labels.forEach((l,i)=>{if(!l)free.push(i);});
     for(const p of uniquePerms(letters)){const L=labels.slice(); free.forEach((si,k)=>L[si]=p[k]); out.push({labels:L,edges:edges.map(e=>e.slice())});}
   }
   (function rec(ci){
     if(ci===chel.length){fill();return;}
-    const c=chel[ci];
-    for(const [a,b] of G.edges){
-      if(labels[a]||labels[b]) continue;
-      const ors=c[0]===c[1]?[[c[0],c[1]]]:[[c[0],c[1]],[c[1],c[0]]];
-      for(const [la,lb] of ors){labels[a]=la;labels[b]=lb;edges.push([a,b]);rec(ci+1);edges.pop();labels[a]=null;labels[b]=null;}
+    const {L:c,mode}=lig(chel[ci]);
+    if(c.length===2){
+      for(const [a,b] of G.edges){
+        if(labels[a]||labels[b]) continue;
+        const ors=c[0]===c[1]?[[c[0],c[1]]]:[[c[0],c[1]],[c[1],c[0]]];
+        for(const [la,lb] of ors){labels[a]=la;labels[b]=lb;edges.push([a,b]);rec(ci+1);edges.pop();labels[a]=null;labels[b]=null;}
+      }
+      return;
+    }
+    // tridentate: donors on a–b–c with a–b and b–c adjacent; a–c adjacent = fac, otherwise (trans) = mer
+    for(let a=0;a<G.n;a++)for(let b=0;b<G.n;b++)for(let d=0;d<G.n;d++){
+      if(a===b||b===d||a===d||labels[a]||labels[b]||labels[d]||!adj(a,b)||!adj(b,d)) continue;
+      const fac=adj(a,d);
+      if(mode==='m'&&fac) continue;
+      if((mode==='f'||mode==='c')&&!fac) continue;
+      labels[a]=c[0];labels[b]=c[1];labels[d]=c[2];
+      const add=[E(a,b),E(b,d)].concat(mode==='c'?[E(a,d)]:[]);
+      edges.push(...add); rec(ci+1); edges.length-=add.length;
+      labels[a]=labels[b]=labels[d]=null;
     }
   })(0);
   return out;
@@ -935,11 +971,29 @@ function monoParts(G,L,sites,counts){
   if(singles.length===2&&!doubles.length&&!triples.length) parts.push(anyT(singles.map(x=>pos(x)[0]))?'trans':'cis');
   return parts;
 }
+function triUnits(cfg){  // connected groups of 3 linked positions = tridentate ligands
+  const adjL={};cfg.edges.forEach(([a,b])=>{(adjL[a]=adjL[a]||[]).push(b);(adjL[b]=adjL[b]||[]).push(a);});
+  const seen=new Set(),units=[];
+  Object.keys(adjL).map(Number).forEach(v=>{if(seen.has(v))return;const comp=[],st=[v];seen.add(v);
+    while(st.length){const x=st.pop();comp.push(x);adjL[x].forEach(y=>{if(!seen.has(y)){seen.add(y);st.push(y);}});}
+    if(comp.length===3){const mid=comp.find(x=>adjL[x].length===2&&comp.filter(y=>adjL[y].length===2).length===1);
+      units.push({sites:comp,mid:mid===undefined?null:mid,ends:mid===undefined?null:comp.filter(x=>x!==mid)});}});
+  return units;
+}
 function nameIso(c,G,cfg){
   if(G.id==='Td') return '';
+  const tri=triUnits(cfg);
+  if(tri.length){
+    if(G.id!=='Oh') return '';
+    const isT=(i,j)=>G.transOf[i]===j;
+    const shape=u=>u.ends&&isT(u.ends[0],u.ends[1])?'mer':'fac';
+    if(tri.length===2&&shape(tri[0])==='fac'&&shape(tri[1])==='fac'&&tri[0].mid!==null&&tri[1].mid!==null)
+      return isT(tri[0].mid,tri[1].mid)?'s-fac':'u-fac';
+    return tri.map(shape).sort().join(', ');
+  }
   const L=cfg.labels, inEdge=new Set(cfg.edges.flat());
   const monoSites=[...Array(G.n).keys()].filter(i=>!inEdge.has(i));
-  const chel=c.chel||[], isT=(i,j)=>G.transOf[i]===j, counts=letterCounts(c.mono||'');
+  const chel=(c.chel||[]).filter(x=>ligDent(x)===2), isT=(i,j)=>G.transOf[i]===j, counts=letterCounts(c.mono||'');
   if(!chel.length) return monoParts(G,L,monoSites,counts).join(', ');
   const unsym=chel.filter(x=>x[0]!==x[1]);
   const donors=X=>L.map((l,i)=>(l===X&&inEdge.has(i))?i:-1).filter(i=>i>=0);
@@ -953,7 +1007,7 @@ function nameIso(c,G,cfg){
 }
 /* IUPAC skew-line convention: Δ = right-handed helix defined by two chelate edges */
 function helicity(G,cfg){
-  const P=G.sites;
+  const P=G.sites, signs=new Set();
   for(let i=0;i<cfg.edges.length;i++)for(let j=i+1;j<cfg.edges.length;j++){
     const [a,b]=cfg.edges[i],[c,d]=cfg.edges[j];
     if(a===c||a===d||b===c||b===d) continue;
@@ -963,9 +1017,9 @@ function helicity(G,cfg){
     if(Math.abs(dot)<1e-6||V.len(cr)<1e-6) continue;
     const sg=dot*V.dot(V.sub(m2,m1),cr);
     if(Math.abs(sg)<1e-6) continue;
-    return sg<0?'Δ':'Λ';
+    signs.add(sg<0?'Δ':'Λ');
   }
-  return null;
+  return signs.size===1?[...signs][0]:null;   // pairs of rings disagree → no single Δ/Λ label
 }
 /* R/S for tetrahedral MABCD, taking A > B > C > D as (hypothetical) CIP priorities */
 function rsLabel(G,cfg){
@@ -977,7 +1031,7 @@ function rsLabel(G,cfg){
 /* ---------- full analysis of one formula ---------- */
 function analyzeCase(c){
   const G=GEOMS[c.geom], mono=c.mono||'', chel=c.chel||[];
-  if(mono.length+2*chel.length!==G.n) throw new Error('bad case '+c.id);
+  if(mono.length+chel.reduce((t,x)=>t+ligDent(x),0)!==G.n) throw new Error('bad case '+c.id);
   const raw=enumerateRaw(G,mono,chel), orbits=new Map();
   for(const cfg of raw){const k=canon(cfg,G.rots);if(!orbits.has(k))orbits.set(k,[]);orbits.get(k).push(cfg);}
   const dispKey=cfg=>G.order.map(i=>cfg.labels[i]).join('');
@@ -1009,7 +1063,7 @@ function analyzeCase(c){
     }
     if(grp.length===2){
       let la=null,lb=null;
-      if(c.geom==='Oh'&&chel.length>=2){la=helicity(G,grp[0].cfg);lb=helicity(G,grp[1].cfg);}
+      if(c.geom==='Oh'&&grp[0].cfg.edges.length>=2){la=helicity(G,grp[0].cfg);lb=helicity(G,grp[1].cfg);}
       if(c.geom==='Td'&&!chel.length&&new Set(mono).size===4){la=rsLabel(G,grp[0].cfg);lb=rsLabel(G,grp[1].cfg);}
       if(!la||!lb||la===lb){la='I';lb='II';}
       if(la==='Λ'||la==='S'){grp.reverse();[la,lb]=[lb,la];}
@@ -1148,14 +1202,58 @@ const EXTRA=[
  {id:'oh-mab3',geom:'Oh',chel:['AB','AB','AB'],hint:`The three A ends can be fac or mer, and every tris-chelate propeller has a handedness.`},
  {id:'oh-maab2c2',geom:'Oh',mono:'BBCC',chel:['AA'],hint:`Place the chelate first, then decide where the B pair and the C pair go (cis or trans).`},
 ];
+/* Every formula containing a tridentate ligand, generated, not hand-picked. Counts depend only on which
+   ligands are present (a symmetry maps each ligand onto an identical one), so each ligand is described by its
+   type alone: 9 tridentate types, symmetric/unsymmetric bidentates, and monodentates; different ligands get
+   different letters. Placements that a shape cannot accept (e.g. a mer-only ligand on a tetrahedron) are dropped,
+   and modes that give identical placements on a shape are merged (on a tetrahedron every chain caps a face;
+   on a square every chain is mer). */
+const TRI_TYPES={Oh:['ABA:x','ABC:x','ABA:m','ABC:m','ABA:f','ABC:f','AAA:c','AAB:c','ABC:c'],Td:['ABA:x','ABC:x','AAA:c','AAB:c','ABC:c'],SP:['ABA:x','ABC:x']};
+function triCases(){
+  const out=[], LET='ABCDEFGH';
+  const relabel=(spec,start)=>{const {L,mode}=lig(spec),m={};let k=start;const R=L.split('').map(x=>m[x]||(m[x]=LET[k++])).join('');return {s:mode?R+':'+mode:R,next:k};};
+  const add=(geom,items,monoPat,fam)=>{let k=0;const chel=[];
+    items.forEach(it=>{const r=relabel(it,k);chel.push(r.s);k=r.next;});
+    const mono=monoPat.split('').map(x=>LET[k+'ABC'.indexOf(x)]).join('');
+    out.push({id:'tri-'+geom+'-'+chel.join('_').replace(/:/g,'')+'-'+mono,geom,mono,chel,study:true,fam,gen:true});};
+  for(const g of ['Oh','Td','SP']){
+    const T=TRI_TYPES[g], rest=GEOMS[g].n-3;
+    T.forEach(t=>{ if(rest===1) add(g,[t],'A','t1'); else ['AAA','AAB','ABC'].forEach(mp=>add(g,[t],mp,'t1')); });
+    if(g==='Oh'){
+      T.forEach(t=>['AA','AB'].forEach(bi=>add(g,[t,bi],'A','t2b')));
+      T.forEach((t,i)=>{ add(g,[t,t].map((x,k)=>k===0?x:x),'','t3same');           // the same ligand twice
+        T.slice(i).forEach(u=>add(g,[t,u],'','t3')); });                              // two different ligands
+    }
+  }
+  // a pair of identical ligands must share letters: rewrite 't3same' entries so both copies use the first copy's letters
+  out.forEach(c=>{if(c.fam==='t3same'){c.chel=[c.chel[0],c.chel[0]];c.fam='t3';c.id=c.id.replace(/^tri-/,'tri2-');}});
+  return out;
+}
+const TRI_CASES=[];
+const TRI_NOTES={
+ 'tri-Oh-ABAx-CCC':`A flexible tridentate ligand like dien wraps either a face (fac) or a meridian (mer), and the three C ligands take what is left, which has the same shape. Both arrangements keep a mirror plane: 2 isomers. Compare the rigid (mer-only) and face-capping versions, which allow just one.`,
+ 'tri-Oh-ABAm-CCC':`A rigid planar ligand like terpy can only bind meridionally, so the fac form of [M(ABA)C<sub>3</sub>] is impossible: one arrangement (C<sub>2v</sub>).`,
+ 'tri-Oh-AAAc-BBB':`A face-capping ligand like tacn can only bind facially: one arrangement (C<sub>3v</sub>).`,
+ 'tri2-Oh-ABAx_CDCx-':`Two flexible tridentates like dien: both mer (D<sub>2d</sub>); both fac with their central donors trans (s-fac, C<sub>2h</sub>, centrosymmetric); or both fac with their central donors cis (u-fac, C<sub>2</sub>), which is chiral. 3 geometrical isomers, 4 stereoisomers. One fac plus one mer is impossible: the positions left by a meridian always form another meridian.`,
+ 'tri2-Oh-ABAm_CDCm-':`Two rigid ligands like terpy must both bind mer, at right angles to each other: one arrangement (D<sub>2d</sub>), as in [Fe(terpy)<sub>2</sub>]<sup>2+</sup>.`,
+ 'tri2-Oh-AAAc_BBBc-':`Two face-capping ligands like tacn sit on opposite faces: one arrangement (D<sub>3d</sub>).`,
+ 'tri-Td-ABCx-D':`On a tetrahedron a tridentate ligand always caps a face. With three different donor ends plus D, all four donor atoms differ: no symmetry (C<sub>1</sub>), one enantiomeric pair.`,
+ 'tri-Td-ABAx-C':`On a tetrahedron the chain caps a face. The mirror plane through M, B and C swaps the two identical A ends: one arrangement (C<sub>s</sub>).`,
+ 'tri-SP-ABAx-C':`On a square a tridentate ligand can only span three positions in a row (mer), as in [Pt(dien)Cl]<sup>+</sup>: one arrangement.`,
+ 'tri-Oh-ABCf-DDD':`The ligand must bind fac, and with three different donor ends nothing can reflect it onto itself: one arrangement, which is chiral (C<sub>1</sub>).`,
+ 'tri-Oh-ABCc-DDD':`A face-capping ligand with three different donors: one arrangement, and it is chiral, because the donors can run clockwise or anticlockwise around the face.`,
+};
 const ANALYSIS={};
 [...CASES,...EXTRA].forEach(c=>{ANALYSIS[c.id]=analyzeCase(c);});
-const BANK=[...CASES,...EXTRA];
+triCases().forEach(c=>{const raw=enumerateRaw(GEOMS[c.geom],c.mono,c.chel);if(!raw.length)return;if(TRI_NOTES[c.id])c.insight=TRI_NOTES[c.id];ANALYSIS[c.id]=analyzeCase(c);TRI_CASES.push(c);});
+const BANK=[...CASES,...EXTRA,...TRI_CASES];
 
+const MODE_TAG={m:'mer',f:'fac',c:'cyc'};
+const ligHTML=x=>{const {L,mode}=lig(x);return `(${L})`+(MODE_TAG[mode]?`<sup>${MODE_TAG[mode]}</sup>`:'');};
 function formulaHTML(c){
   let f='M'; const cc={};
   (c.chel||[]).forEach(x=>cc[x]=(cc[x]||0)+1);
-  Object.keys(cc).sort().forEach(k=>{f+=`(${k})`+(cc[k]>1?`<sub>${cc[k]}</sub>`:'');});
+  Object.keys(cc).sort((a,b)=>ligDent(b)-ligDent(a)||(a<b?-1:1)).forEach(k=>{f+=ligHTML(k)+(cc[k]>1?`<sub>${cc[k]}</sub>`:'');});
   const mc=letterCounts(c.mono||''); Object.keys(mc).sort().forEach(k=>{f+=k+(mc[k]>1?`<sub>${mc[k]}</sub>`:'');});
   return `[${f}]`;
 }
@@ -1177,12 +1275,22 @@ const CATS=[
   {id:'both',name:'Geometrical isomerism and enantiomerism',blurb:'Several arrangements, at least one of them chiral.'},
 ];
 const catOf=A=>A.geometric===1?(A.pairs?'enan':'one'):(A.pairs?'both':'geo');
-const caseLetters=c=>new Set((c.mono||'')+(c.chel||[]).join(''));
-const ligKinds=c=>{const k=[],ch=c.chel||[];if(c.mono)k.push('monodentate');if(ch.some(x=>x[0]===x[1]))k.push('symmetric chelate');if(ch.some(x=>x[0]!==x[1]))k.push('unsymmetric chelate');return k;};
+const caseLetters=c=>new Set((c.mono||'')+(c.chel||[]).map(x=>lig(x).L).join(''));
+const TRI_KIND={x:'flexible tridentate',m:'rigid tridentate (mer only)',f:'tridentate (fac only)',c:'face-capping tridentate'};
+const ligKinds=c=>{const k=[],ch=c.chel||[],bi=ch.filter(x=>ligDent(x)===2);if(c.mono)k.push('monodentate');
+  if(bi.some(x=>x[0]===x[1]))k.push('symmetric chelate');if(bi.some(x=>x[0]!==x[1]))k.push('unsymmetric chelate');
+  ch.filter(x=>ligDent(x)===3).forEach(x=>{const t=TRI_KIND[lig(x).mode];if(!k.includes(t))k.push(t);});return k;};
+const FAMS=[
+  {id:'mb',name:'Monodentate & bidentate ligands'},
+  {id:'t1',name:'One tridentate + monodentates'},
+  {id:'t2b',name:'Tridentate + bidentate + monodentate'},
+  {id:'t3',name:'Two tridentate ligands',note:'A mer-only ligand never shares an octahedron with a fac-only or face-capping one: the three positions left by a meridian always form another meridian.'},
+];
+const famOf=c=>c.fam||'mb';
 const ligChips=c=>ligKinds(c).map(k=>`<span class="chip lig">${k}</span>`).join('');
-function casesFor(g,chiralOnly){
+function casesFor(g,chiralOnly,fam='mb'){
   const key=c=>{const A=ANALYSIS[c.id];return [A.stereo,caseLetters(c).size,(c.chel||[]).length,formulaHTML(c)];};
-  const list=BANK.filter(c=>c.geom===g&&(!chiralOnly||ANALYSIS[c.id].pairs>0));
+  const list=BANK.filter(c=>c.geom===g&&famOf(c)===fam&&(!chiralOnly||ANALYSIS[c.id].pairs>0));
   list.sort((a,b)=>{const x=key(a),y=key(b);for(let i=0;i<4;i++){if(x[i]<y[i])return -1;if(x[i]>y[i])return 1;}return 0;});
   return CATS.map(cat=>({cat,cases:list.filter(c=>catOf(ANALYSIS[c.id])===cat.id)})).filter(x=>x.cases.length);
 }
@@ -1195,22 +1303,35 @@ function countsHTML(A,compact){
 const PERMS={};
 const permsOf=n=>PERMS[n]||(PERMS[n]=(function P(a){return a.length<=1?[a]:a.flatMap((x,i)=>P(a.slice(0,i).concat(a.slice(i+1))).map(r=>[x,...r]));})('ABCDEFG'.slice(0,n).split('')));
 function formulaCanon(mono,chel){
-  const used=[...new Set(mono+chel.join(''))];let best=null;
+  const used=[...new Set(mono+chel.map(x=>lig(x).L).join(''))];let best=null;
   for(const p of permsOf(used.length)){const m=x=>p[used.indexOf(x)];
-    const k=mono.split('').map(m).sort().join('')+'|'+chel.map(c=>c.split('').map(m).sort().join('')).sort().join(',');
+    const k=mono.split('').map(m).sort().join('')+'|'+chel.map(c=>{const {L,mode}=lig(c);return normItem(L.split('').map(m).join('')+(mode?':'+mode:''));}).sort().join(',');
     if(best===null||k<best)best=k;}
   return best;
 }
+/* formula up to ligand identity: every distinct ligand gets fresh letters (isomer counts depend only on this) */
+function speciesForm(mono,chel){const LET='ABCDEFGHIJ';let k=0;const seen={},items=[];
+  chel.forEach(x=>{const n=normItem(x);if(!(n in seen)){const {L,mode}=lig(n),m={};seen[n]=normItem(L.split('').map(ch=>m[ch]||(m[ch]=LET[k++])).join('')+(mode?':'+mode:''));}items.push(seen[n]);});
+  const mm={};return formulaCanon(mono.split('').map(ch=>mm[ch]||(mm[ch]=LET[k++])).join(''),items);}
 const NB={}; let bankKeys=null;
 /* formulas in the app that differ from this one by changing a single donor */
 function neighbours(c){
   if(NB[c.id]) return NB[c.id];
-  if(!bankKeys){bankKeys={};BANK.forEach(b=>{bankKeys[b.geom+':'+formulaCanon(b.mono||'',b.chel||[])]=b;});}
-  const mono=c.mono||'',chel=c.chel||[],used=[...caseLetters(c)].sort(),NEW='Z',self=formulaCanon(mono,chel),out=new Map();
-  const consider=(m,ch,desc)=>{const k=formulaCanon(m,ch);if(k===self)return;const b=bankKeys[c.geom+':'+k];if(b&&!out.has(b.id))out.set(b.id,{c:b,desc});};
+  if(!bankKeys){bankKeys={};BANK.forEach(b=>{const k=b.geom+':'+speciesForm(b.mono||'',b.chel||[]);if(!bankKeys[k])bankKeys[k]=b;});}
+  const mono=c.mono||'',chel=c.chel||[],used=[...caseLetters(c)].sort(),NEW='Z',self=speciesForm(mono,chel),out=new Map();
+  const consider=(m,ch,desc)=>{const k=speciesForm(m,ch);if(k===self)return;const b=bankKeys[c.geom+':'+k];if(b&&!out.has(b.id))out.set(b.id,{c:b,desc});};
   [...new Set(mono)].forEach(X=>{const i=mono.indexOf(X);
-    used.filter(y=>y!==X).concat(NEW).forEach(Y=>consider(mono.slice(0,i)+Y+mono.slice(i+1),chel,`one ${X} → ${Y===NEW?'a new ligand':Y}`));});
-  chel.forEach((pr,ci)=>[0,1].forEach(e=>{const X=pr[e];
+    [...new Set(mono)].filter(y=>y!==X).concat(NEW).forEach(Y=>consider(mono.slice(0,i)+Y+mono.slice(i+1),chel,`one ${X} → ${Y===NEW?'a new ligand':Y}`));});
+  chel.forEach((pr,ci)=>{if(ligDent(pr)!==3)return;const {L,mode}=lig(pr);const sw=x=>{const ch=chel.slice();ch[ci]=x;return ch;};
+    if(mode==='c'){const cnt={};L.split('').forEach(x=>cnt[x]=(cnt[x]||0)+1);const ks=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
+      if(ks.length===1) consider(mono,sw(ks[0]+ks[0]+NEW+':c'),'make one ring donor different');
+      else if(ks.length===2){consider(mono,sw(ks[0]+ks[0]+ks[0]+':c'),'make all three ring donors the same');consider(mono,sw(ks[0]+NEW+ks[1]+':c'),'make all three ring donors different');}
+      else consider(mono,sw(ks[0]+ks[0]+ks[1]+':c'),'make two ring donors the same');
+      return;}
+    const sym=L[0]===L[2], the=chel.filter(x=>ligDent(x)===3).length>1?'one ':'the ';
+    consider(mono,sw((sym?L[0]+L[1]+NEW:L[0]+L[1]+L[0])+':'+mode),sym?`give ${the}tridentate two different ends`:`give ${the}tridentate two identical ends`);
+    ({x:[['m',`make ${the}tridentate rigid (mer only)`],['f',`restrict ${the}tridentate to fac`]],m:[['x',`make ${the}tridentate flexible`]],f:[['x',`make ${the}tridentate flexible`]]}[mode]||[]).forEach(([md,d])=>consider(mono,sw(L+':'+md),d));});
+  chel.forEach((pr,ci)=>ligDent(pr)===2&&[0,1].forEach(e=>{const X=pr[e];
     used.filter(y=>y!==X).concat(NEW).forEach(Y=>{const ch=chel.slice();ch[ci]=e?pr[0]+Y:Y+pr[1];
       consider(mono,ch,`one ${X} end of a (${pr}) chelate → ${Y===NEW?'a new donor':Y}`);});}));
   const n=caseLetters(c).size;
@@ -1483,7 +1604,8 @@ const ICONS={
 };
 const isoById={}; Object.values(ANALYSIS).forEach(A=>A.isomers.forEach(i=>isoById[i.id]=i));
 
-const SB={chiralOnly:false};
+const SB={chiralOnly:false,famOpen:new Set(['Td:mb','SP:mb','Oh:mb'])};
+function fillNbr(caseEl){const slot=caseEl.querySelector('.nbr-slot');if(slot&&!slot.dataset.done){slot.innerHTML=neighbourHTML(BANK.find(c=>c.id===caseEl.dataset.case));slot.dataset.done='1';}}
 function caseHTML(c){
   const A=ANALYSIS[c.id];
   const rows=A.groups.map(grp=>{
@@ -1496,17 +1618,21 @@ function caseHTML(c){
   return `<div class="case" data-case="${c.id}">
     <button class="case-btn"><span class="arrow">▶</span><span class="f">${formulaHTML(c)}</span><span class="cnt">${countsHTML(A,true).replace(' · ','<br>')}</span></button>
     <div class="case-body"><div class="ligchips">${ligChips(c)}</div><p class="insight">${c.insight||summaryHTML(A)}</p>
-      <p class="tally">${countsHTML(A)}</p>${rows}${neighbourHTML(c)}</div></div>`;
+      <p class="tally">${countsHTML(A)}</p>${rows}<div class="nbr-slot"></div></div></div>`;
 }
 function renderSidebar(){
   const open=new Set($$('#sideList .case.open').map(e=>e.dataset.case));
+  $$('#sideList details.fam').forEach(d=>{if(d.open)SB.famOpen.add(d.dataset.key);else SB.famOpen.delete(d.dataset.key);});
   $('#sideList').innerHTML=['Td','SP','Oh'].map(g=>`<div class="geo-head">${ICONS[g]}<span>${GEOMS[g].name}</span><span class="chip">${GEOMS[g].sym}</span></div>`+
-    casesFor(g,SB.chiralOnly).map(({cat,cases})=>`<div class="cat-head"><b>${cat.name}</b><small>${cat.blurb}</small></div>`+cases.map(caseHTML).join('')).join('')).join('');
-  open.forEach(id=>{const e=$(`#sideList .case[data-case="${id}"]`);if(e)e.classList.add('open');});
+    FAMS.map(f=>{const groups=casesFor(g,SB.chiralOnly,f.id),n=groups.reduce((t,x)=>t+x.cases.length,0);if(!n)return '';const key=g+':'+f.id;
+      return `<details class="fam" data-key="${key}" ${SB.famOpen.has(key)?'open':''}><summary>${f.name} <span class="famn">${n}</span></summary>${f.note&&g==='Oh'?`<p class="fam-note">${f.note}</p>`:''}`+
+        groups.map(({cat,cases})=>`<div class="cat-head"><b>${cat.name}</b><small>${cat.blurb}</small></div>`+cases.map(caseHTML).join('')).join('')+`</details>`;}).join('')).join('');
+  open.forEach(id=>{const e=$(`#sideList .case[data-case="${id}"]`);if(e){e.classList.add('open');fillNbr(e);}});
 }
 function openCase(id){
   if(SB.chiralOnly&&!ANALYSIS[id].pairs){SB.chiralOnly=false;$('#sideChiral').classList.remove('on');renderSidebar();}
-  const el=$(`#sideList .case[data-case="${id}"]`); el.classList.add('open'); el.scrollIntoView({block:'start',behavior:'smooth'});
+  const key=ANALYSIS[id].c.geom+':'+famOf(ANALYSIS[id].c); if(!SB.famOpen.has(key)){SB.famOpen.add(key);renderSidebar();}
+  const el=$(`#sideList .case[data-case="${id}"]`); el.closest('details').open=true; el.classList.add('open'); fillNbr(el); el.scrollIntoView({block:'start',behavior:'smooth'});
   loadInto(1,dispOf(ANALYSIS[id].isomers[0]));
 }
 function buildSidebar(){
@@ -1516,7 +1642,7 @@ function buildSidebar(){
   side.addEventListener('click',e=>{
     const f=e.target.closest('#sideChiral'); if(f){SB.chiralOnly=!SB.chiralOnly;f.classList.toggle('on',SB.chiralOnly);f.setAttribute('aria-pressed',SB.chiralOnly);renderSidebar();refreshUI();return;}
     const ng=e.target.closest('[data-case-go]'); if(ng){openCase(ng.dataset.caseGo);return;}
-    const cb=e.target.closest('.case-btn'); if(cb){cb.parentElement.classList.toggle('open');return;}
+    const cb=e.target.closest('.case-btn'); if(cb){cb.parentElement.classList.toggle('open');fillNbr(cb.parentElement);return;}
     const pb=e.target.closest('[data-pair]'); if(pb){const a=isoById[pb.dataset.pair];setLive(false);loadInto(1,dispOf(a));loadInto(2,dispOf(a.partner));return;}
     const ld=e.target.closest('.ld'); if(ld){loadInto(+ld.dataset.to,dispOf(isoById[ld.closest('.iso').dataset.iso]));return;}
     const nm=e.target.closest('.nm'); if(nm){const iso=isoById[nm.closest('.iso').dataset.iso];
@@ -1644,12 +1770,12 @@ function buildLegend(){
    3b. BUILDER — recreate a drawing from an exam paper
    ===================================================================== */
 const caseByKey={};
-const formulaKey=(geom,mono,chel)=>geom+'|'+mono.split('').sort().join('')+'|'+chel.slice().sort().join(',');
+const formulaKey=(geom,mono,chel)=>geom+'|'+mono.split('').sort().join('')+'|'+chel.map(normItem).sort().join(',');
 BANK.forEach(c=>{caseByKey[formulaKey(c.geom,c.mono||'',c.chel||[])]=c.id;});
 function analysisFor(geom,mono,chel){
   const k=formulaKey(geom,mono,chel);
   if(!caseByKey[k]){
-    const c={id:'custom:'+k,geom,mono:mono.split('').sort().join(''),chel:chel.slice().sort()};
+    const c={id:'custom:'+k,geom,mono:mono.split('').sort().join(''),chel:chel.map(normItem).sort(),fam:chel.some(x=>ligDent(x)===3)?'custom':'mb'};
     ANALYSIS[c.id]=analyzeCase(c); ANALYSIS[c.id].isomers.forEach(i=>isoById[i.id]=i); caseByKey[k]=c.id;
   }
   return ANALYSIS[caseByKey[k]];
@@ -1662,7 +1788,14 @@ function builderResult(){
   if(B.labels.some(l=>!l)) return null;
   const inEdge=new Set(B.edges.flat());
   const mono=B.labels.filter((l,i)=>!inEdge.has(i)).join('');
-  const chel=B.edges.map(([a,b])=>[B.labels[a],B.labels[b]].sort().join(''));
+  // linked positions → ligands: 2 positions = bidentate, a 3-position chain = flexible tridentate, a closed triangle = face-capping
+  const chel=[],done=new Set();
+  B.edges.forEach(([a])=>{if(done.has(a))return;const comp=new Set([a]),st=[a];
+    while(st.length){const x=st.pop();B.edges.forEach(([p,q])=>{const y=p===x?q:q===x?p:null;if(y!==null&&!comp.has(y)){comp.add(y);st.push(y);}});}
+    comp.forEach(v=>done.add(v));const vs=[...comp],deg=v=>B.edges.filter(e=>e.includes(v)).length;
+    if(vs.length===2) chel.push(vs.map(v=>B.labels[v]).sort().join(''));
+    else if(vs.every(v=>deg(v)===2)) chel.push(normItem(vs.map(v=>B.labels[v]).join('')+':c'));
+    else{const mid=vs.find(v=>deg(v)===2),ends=vs.filter(v=>v!==mid);chel.push(normItem(B.labels[ends[0]]+B.labels[mid]+B.labels[ends[1]]+':x'));}});
   const A=analysisFor(B.geom,mono,chel), G=GEOMS[B.geom], cfg=builderCfg();
   const iso=A.isomers.find(i=>i.key===canon(cfg,G.rots));
   return {A,iso,cfg,q:G.layouts[B.layout].q.clone()};
@@ -1704,8 +1837,9 @@ function pickSite(i){
       const a=Math.min(B.pending,i),b=Math.max(B.pending,i),ex=B.edges.findIndex(e=>e[0]===a&&e[1]===b);
       if(ex>=0) B.edges.splice(ex,1);
       else if(!G.edges.some(e=>e[0]===a&&e[1]===b)) builderMsg('A chelate has to span two <i>adjacent</i> (cis) positions. Those two are trans.');
-      else if(B.edges.some(e=>e.includes(a)||e.includes(b))) builderMsg('Each position can hold only one chelate end. Unlink the old ring first (click its two ends again).');
-      else B.edges.push([a,b]);
+      else{ B.edges.push([a,b]);
+        const comp=v=>{const seen=new Set([v]),st=[v];while(st.length){const x=st.pop();B.edges.forEach(([p,q])=>{const y=p===x?q:q===x?p:null;if(y!==null&&!seen.has(y)){seen.add(y);st.push(y);}});}return seen.size;};
+        if(comp(a)>3){B.edges.pop();builderMsg('A ligand can bind through at most three positions here. Two links through one position make a tridentate ligand; a third would make a larger one.');} }
       B.pending=null;
     }
   } else if(B.tool==='erase'){B.labels[i]=null;B.edges=B.edges.filter(e=>!e.includes(i));}
@@ -1743,7 +1877,7 @@ function buildBuilder(){
 /* =====================================================================
    4. QUIZ UI
    ===================================================================== */
-const Q={cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
+const Q={fams:new Set(['mb','tri']),cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
 try{Q.best=+localStorage.getItem('isoSketchBest')||0;const m=localStorage.getItem('isoAnsMode');if(m==='mc'||m==='type')Q.mode=m;}catch(e){}
 const TYPE_TEXT={
   stereo:`How many <b>stereoisomers</b> (counting each enantiomer separately) are possible for`,
@@ -1755,9 +1889,11 @@ function gloss(c){
   const bits=[]; const chel=c.chel||[];
   const mono=[...new Set(c.mono||'')];
   if(mono.length) bits.push(`${mono.join(', ')} = different monodentate ligands`);
-  if(chel.some(x=>x[0]===x[1])) bits.push(`AA = symmetrical bidentate ligand (like en)`);
-  if(chel.some(x=>x[0]!==x[1])) bits.push(`AB = unsymmetrical bidentate ligand (like glycinate), donor ends A and B`);
-  if(chel.length) bits.push(`chelates span ${c.geom==='Td'?'an edge':'cis positions'}`);
+  const bi=chel.filter(x=>ligDent(x)===2), tri=chel.filter(x=>ligDent(x)===3);
+  if(bi.some(x=>x[0]===x[1])) bits.push(`AA = symmetrical bidentate ligand (like en)`);
+  if(bi.some(x=>x[0]!==x[1])) bits.push(`AB = unsymmetrical bidentate ligand (like glycinate), donor ends A and B`);
+  if(bi.length) bits.push(`chelates span ${c.geom==='Td'?'an edge':'cis positions'}`);
+  if(tri.length) bits.push(`(ABA), (ABC) = tridentate ligands, donors in chain order (like dien); <sup>mer</sup> = rigid, binds only meridionally (like terpy); <sup>fac</sup> = binds only facially; <sup>cyc</sup> = cyclic or tripodal, caps a face (like tacn); unmarked chains are flexible`);
   return bits.join(' · ')+'. Ligands are idealised as points; chelate-ring conformations are ignored.';
 }
 function setAnswerMode(m){
@@ -1769,7 +1905,11 @@ function setAnswerMode(m){
 function nextQuestion(){
   clearResults(); hidePop();
   const quizzable=c=>caseLetters(c).size>1;   // [MA6]-type formulas are too trivial to ask about
-  let pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last); if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom));
+  const fk=c=>famOf(c)==='mb'?'mb':'tri';
+  // pick the ligand family first, so the 96 generated tridentate formulas don't crowd out the rest
+  const famsAvail=[...Q.fams].filter(f=>BANK.some(c=>fk(c)===f&&quizzable(c)&&Q.geoms.has(c.geom)));
+  const fpick=famsAvail.length?famsAvail[Math.floor(Math.random()*famsAvail.length)]:'mb';
+  let pool=BANK.filter(c=>fk(c)===fpick&&quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last); if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom));
   const c=pool[Math.floor(Math.random()*pool.length)];
   const types=[...Q.types]; let r=Math.random()*types.reduce((s,t)=>s+TYPE_W[t],0), t=types[0];
   for(const ty of types){r-=TYPE_W[ty];if(r<=0){t=ty;break;}}
@@ -1900,6 +2040,7 @@ function hidePop(){$('#pop').classList.remove('show');}
 function buildFilters(){
   const f=$('#filters');
   f.innerHTML=`<span>ask about:</span>`+['Td','SP','Oh'].map(g=>`<button class="btn ${Q.geoms.has(g)?'on':''}" data-geo="${g}">${GEOMS[g].name}</button>`).join('')+
+    `<span class="dot-sep">·</span>`+[['mb','mono- & bidentate'],['tri','tridentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join('')+
     `<span class="dot-sep">·</span>`+[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}">${l}</button>`).join('')+
     `<span class="keyhint">${Q.mode==='mc'?'keys 1–4 answer · Enter = next':'Enter = check, then Enter = next'}</span>`;
 }
@@ -1940,7 +2081,7 @@ function setMode(mode){
   if(mode==='quiz'&&!Q.cur) nextQuestion();
 }
 /* the phone app re-uses the same live drawings, quiz card and builder: they are moved into its screens */
-const M={chiralOnly:false,tab:'explore',stack:[{t:'home'}],VX:null,homes:new Map(),moved:false,toastT:0};
+const M={chiralOnly:false,fam:'mb',tab:'explore',stack:[{t:'home'}],VX:null,homes:new Map(),moved:false,toastT:0};
 const MOVES=[['#stage1','#cHost1'],['#stage2','#cHost2'],['#quizScroll','#qHost'],['#builder .bsheet','#bHost']];
 function placeElements(mobile){
   MOVES.forEach(([sel])=>{if(!M.homes.has(sel)){const el=$(sel);M.homes.set(sel,{el,parent:el.parentNode,next:el.nextSibling});}});
@@ -2006,7 +2147,7 @@ function xRender(dir){
     $('#xInfo').innerHTML=xInfoHTML(iso);
   } else {
     mol.hidden=true; list.hidden=false;
-    if(dir!==null||!list.innerHTML) {list.innerHTML=xListHTML(top); list.scrollTop=0;}
+    if(dir!==null||!list.innerHTML) {list.innerHTML=xListHTML(top); list.scrollTop=0; const on=list.querySelector('.xfam.on'); if(on) on.parentElement.scrollLeft=on.offsetLeft-16;}
   }
   if(dir){const el=top.t==='iso'?mol:list;el.classList.remove('slide-in','slide-back');void el.offsetWidth;el.classList.add(dir==='pop'?'slide-back':'slide-in');}
   mTop();
@@ -2015,13 +2156,17 @@ const chev='<span class="chev" aria-hidden="true">›</span>';
 function xListHTML(top){
   if(top.t==='home'){
     return `<p class="xintro">Pick a geometry and a formula to see every isomer, drawn the way an exam paper draws it. Then turn it with your finger.</p>`+
-      ['Oh','SP','Td'].map(g=>{const n=BANK.filter(c=>c.geom===g).length;
-        return `<button class="xrow big" data-go="geo:${g}">${ICONS[g]}<span class="xr-main"><b>${GEOMS[g].name}</b><small>${n} formulas · point group of the bare shape ${GEOMS[g].sym}</small></span>${chev}</button>`;}).join('')+
+      ['Oh','SP','Td'].map(g=>{const n=BANK.filter(c=>c.geom===g).length,nt=BANK.filter(c=>c.geom===g&&famOf(c)!=='mb').length;
+        return `<button class="xrow big" data-go="geo:${g}">${ICONS[g]}<span class="xr-main"><b>${GEOMS[g].name}</b><small>${n} formulas (${nt} with tridentate ligands) · bare shape ${GEOMS[g].sym}</small></span>${chev}</button>`;}).join('')+
       `<button class="xrow big accent" data-gotab="build"><span class="xr-ico">✎</span><span class="xr-main"><b>Build from an exam drawing</b><small>Copy a structure from your paper and turn it</small></span>${chev}</button>`;
   }
   if(top.t==='geo'){
-    return `<div class="seg xfilter" role="group" aria-label="Filter"><button data-filter="all" class="${M.chiralOnly?'':'on'}">All formulas</button><button data-filter="chiral" class="${M.chiralOnly?'on':''}">Has enantiomers</button></div>`+
-      casesFor(top.id,M.chiralOnly).map(({cat,cases})=>`<div class="xcat"><b>${cat.name}</b><small>${cat.blurb}</small></div>`+
+    const fams=FAMS.filter(f=>BANK.some(c=>c.geom===top.id&&famOf(c)===f.id)); if(!fams.some(f=>f.id===M.fam)) M.fam='mb';
+    const fnote=FAMS.find(f=>f.id===M.fam).note;
+    return `<div class="xfams" role="group" aria-label="Ligands">${fams.map(f=>`<button class="xfam ${f.id===M.fam?'on':''}" data-fam="${f.id}">${f.name}</button>`).join('')}</div>
+      <div class="seg xfilter" role="group" aria-label="Filter"><button data-filter="all" class="${M.chiralOnly?'':'on'}">All formulas</button><button data-filter="chiral" class="${M.chiralOnly?'on':''}">Has enantiomers</button></div>`+
+      (fnote&&top.id==='Oh'?`<p class="xins">${fnote}</p>`:'')+
+      casesFor(top.id,M.chiralOnly,M.fam).map(({cat,cases})=>`<div class="xcat"><b>${cat.name}</b><small>${cat.blurb}</small></div>`+
         cases.map(c=>`<button class="xrow" data-go="case:${c.id}"><span class="xr-main"><span class="xf">${formulaHTML(c)}</span><small>${countsHTML(ANALYSIS[c.id],true)}</small><span class="xchips">${ligChips(c)}</span></span>${chev}</button>`).join('')).join('');
   }
 
@@ -2093,6 +2238,7 @@ function mInit(){
   $('#xList').addEventListener('click',e=>{
     const c=e.target.closest('[data-cmp]'); if(c){const a=isoById[c.dataset.cmp];setLive(false);mTab('compare');loadInto(1,dispOf(a));loadInto(2,mirrorDisp(dispOf(a),mirrorAxisNow()));return;}
     const t=e.target.closest('[data-gotab]'); if(t){mTab(t.dataset.gotab);return;}
+    const fm=e.target.closest('[data-fam]'); if(fm){M.fam=fm.dataset.fam;$('#xList').innerHTML='';xRender(null);return;}
     const fl=e.target.closest('[data-filter]'); if(fl){M.chiralOnly=fl.dataset.filter==='chiral';$('#xList').innerHTML='';xRender(null);return;}
     const ng=e.target.closest('[data-case-go]'); if(ng){xPush({t:'case',id:ng.dataset.caseGo});return;}
     const g=e.target.closest('[data-go]'); if(g){const [tt,id]=g.dataset.go.split(/:(.+)/);xPush({t:tt,id});}
@@ -2131,7 +2277,7 @@ function init(){
   V1=new View($('#stage1')); V2=new View($('#stage2'));
   V1.onActivate=()=>setActive(1); V2.onActivate=()=>setActive(2);
   const start=ANALYSIS['oh-maa3'];
-  $('.case[data-case="oh-maa3"]').classList.add('open');
+  $('.case[data-case="oh-maa3"]').classList.add('open'); fillNbr($('.case[data-case="oh-maa3"]'));
   loadInto(1,dispOf(start.isomers[0])); loadInto(2,dispOf(start.isomers[1]));
   setAnswerMode(Q.mode);
 
@@ -2167,7 +2313,7 @@ function init(){
     else{const r=v.step(a[1]);if(r)$('#iflag').innerHTML=STEP_TEXT(r,a[1]);}});
   $('#filters').addEventListener('click',e=>{
     const b=e.target.closest('.btn'); if(!b) return;
-    const set=b.dataset.geo?Q.geoms:Q.types, key=b.dataset.geo||b.dataset.type;
+    const set=b.dataset.geo?Q.geoms:b.dataset.fam?Q.fams:Q.types, key=b.dataset.geo||b.dataset.fam||b.dataset.type;
     if(set.has(key)){if(set.size>1)set.delete(key);}else set.add(key);
     buildFilters();
   });
