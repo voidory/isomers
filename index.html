@@ -1044,6 +1044,45 @@ const CASES=[
  {id:'oh-mabcdef',geom:'Oh',mono:'ABCDEF',study:true,
   insight:`Six different ligands: an isomer is fixed by which three pairs are trans. Ways to pair six objects: 5 × 3 × 1 = 15 geometric isomers. No arrangement can hold any symmetry element (C<sub>1</sub>), so every one is chiral: 15 enantiomeric pairs, 30 stereoisomers. All 30 are drawn here.`,
   hint:`Count the ways to choose the three trans pairs (5 × 3 × 1), then ask whether any arrangement could have a mirror plane.`},
+ {id:'td-mabcd-c',geom:'Td',mono:'CD',chel:['AB'],study:true,
+  insight:`Any two tetrahedral positions are adjacent, so the chelate fits on any edge. That leaves four different donor atoms (A, B, C, D) around the metal and no mirror plane: one enantiomeric pair, just like [MABCD].`,
+  hint:`Count the different donor atoms. A tetrahedron with four different ones is chiral.`},
+ {id:'td-mabac',geom:'Td',chel:['AB','AC'],study:true,
+  insight:`Two different unsymmetrical chelates share the A donor type. As in [M(AB)<sub>2</sub>], the two chelate edges are perpendicular, and with B and C different no mirror plane or S<sub>4</sub> axis survives (C<sub>1</sub>). One enantiomeric pair.`,
+  hint:`Start from [M(AB)<sub>2</sub>]: does making one chelate different restore any symmetry?`},
+ {id:'td-mabcd2',geom:'Td',chel:['AB','CD'],study:true,
+  insight:`Two completely different unsymmetrical chelates give four different donor atoms on the tetrahedron, so there is no symmetry at all (C<sub>1</sub>): one enantiomeric pair.`,
+  hint:`Four different donor atoms on a tetrahedron: think stereogenic carbon.`},
+ {id:'sp-mabcd-c',geom:'SP',mono:'CD',chel:['AB'],study:true,
+  insight:`The chelate fixes A and B cis to each other. C then sits trans to A or trans to B, with D in the last place: 2 geometric isomers. The molecular plane is a mirror plane, so neither is chiral.`,
+  hint:`Fix the chelate, then ask what can sit trans to A.`},
+ {id:'sp-mabac',geom:'SP',chel:['AB','AC'],study:true,
+  insight:`The two chelates fill the square. Their two A ends are either adjacent (cis) or opposite (trans): 2 isomers, both planar and achiral.`,
+  hint:`Where are the two A ends relative to each other?`},
+ {id:'sp-mabcd2',geom:'SP',chel:['AB','CD'],study:true,
+  insight:`With one AB and one CD chelate, A ends up trans to either C or D: 2 isomers, both achiral.`,
+  hint:`Fix the AB chelate; the CD chelate can lie two ways round.`},
+ {id:'oh-ma2bcde',geom:'Oh',mono:'AABCDE',study:true,
+  insight:`Split by the two A ligands. Trans A<sub>2</sub>: B, C, D and E fill the square around the A–M–A axis in 3 distinct ways, each keeping that square as a mirror plane. Cis A<sub>2</sub>: 6 arrangements, none with any symmetry (C<sub>1</sub>), so each is an enantiomeric pair. Total: 3 + 6 × 2 = 15.`,
+  hint:`Split into trans-A<sub>2</sub> and cis-A<sub>2</sub>, then check each arrangement for a mirror plane.`},
+ {id:'oh-ma3bcd',geom:'Oh',mono:'AAABCD',study:true,
+  insight:`mer-A<sub>3</sub>: the ligand trans to the middle A can be B, C or D, giving 3 isomers, each with a mirror plane. fac-A<sub>3</sub>: B, C and D on the opposite face can run either way round, so fac is chiral. Total: 3 + 2 = 5.`,
+  hint:`Do fac and mer separately. In fac, can B, C and D on the far face be reflected onto themselves?`},
+ {id:'oh-maab3c',geom:'Oh',mono:'BBBC',chel:['AA'],study:true,
+  insight:`The chelate takes two cis positions and the three B ligands go fac or mer, with C in the last place. Both isomers keep a mirror plane, so neither is chiral: 2 isomers.`,
+  hint:`Three identical B ligands: fac or mer?`},
+ {id:'oh-maab2cd',geom:'Oh',mono:'BBCD',chel:['AA'],study:true,
+  insight:`B<sub>2</sub> trans: one isomer with a mirror plane. B<sub>2</sub> cis: 3 arrangements. In one, C and D are trans to each other and it keeps a mirror plane. In the other two, one of C and D sits trans to a chelate end and the other trans to a B, which leaves no symmetry, so each is an enantiomeric pair. Total: 2 + 2 × 2 = 6.`,
+  hint:`Place the B pair first (cis or trans), then see where C and D can go and check each for a mirror plane.`},
+ {id:'oh-mab2c2',geom:'Oh',mono:'CC',chel:['AB','AB'],study:true,
+  insight:`The names give two things in turn: whether the two A ends are cis or trans, then whether the two C ligands are cis or trans. 2 arrangements keep a mirror plane or an inversion centre (C<sub>2v</sub>, C<sub>2h</sub>). The other 3 have only a C<sub>2</sub> axis or nothing at all, so each comes as a Δ/Λ pair. Total: 2 + 3 × 2 = 8.`,
+  hint:`Decide where the two C ligands go (cis or trans), then where the A ends of the chelates point, and check each result for a mirror plane.`},
+ {id:'oh-maa2bb',geom:'Oh',chel:['AA','AA','BB'],study:true,
+  insight:`A tris-chelate propeller like [M(AA)<sub>3</sub>] with one different blade. The C<sub>3</sub> axis is lost but a C<sub>2</sub> through the BB ring remains, and there is still no mirror plane: Δ and Λ.`,
+  hint:`It's still a three-bladed propeller. Can a propeller ever be superimposed on its mirror image?`},
+ {id:'oh-maabbcc',geom:'Oh',chel:['AA','BB','CC'],study:true,
+  insight:`Three different chelate rings: no symmetry at all (C<sub>1</sub>), but still a single propeller arrangement that comes as Δ and Λ.`,
+  hint:`Three different blades on one propeller: how many ways to build it, and does it have a mirror image?`}
 ];
 const EXTRA=[
  {id:'td-ma2b2',geom:'Td',mono:'AABB'},
@@ -1358,7 +1397,7 @@ function buildSidebar(){
       side.insertAdjacentHTML('beforeend',`<div class="case" data-case="${c.id}">
         <button class="case-btn"><span class="arrow">▶</span><span class="f">${formulaHTML(c)}</span>
           <span class="cnt">${A.stereo} stereoisomer${A.stereo>1?'s':''}<br>${A.geometric} geometric${A.pairs?` · ${A.pairs} pair${A.pairs>1?'s':''}`:''}</span></button>
-        <div class="case-body"><p class="insight">${c.insight}</p>
+        <div class="case-body"><p class="insight">${c.insight||summaryHTML(A)}</p>
           <p class="tally">geometric isomers: ${A.geometric} · enantiomeric pairs: ${A.pairs} · stereoisomers: ${A.stereo}</p>${rows}</div></div>`);
     });
   });
