@@ -256,6 +256,30 @@ main[hidden]{display:none!important}
 html.js #nojs{display:none} html:not(.js) .app,html:not(.js) #mapp{display:none!important}
 #errbox{position:fixed;left:12px;right:12px;bottom:12px;z-index:99;background:#fde0dc;border:2px solid #e0503f;border-radius:10px;padding:10px 12px;font:14px/1.4 -apple-system,Arial,sans-serif;color:#1f1d1a}
 
+/* ---------- categories, ligand badges, substitution links ---------- */
+.side-filter{width:100%;white-space:normal;margin:0 0 4px;font-size:13.5px}
+.cat-head{margin:10px 0 6px;padding:3px 8px;border-left:4px solid var(--violet);display:flex;flex-direction:column;gap:1px}
+.cat-head b{font-family:var(--hand);font-weight:normal;font-size:14.5px}
+.cat-head small{font-size:12.5px;color:var(--ink2);line-height:1.25}
+.chip.lig{background:var(--paper);border-color:var(--ink3);color:var(--ink2);font-size:11.5px}
+.ligchips{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 6px}
+.case-body .tally{display:flex;flex-wrap:wrap;gap:2px 10px}
+.case-body .tally b{font-size:14px}
+.nbr{margin-top:10px;padding-top:6px;border-top:1.5px dashed var(--grid2);display:flex;flex-direction:column;gap:5px}
+.nbr-h{font-family:var(--hand);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink2)}
+.nbr-row{text-align:left;background:var(--card);border:1.5px solid var(--ink3);border-radius:8px 3px 8px 3px;padding:4px 8px;display:flex;flex-direction:column;gap:1px}
+.nbr-row:hover{background:var(--hl)}
+.nbr-row .xf{font-family:var(--hand);font-size:16px}
+.nbr-row small{font-size:12.5px;color:var(--ink2);line-height:1.3}
+.xcat{margin:12px 2px 0;display:flex;flex-direction:column;gap:2px;flex:none}
+.xcat b{font-family:var(--hand);font-weight:normal;font-size:17px;border-left:4px solid var(--violet);padding-left:8px}
+.xcat small{font-size:13.5px;color:var(--ink2);padding-left:12px}
+.xfilter{align-self:flex-start}
+.xtally span{display:inline-block;margin:0 6px 4px 0}
+body.mobile .nbr-row{min-height:54px;padding:8px 10px;border-width:2px;box-shadow:2px 2px 0 var(--ink3)}
+body.mobile .nbr-row .xf{font-size:19px}
+body.mobile .nbr-h{font-size:13px}
+
 /* ---------- tablets / small laptops: desktop layout, tightened ---------- */
 @media (min-width:768px) and (max-width:1150px){
   .study{grid-template-columns:260px 1fr}
@@ -404,10 +428,10 @@ body.mobile .results h3{font-size:19px}
 .sgroup{font-family:var(--hand);font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink2);margin:12px 4px 0}
 .srow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border:2px solid var(--ink);border-radius:var(--wob);padding:10px 12px;min-height:58px;width:100%;text-align:left;font-size:16.5px;flex:none;box-shadow:2px 2px 0 var(--ink)}
 .srow small{display:block;font-size:13.5px;color:var(--ink2)}
-.sw{-webkit-appearance:none;appearance:none;width:52px;height:31px;border-radius:16px;border:2px solid var(--ink);background:var(--grid);position:relative;flex:none;cursor:pointer;transition:background .2s;margin:0}
-.sw::after{content:"";position:absolute;top:2px;left:2px;width:23px;height:23px;border-radius:50%;background:var(--card);border:2px solid var(--ink);box-sizing:border-box;transition:transform .2s}
-.sw:checked{background:#8fd19e}.sw:checked::after{transform:translateX(21px)}
-.sw:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
+.tgl{-webkit-appearance:none;appearance:none;width:52px;height:31px;border-radius:16px;border:2px solid var(--ink);background:var(--grid);position:relative;flex:none;cursor:pointer;transition:background .2s;margin:0}
+.tgl::after{content:"";position:absolute;top:2px;left:2px;width:23px;height:23px;border-radius:50%;background:var(--card);border:2px solid var(--ink);box-sizing:border-box;transition:transform .2s}
+.tgl:checked{background:#8fd19e}.tgl:checked::after{transform:translateX(21px)}
+.tgl:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
 .sabout{font-size:14.5px;color:var(--ink2);padding:2px 4px;margin:0}
 .seg{flex:none;display:flex;border:2px solid var(--ink);border-radius:10px 4px 10px 4px;overflow:hidden;background:var(--card);box-shadow:2px 2px 0 var(--ink)}
 .seg button{border:0;background:var(--card);padding:0 13px;font-family:var(--hand);font-size:14.5px;min-height:40px}
@@ -603,11 +627,11 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
     <section class="mscreen" data-tab="quiz" id="tabQuiz" hidden><div id="qHost"></div></section>
     <section class="mscreen" data-tab="more" id="tabMore" hidden>
       <div class="sgroup">Drawing</div>
-      <label class="srow" for="sSnap"><span>Snap to exam views<small>When you let go, the molecule settles on the nearest textbook view.</small></span><input type="checkbox" class="sw" id="sSnap" checked></label>
-      <label class="srow" for="sColor"><span>Colour ligand labels<small>Exam papers are black; colour can help while learning.</small></span><input type="checkbox" class="sw" id="sColor"></label>
+      <label class="srow" for="sSnap"><span>Snap to exam views<small>When you let go, the molecule settles on the nearest textbook view.</small></span><input type="checkbox" class="tgl" id="sSnap" checked></label>
+      <label class="srow" for="sColor"><span>Colour ligand labels<small>Exam papers are black; colour can help while learning.</small></span><input type="checkbox" class="tgl" id="sColor"></label>
       <div class="sgroup">Compare</div>
-      <label class="srow" for="sLink"><span>Link rotation<small>Turning one molecule turns the other the same way.</small></span><input type="checkbox" class="sw" id="sLink"></label>
-      <label class="srow" for="sLive"><span>Live mirror<small>Slot 2 always shows the mirror image of slot 1.</small></span><input type="checkbox" class="sw" id="sLive"></label>
+      <label class="srow" for="sLink"><span>Link rotation<small>Turning one molecule turns the other the same way.</small></span><input type="checkbox" class="tgl" id="sLink"></label>
+      <label class="srow" for="sLive"><span>Live mirror<small>Slot 2 always shows the mirror image of slot 1.</small></span><input type="checkbox" class="tgl" id="sLive"></label>
       <div class="sgroup">Quiz</div>
       <div class="srow"><span>Answer by</span><div class="seg" id="sAns"><button data-am="type">typing</button><button data-am="mc">choices</button></div></div>
       <div class="sgroup">Help</div>
@@ -1037,7 +1061,7 @@ const CASES=[
   hint:`Classify by how many like pairs are trans (3, 1 or 0), then check the all-cis one for a mirror plane.`},
  {id:'oh-maa2b2',geom:'Oh',mono:'BB',chel:['AA','AA'],study:true,
   insight:`trans: the B–M–B axis is perpendicular to the plane holding both chelates (D<sub>2h</sub>). cis: the chelates twist into a two-bladed propeller with only a C<sub>2</sub> axis, so it exists as Δ and Λ, giving 3 in total. Werner's 1911 resolution of the closely related cis-[CoCl(NH<sub>3</sub>)(en)<sub>2</sub>]<sup>2+</sup> settled the octahedral model.`,
-  hint:`Remember to count the optical enantiomers for the cis configuration!`},
+  hint:`Remember to count both enantiomers of the cis configuration!`},
  {id:'oh-maa3',geom:'Oh',chel:['AA','AA','AA'],study:true,
   insight:`Three chelates form a propeller about a C<sub>3</sub> axis, with three C<sub>2</sub> axes perpendicular to it: point group D<sub>3</sub>. D<sub>3</sub> contains only proper rotations, so the right-handed (Δ) and left-handed (Λ) propellers are enantiomers. Example: [Co(en)<sub>3</sub>]<sup>3+</sup>.`,
   hint:`Look down the C<sub>3</sub> axis: the chelates form a propeller, and propellers come in two hands.`},
@@ -1082,7 +1106,33 @@ const CASES=[
   hint:`It's still a three-bladed propeller. Can a propeller ever be superimposed on its mirror image?`},
  {id:'oh-maabbcc',geom:'Oh',chel:['AA','BB','CC'],study:true,
   insight:`Three different chelate rings: no symmetry at all (C<sub>1</sub>), but still a single propeller arrangement that comes as Δ and Λ.`,
-  hint:`Three different blades on one propeller: how many ways to build it, and does it have a mirror image?`}
+  hint:`Three different blades on one propeller: how many ways to build it, and does it have a mirror image?`},
+ {id:'td-ma4',geom:'Td',mono:'AAAA',study:true,
+  insight:`Four identical ligands: every position is equivalent (T<sub>d</sub>). One arrangement, no stereoisomers.`},
+ {id:'td-ma3b',geom:'Td',mono:'AAAB',study:true,
+  insight:`B can go in any of the four positions, and they are all equivalent: one arrangement (C<sub>3v</sub>).`},
+ {id:'td-maabc',geom:'Td',mono:'BC',chel:['AA'],study:true,
+  insight:`The AA chelate spans one edge and B and C take the other two positions. The mirror plane through M, B and C bisects the chelate and swaps its two identical ends, so the molecule is its own mirror image: one arrangement (C<sub>s</sub>).`},
+ {id:'sp-ma4',geom:'SP',mono:'AAAA',study:true,
+  insight:`Four identical ligands in a square: one arrangement (D<sub>4h</sub>).`},
+ {id:'sp-maabc',geom:'SP',mono:'BC',chel:['AA'],study:true,
+  insight:`The chelate takes two neighbouring positions and B and C fill the other two. Swapping B and C is just a flip of the square, so there is one arrangement, and the molecular plane is a mirror plane (C<sub>s</sub>).`},
+ {id:'oh-ma6',geom:'Oh',mono:'AAAAAA',study:true,
+  insight:`Six identical ligands: every position is equivalent (O<sub>h</sub>). One arrangement, no stereoisomers.`},
+ {id:'oh-maa2bb-c2',geom:'Oh',mono:'CC',chel:['AA','BB'],study:true,
+  insight:`C<sub>2</sub> trans: both rings lie in the plane perpendicular to the C–M–C axis (C<sub>2v</sub>, achiral). C<sub>2</sub> cis: the two different rings form a two-bladed propeller with no symmetry at all (C<sub>1</sub>), so it is a Δ/Λ pair. Unlike [M(AA)<sub>2</sub>B<sub>2</sub>] there is no C<sub>2</sub> axis, because it would have to swap the AA ring with the BB ring. Total 3.`},
+ {id:'oh-maabbcd',geom:'Oh',mono:'CD',chel:['AA','BB'],study:true,
+  insight:`C and D trans: one achiral isomer (C<sub>s</sub>). C and D cis: C sits trans to an end of the AA ring and D trans to an end of the BB ring, or the other way round. Those 2 arrangements have no symmetry (C<sub>1</sub>), so each is a Δ/Λ pair. Total 1 + 2 × 2 = 5.`},
+ {id:'oh-maabcde',geom:'Oh',mono:'BCDE',chel:['AA'],study:true,
+  insight:`Choose which two of B, C, D and E sit trans to the two chelate ends (6 ways); the other two are then trans to each other. With four different monodentate ligands no arrangement keeps any symmetry (C<sub>1</sub>), so all 6 are chiral: 12 stereoisomers.`},
+ {id:'oh-maa2bc-ch',geom:'Oh',chel:['AA','AA','BC'],study:true,
+  insight:`Three chelates always form a propeller, so there is no cis/trans choice: one arrangement. The unsymmetrical BC ring removes even the C<sub>2</sub> axis of [M(AA)<sub>2</sub>(BB)] (C<sub>1</sub>), and it exists as Δ and Λ.`},
+ {id:'oh-maabc2',geom:'Oh',chel:['AA','BC','BC'],study:true,
+  insight:`Three rings, so always a propeller. The two BC rings can be arranged with their B ends trans to each other, their C ends trans to each other, or neither. All 3 arrangements are chiral (C<sub>2</sub>, C<sub>2</sub>, C<sub>1</sub>), giving 3 Δ/Λ pairs and 6 stereoisomers.`},
+ {id:'oh-mabc3d',geom:'Oh',mono:'CCCD',chel:['AB'],study:true,
+  insight:`Classify by what D sits trans to. Trans to A or trans to B: 2 isomers (mer-C<sub>3</sub>), each with a mirror plane. Trans to a C: the three C ligands are fac, and D can sit on either side of the chelate. Those two are mirror images that no rotation superimposes, so they are an enantiomeric pair. Total 2 + 2 = 4.`},
+ {id:'oh-mabc2d2',geom:'Oh',mono:'CCDD',chel:['AB'],study:true,
+  insight:`C<sub>2</sub> cis with D<sub>2</sub> trans, and C<sub>2</sub> trans with D<sub>2</sub> cis: one isomer each, both with a mirror plane. With both pairs cis, the chelate's A and B ends are trans to a C and a D in either order: 2 arrangements, both chiral. Total 2 + 2 × 2 = 6.`}
 ];
 const EXTRA=[
  {id:'td-ma2b2',geom:'Td',mono:'AABB'},
@@ -1110,15 +1160,68 @@ function formulaHTML(c){
   return `[${f}]`;
 }
 function summaryHTML(A){
-  const chiralGroups=A.groups.filter(g=>g.length===2);
-  const n=A.geometric,k=A.pairs;
-  let t=`<b>${n}</b> geometric arrangement${n>1?'s':''}. `;
-  if(k===0) t+=`Every one contains at least one improper symmetry element (σ, i or S<sub>n</sub>), so each is superimposable on its own mirror image: <b>${n}</b> stereoisomer${n>1?'s':''} in total.`;
-  else {
-    const pgs=[...new Set(chiralGroups.map(g=>g[0].sym.html))].join(', ');
-    t+=`${k===n?(k===1?'It':'All of them'):(k===1?'One of them':k+' of them')} (point group ${pgs}) contain${k===1&&k!==n?'s':(k===1?'s':'')} only proper rotations, with no mirror plane, inversion centre or S<sub>n</sub> axis, so ${k===1?'it splits':'each splits'} into a pair of non-superimposable mirror images. Stereoisomers = ${n} + ${k} = <b>${n+k}</b>.`;
-  }
-  return t;
+  const n=A.geometric,k=A.pairs,cat=catOf(A);
+  if(cat==='one') return `Only one arrangement is possible, and it is superimposable on its mirror image, so there are no stereoisomers.`;
+  if(cat==='enan') return `Only one arrangement is possible, but it has no mirror plane, inversion centre or S<sub>n</sub> axis (point group ${A.groups[0][0].sym.html}), so it exists as a pair of enantiomers: <b>2</b> stereoisomers.`;
+  const pgs=[...new Set(A.groups.filter(g=>g.length===2).map(g=>g[0].sym.html))].join(', ');
+  const t=`<b>${n}</b> geometrical isomers (each enantiomeric pair counted once). `;
+  if(k===0) return t+`Each has at least one improper symmetry element (σ, i or S<sub>n</sub>), so it is its own mirror image: <b>${n}</b> stereoisomers in total.`;
+  const one=k===1&&k!==n;
+  return t+`${k===n?'All of them':(k===1?'One of them':k+' of them')} (point group ${pgs}) ${one?'has':'have'} no mirror plane, inversion centre or S<sub>n</sub> axis, so ${one?'it exists':'each exists'} as a pair of enantiomers. Stereoisomers = ${n} + ${k} = <b>${n+k}</b>.`;
+}
+/* ---------- how the isomerism arises: categories, staircase order, ligand kinds, one-substitution neighbours ---------- */
+const CATS=[
+  {id:'one',name:'One arrangement',blurb:'Only one way to place the ligands, and it is its own mirror image: no stereoisomers.'},
+  {id:'geo',name:'Geometrical isomerism only',blurb:'Several arrangements, each superimposable on its own mirror image.'},
+  {id:'enan',name:'Enantiomerism only',blurb:'One arrangement, which is chiral: a single pair of enantiomers.'},
+  {id:'both',name:'Geometrical isomerism and enantiomerism',blurb:'Several arrangements, at least one of them chiral.'},
+];
+const catOf=A=>A.geometric===1?(A.pairs?'enan':'one'):(A.pairs?'both':'geo');
+const caseLetters=c=>new Set((c.mono||'')+(c.chel||[]).join(''));
+const ligKinds=c=>{const k=[],ch=c.chel||[];if(c.mono)k.push('monodentate');if(ch.some(x=>x[0]===x[1]))k.push('symmetric chelate');if(ch.some(x=>x[0]!==x[1]))k.push('unsymmetric chelate');return k;};
+const ligChips=c=>ligKinds(c).map(k=>`<span class="chip lig">${k}</span>`).join('');
+function casesFor(g,chiralOnly){
+  const key=c=>{const A=ANALYSIS[c.id];return [A.stereo,caseLetters(c).size,(c.chel||[]).length,formulaHTML(c)];};
+  const list=BANK.filter(c=>c.geom===g&&(!chiralOnly||ANALYSIS[c.id].pairs>0));
+  list.sort((a,b)=>{const x=key(a),y=key(b);for(let i=0;i<4;i++){if(x[i]<y[i])return -1;if(x[i]>y[i])return 1;}return 0;});
+  return CATS.map(cat=>({cat,cases:list.filter(c=>catOf(ANALYSIS[c.id])===cat.id)})).filter(x=>x.cases.length);
+}
+/* counts, with the geometrical count defined explicitly */
+function countsHTML(A,compact){
+  const s=A.stereo,g=A.geometric,p=A.pairs;
+  if(compact) return catOf(A)==='one'?'1 arrangement · no stereoisomers':`${s} stereoisomers · ${g===1?'1 arrangement':g+' geometrical'}${p?` · ${p} enantiomeric pair${p>1?'s':''}`:''}`;
+  return `<span><b>${g}</b> ${g===1?'arrangement':'geometrical isomers'}${g>1&&p?' (each enantiomeric pair counted once)':''}</span><span><b>${p}</b> enantiomeric pair${p===1?'':'s'}</span><span><b>${s}</b> stereoisomer${s===1?'':'s'} in total</span>`;
+}
+const PERMS={};
+const permsOf=n=>PERMS[n]||(PERMS[n]=(function P(a){return a.length<=1?[a]:a.flatMap((x,i)=>P(a.slice(0,i).concat(a.slice(i+1))).map(r=>[x,...r]));})('ABCDEFG'.slice(0,n).split('')));
+function formulaCanon(mono,chel){
+  const used=[...new Set(mono+chel.join(''))];let best=null;
+  for(const p of permsOf(used.length)){const m=x=>p[used.indexOf(x)];
+    const k=mono.split('').map(m).sort().join('')+'|'+chel.map(c=>c.split('').map(m).sort().join('')).sort().join(',');
+    if(best===null||k<best)best=k;}
+  return best;
+}
+const NB={}; let bankKeys=null;
+/* formulas in the app that differ from this one by changing a single donor */
+function neighbours(c){
+  if(NB[c.id]) return NB[c.id];
+  if(!bankKeys){bankKeys={};BANK.forEach(b=>{bankKeys[b.geom+':'+formulaCanon(b.mono||'',b.chel||[])]=b;});}
+  const mono=c.mono||'',chel=c.chel||[],used=[...caseLetters(c)].sort(),NEW='Z',self=formulaCanon(mono,chel),out=new Map();
+  const consider=(m,ch,desc)=>{const k=formulaCanon(m,ch);if(k===self)return;const b=bankKeys[c.geom+':'+k];if(b&&!out.has(b.id))out.set(b.id,{c:b,desc});};
+  [...new Set(mono)].forEach(X=>{const i=mono.indexOf(X);
+    used.filter(y=>y!==X).concat(NEW).forEach(Y=>consider(mono.slice(0,i)+Y+mono.slice(i+1),chel,`one ${X} → ${Y===NEW?'a new ligand':Y}`));});
+  chel.forEach((pr,ci)=>[0,1].forEach(e=>{const X=pr[e];
+    used.filter(y=>y!==X).concat(NEW).forEach(Y=>{const ch=chel.slice();ch[ci]=e?pr[0]+Y:Y+pr[1];
+      consider(mono,ch,`one ${X} end of a (${pr}) chelate → ${Y===NEW?'a new donor':Y}`);});}));
+  const n=caseLetters(c).size;
+  return NB[c.id]=[...out.values()].map(o=>({...o,dir:Math.sign(caseLetters(o.c).size-n)})).sort((a,b)=>a.dir-b.dir);
+}
+function neighbourHTML(c){
+  const nb=neighbours(c); if(!nb.length) return '';
+  const A=ANALYSIS[c.id], lab={'-1':'one fewer ligand type','0':'same number of ligand types','1':'one more ligand type'};
+  return `<div class="nbr"><div class="nbr-h">One substitution away</div>`+nb.map(o=>{const B=ANALYSIS[o.c.id];
+    const chg=A.stereo===B.stereo?`still ${B.stereo}`:`${A.stereo} → ${B.stereo}`;
+    return `<button class="nbr-row" data-case-go="${o.c.id}"><span class="xf">${formulaHTML(o.c)}</span><small>${o.desc} (${lab[o.dir]}) · ${chg} stereoisomer${B.stereo===1?'':'s'}, ${B.pairs?B.pairs+' enantiomeric pair'+(B.pairs>1?'s':''):(B.stereo>1?'all achiral':'achiral')}</small></button>`;}).join('')+'</div>';
 }
 
 /* =====================================================================
@@ -1380,34 +1483,45 @@ const ICONS={
 };
 const isoById={}; Object.values(ANALYSIS).forEach(A=>A.isomers.forEach(i=>isoById[i.id]=i));
 
+const SB={chiralOnly:false};
+function caseHTML(c){
+  const A=ANALYSIS[c.id];
+  const rows=A.groups.map(grp=>{
+    const row=iso=>`<div class="iso" data-iso="${iso.id}"><span class="nm" title="${SB.chiralOnly?'load with its mirror image':'load into Viewport 1'}">${iso.label}</span>
+      <span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span>
+      <button class="ld" data-to="1" title="Load into Viewport 1">1</button><button class="ld" data-to="2" title="Load into Viewport 2">2</button></div>`;
+    if(grp.length===1) return row(grp[0]);
+    return `<div class="pairbox"><div class="pairlab"><span>enantiomeric pair</span><button data-pair="${grp[0].id}">compare ⇄</button></div>${row(grp[0])}${row(grp[1])}</div>`;
+  }).join('');
+  return `<div class="case" data-case="${c.id}">
+    <button class="case-btn"><span class="arrow">▶</span><span class="f">${formulaHTML(c)}</span><span class="cnt">${countsHTML(A,true).replace(' · ','<br>')}</span></button>
+    <div class="case-body"><div class="ligchips">${ligChips(c)}</div><p class="insight">${c.insight||summaryHTML(A)}</p>
+      <p class="tally">${countsHTML(A)}</p>${rows}${neighbourHTML(c)}</div></div>`;
+}
+function renderSidebar(){
+  const open=new Set($$('#sideList .case.open').map(e=>e.dataset.case));
+  $('#sideList').innerHTML=['Td','SP','Oh'].map(g=>`<div class="geo-head">${ICONS[g]}<span>${GEOMS[g].name}</span><span class="chip">${GEOMS[g].sym}</span></div>`+
+    casesFor(g,SB.chiralOnly).map(({cat,cases})=>`<div class="cat-head"><b>${cat.name}</b><small>${cat.blurb}</small></div>`+cases.map(caseHTML).join('')).join('')).join('');
+  open.forEach(id=>{const e=$(`#sideList .case[data-case="${id}"]`);if(e)e.classList.add('open');});
+}
+function openCase(id){
+  if(SB.chiralOnly&&!ANALYSIS[id].pairs){SB.chiralOnly=false;$('#sideChiral').classList.remove('on');renderSidebar();}
+  const el=$(`#sideList .case[data-case="${id}"]`); el.classList.add('open'); el.scrollIntoView({block:'start',behavior:'smooth'});
+  loadInto(1,dispOf(ANALYSIS[id].isomers[0]));
+}
 function buildSidebar(){
   const side=$('#side');
-  ['Td','SP','Oh'].forEach(g=>{
-    const G=GEOMS[g];
-    side.insertAdjacentHTML('beforeend',`<div class="geo-head">${ICONS[g]}<span>${G.name}</span><span class="chip">${G.sym}</span></div>`);
-    CASES.filter(c=>c.geom===g).forEach(c=>{
-      const A=ANALYSIS[c.id];
-      const rows=A.groups.map(grp=>{
-        const row=iso=>`<div class="iso" data-iso="${iso.id}"><span class="nm" title="load into Viewport 1">${iso.label}</span>
-          <span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span>
-          <button class="ld" data-to="1" title="Load into Viewport 1">1</button><button class="ld" data-to="2" title="Load into Viewport 2">2</button></div>`;
-        if(grp.length===1) return row(grp[0]);
-        return `<div class="pairbox"><div class="pairlab"><span>enantiomeric pair</span><button data-pair="${grp[0].id}">compare ⇄</button></div>${row(grp[0])}${row(grp[1])}</div>`;
-      }).join('');
-      side.insertAdjacentHTML('beforeend',`<div class="case" data-case="${c.id}">
-        <button class="case-btn"><span class="arrow">▶</span><span class="f">${formulaHTML(c)}</span>
-          <span class="cnt">${A.stereo} stereoisomer${A.stereo>1?'s':''}<br>${A.geometric} geometric${A.pairs?` · ${A.pairs} pair${A.pairs>1?'s':''}`:''}</span></button>
-        <div class="case-body"><p class="insight">${c.insight||summaryHTML(A)}</p>
-          <p class="tally">geometric isomers: ${A.geometric} · enantiomeric pairs: ${A.pairs} · stereoisomers: ${A.stereo}</p>${rows}</div></div>`);
-    });
-  });
+  side.insertAdjacentHTML('beforeend',`<button class="btn side-filter" id="sideChiral" aria-pressed="false">Show only formulas with enantiomers</button><div id="sideList"></div>`);
+  renderSidebar();
   side.addEventListener('click',e=>{
+    const f=e.target.closest('#sideChiral'); if(f){SB.chiralOnly=!SB.chiralOnly;f.classList.toggle('on',SB.chiralOnly);f.setAttribute('aria-pressed',SB.chiralOnly);renderSidebar();refreshUI();return;}
+    const ng=e.target.closest('[data-case-go]'); if(ng){openCase(ng.dataset.caseGo);return;}
     const cb=e.target.closest('.case-btn'); if(cb){cb.parentElement.classList.toggle('open');return;}
-    const pb=e.target.closest('[data-pair]'); if(pb){const a=isoById[pb.dataset.pair];setLive(false);loadInto(1,dispOf(a));loadInto(2,dispOf(a.partner));
-      if(isMobile())mTab('compare');return;}
+    const pb=e.target.closest('[data-pair]'); if(pb){const a=isoById[pb.dataset.pair];setLive(false);loadInto(1,dispOf(a));loadInto(2,dispOf(a.partner));return;}
     const ld=e.target.closest('.ld'); if(ld){loadInto(+ld.dataset.to,dispOf(isoById[ld.closest('.iso').dataset.iso]));return;}
-    const row=e.target.closest('.iso'); if(row&&isMobile()){loadInto(app.active,dispOf(isoById[row.dataset.iso]));closeSheets();return;}
-    const nm=e.target.closest('.nm'); if(nm){loadInto(1,dispOf(isoById[nm.closest('.iso').dataset.iso]));}
+    const nm=e.target.closest('.nm'); if(nm){const iso=isoById[nm.closest('.iso').dataset.iso];
+      if(SB.chiralOnly&&iso.chiral){setLive(false);loadInto(1,dispOf(iso));loadInto(2,mirrorDisp(V1.disp));}   // filter on: open straight into the mirror comparison
+      else loadInto(1,dispOf(iso));}
   });
 }
 
@@ -1633,7 +1747,7 @@ const Q={cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(
 try{Q.best=+localStorage.getItem('isoSketchBest')||0;const m=localStorage.getItem('isoAnsMode');if(m==='mc'||m==='type')Q.mode=m;}catch(e){}
 const TYPE_TEXT={
   stereo:`How many <b>stereoisomers</b> (counting each enantiomer separately) are possible for`,
-  geometric:`How many <b>geometric isomers</b> (an enantiomeric pair counts once) are possible for`,
+  geometric:`How many <b>geometrical isomers</b> (each enantiomeric pair counted once) are possible for`,
   pairs:`How many <b>pairs of enantiomers</b> are possible for`,
 };
 const TYPE_W={stereo:3,geometric:1.4,pairs:1};
@@ -1654,7 +1768,8 @@ function setAnswerMode(m){
 }
 function nextQuestion(){
   clearResults(); hidePop();
-  let pool=BANK.filter(c=>Q.geoms.has(c.geom)&&c.id!==Q.last); if(!pool.length) pool=BANK.filter(c=>Q.geoms.has(c.geom));
+  const quizzable=c=>caseLetters(c).size>1;   // [MA6]-type formulas are too trivial to ask about
+  let pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last); if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom));
   const c=pool[Math.floor(Math.random()*pool.length)];
   const types=[...Q.types]; let r=Math.random()*types.reduce((s,t)=>s+TYPE_W[t],0), t=types[0];
   for(const ty of types){r-=TYPE_W[ty];if(r<=0){t=ty;break;}}
@@ -1678,9 +1793,9 @@ function hintFor(val){
   const {A,t,answer,c}=Q.cur;
   const caseHint=c.hint||`Fix the rarest ligand first and ask what can sit trans to it; then check each arrangement for a mirror plane.`;
   if(t==='stereo'&&val===A.geometric&&A.pairs>0)
-    return `So close! ${A.geometric} is the number of <b>geometric</b> arrangements, but ${A.pairs===1?'one of them has':A.pairs+' of them have'} no mirror plane, inversion centre or S<sub>n</sub> axis, so ${A.pairs===1?'it exists':'each exists'} as two non-superimposable mirror images. Count both hands! ${c.hint?'<br><i>'+c.hint+'</i>':''}`;
+    return `So close! ${A.geometric} is the number of <b>geometrical isomers</b> (each enantiomeric pair counted once), but ${A.pairs===1?'one of them has':A.pairs+' of them have'} no mirror plane, inversion centre or S<sub>n</sub> axis, so ${A.pairs===1?'it exists':'each exists'} as two non-superimposable mirror images. Count both hands! ${c.hint?'<br><i>'+c.hint+'</i>':''}`;
   if(t==='geometric'&&val===A.stereo&&A.pairs>0)
-    return `You counted enantiomers separately. For geometric isomers, a mirror-image pair counts as one arrangement.`;
+    return `You counted enantiomers separately. For geometrical isomers, each enantiomeric pair is counted once.`;
   if(t==='pairs') return val>answer
     ?`Only arrangements with no improper symmetry element (no σ, no i, no S<sub>n</sub>) are chiral. Check each candidate for a mirror plane first. ${caseHint}`
     :`Look again for arrangements that have no mirror plane, inversion centre or S<sub>n</sub> axis: each of those is one enantiomeric pair. ${caseHint}`;
@@ -1825,7 +1940,7 @@ function setMode(mode){
   if(mode==='quiz'&&!Q.cur) nextQuestion();
 }
 /* the phone app re-uses the same live drawings, quiz card and builder: they are moved into its screens */
-const M={tab:'explore',stack:[{t:'home'}],VX:null,homes:new Map(),moved:false,toastT:0};
+const M={chiralOnly:false,tab:'explore',stack:[{t:'home'}],VX:null,homes:new Map(),moved:false,toastT:0};
 const MOVES=[['#stage1','#cHost1'],['#stage2','#cHost2'],['#quizScroll','#qHost'],['#builder .bsheet','#bHost']];
 function placeElements(mobile){
   MOVES.forEach(([sel])=>{if(!M.homes.has(sel)){const el=$(sel);M.homes.set(sel,{el,parent:el.parentNode,next:el.nextSibling});}});
@@ -1887,7 +2002,7 @@ function xRender(dir){
   if(top.t==='iso'){
     list.hidden=true; mol.hidden=false;
     const iso=isoById[top.id];
-    if(dir!==null||!M.VX.disp||M.VX.iso!==iso){M.VX.load(dispOf(iso));M.VX.mirrorOn=false;setSheet('peek');}
+    if(dir!==null||!M.VX.disp||M.VX.iso!==iso){M.VX.load(dispOf(iso));M.VX.mirrorOn=!!(M.chiralOnly&&iso.chiral);$$('#xFab [data-x="mirror"]').forEach(b=>b.classList.toggle('on',M.VX.mirrorOn));setSheet('peek');}
     $('#xInfo').innerHTML=xInfoHTML(iso);
   } else {
     mol.hidden=true; list.hidden=false;
@@ -1900,19 +2015,21 @@ const chev='<span class="chev" aria-hidden="true">›</span>';
 function xListHTML(top){
   if(top.t==='home'){
     return `<p class="xintro">Pick a geometry and a formula to see every isomer, drawn the way an exam paper draws it. Then turn it with your finger.</p>`+
-      ['Oh','SP','Td'].map(g=>{const n=CASES.filter(c=>c.geom===g).length;
+      ['Oh','SP','Td'].map(g=>{const n=BANK.filter(c=>c.geom===g).length;
         return `<button class="xrow big" data-go="geo:${g}">${ICONS[g]}<span class="xr-main"><b>${GEOMS[g].name}</b><small>${n} formulas · point group of the bare shape ${GEOMS[g].sym}</small></span>${chev}</button>`;}).join('')+
       `<button class="xrow big accent" data-gotab="build"><span class="xr-ico">✎</span><span class="xr-main"><b>Build from an exam drawing</b><small>Copy a structure from your paper and turn it</small></span>${chev}</button>`;
   }
   if(top.t==='geo'){
-    return CASES.filter(c=>c.geom===top.id).map(c=>{const A=ANALYSIS[c.id];
-      return `<button class="xrow" data-go="case:${c.id}"><span class="xr-main"><span class="xf">${formulaHTML(c)}</span><small>${A.stereo} stereoisomer${A.stereo>1?'s':''} · ${A.geometric} geometric${A.pairs?` · ${A.pairs} pair${A.pairs>1?'s':''}`:''}</small></span>${chev}</button>`;}).join('');
+    return `<div class="seg xfilter" role="group" aria-label="Filter"><button data-filter="all" class="${M.chiralOnly?'':'on'}">All formulas</button><button data-filter="chiral" class="${M.chiralOnly?'on':''}">Has enantiomers</button></div>`+
+      casesFor(top.id,M.chiralOnly).map(({cat,cases})=>`<div class="xcat"><b>${cat.name}</b><small>${cat.blurb}</small></div>`+
+        cases.map(c=>`<button class="xrow" data-go="case:${c.id}"><span class="xr-main"><span class="xf">${formulaHTML(c)}</span><small>${countsHTML(ANALYSIS[c.id],true)}</small><span class="xchips">${ligChips(c)}</span></span>${chev}</button>`).join('')).join('');
   }
+
   const A=ANALYSIS[top.id];
   const row=iso=>`<button class="xrow iso" data-go="iso:${iso.id}"><span class="xr-main"><span>${iso.label}</span><span class="xchips"><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span></span></span>${chev}</button>`;
   return `<p class="xins">${A.c.insight||summaryHTML(A)}</p>
-    <div class="xtally"><span><b>${A.geometric}</b> geometric</span><span><b>${A.pairs}</b> enantiomeric pair${A.pairs===1?'':'s'}</span><span><b>${A.stereo}</b> stereoisomer${A.stereo===1?'':'s'}</span></div>`+
-    A.groups.map(g=>g.length===1?row(g[0]):`<div class="xpair"><div class="xpair-h"><span>enantiomeric pair</span><button class="btn" data-cmp="${g[0].id}">Compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('');
+    <div class="xchips">${ligChips(A.c)}</div><div class="xtally">${countsHTML(A)}</div>`+
+    A.groups.map(g=>g.length===1?row(g[0]):`<div class="xpair"><div class="xpair-h"><span>enantiomeric pair</span><button class="btn" data-cmp="${g[0].id}">Compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+neighbourHTML(A.c);
 }
 function xInfoHTML(iso){
   const ch=iso.chiral?`<span class="chip chiral">chiral</span> No σ, i or S<sub>n</sub>; only ${iso.sym.proper}. Its mirror image is ${iso.partner.label}.`
@@ -1976,6 +2093,8 @@ function mInit(){
   $('#xList').addEventListener('click',e=>{
     const c=e.target.closest('[data-cmp]'); if(c){const a=isoById[c.dataset.cmp];setLive(false);mTab('compare');loadInto(1,dispOf(a));loadInto(2,mirrorDisp(dispOf(a),mirrorAxisNow()));return;}
     const t=e.target.closest('[data-gotab]'); if(t){mTab(t.dataset.gotab);return;}
+    const fl=e.target.closest('[data-filter]'); if(fl){M.chiralOnly=fl.dataset.filter==='chiral';$('#xList').innerHTML='';xRender(null);return;}
+    const ng=e.target.closest('[data-case-go]'); if(ng){xPush({t:'case',id:ng.dataset.caseGo});return;}
     const g=e.target.closest('[data-go]'); if(g){const [tt,id]=g.dataset.go.split(/:(.+)/);xPush({t:tt,id});}
   });
   $('#xInfo').addEventListener('click',e=>{const b=e.target.closest('[data-xact]');if(!b)return;const iso=M.VX.iso,d={iso,cfg:M.VX.disp.cfg,q:M.VX.disp.q.clone()};
