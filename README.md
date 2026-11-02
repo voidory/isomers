@@ -2,7 +2,7 @@
 
 Coordination-compound isomers drawn the way an exam paper draws them, which you can turn in 3-D with your finger or mouse.
 
-**Open it:** https://voidoro.github.io/isomers/
+**Open it:** https://voidory.github.io/isomers/
 
 - **Explore** every isomer of the common octahedral, square-planar and tetrahedral formulas, with point groups and chirality.
 - **Compare** two drawings and test whether they superimpose, with a live mirror image.
