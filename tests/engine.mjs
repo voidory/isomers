@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEngine} from './load-engine.mjs';
 
-const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE']);
+const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup']);
 let fails=0;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   // arrays from the vm context have another prototype
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
@@ -147,6 +147,70 @@ test('denticity cannot be combined with ambidentate on one ligand, and uses the 
 test('denticity composes with linkage on another ligand',()=>{
   const F=kappa('AAAABB',{},['A','B'],['B'],[{letter:'A'}]);
   assert.ok(F.variants.length>F.groups.length); assert.ok(F.variants.every(v=>v.cells.every(x=>x.parent)));
+});
+
+
+/* ---- complications offered on the visualisation page: vetted ligands only ---- */
+const cx=(kind,geom,mono,chel,sel)=>{const base={geom,mono,chel},plan=E.cxPlan(kind,base,sel);
+  return {plan,F:E.structuralFamily(base,plan.amb,plan.opts)};};
+test('vetted lists: only real ligands, nothing abstract; water trades only with a halide',()=>{
+  same(E.VETTED.link,['NO2','SCN','CN']); assert.ok(E.VETTED.link.every(k=>E.AMBIDENTATE[k]));
+  same(E.VETTED.ion.map(x=>x.key),['Cl','Br','I','NO3','SO4']); same(E.VETTED.kap.map(x=>x.key),['NO3','OAc','CO3','SO4']);
+  same(E.ionPartners('H2O'),['Cl','Br','I']); assert.ok(E.ionPartners('Cl').includes('H2O')&&!E.ionPartners('Cl').includes('Cl'));
+  assert.ok(!E.ionPartners('SO4').includes('H2O')&&E.ionPartners('SO4').includes('Br'));
+  for(const k of ['NO3','SO4','Cl','Br','I','H2O']){const x=E.vettedIon(k); assert.ok(x&&x.text&&x.html&&x.name);}
+});
+test('availability: linkage needs a monodentate, ionisation a spare letter, k1/k2 a second ligand to give way',()=>{
+  const b=(geom,mono,chel=[])=>({geom,mono,chel});
+  assert.ok(E.cxAvailable('link',b('Oh','AAAAAB'))&&E.cxAvailable('ion',b('Oh','AAAAAB'))&&E.cxAvailable('kap',b('Oh','AAAAAB')));
+  assert.ok(!E.cxAvailable('kap',b('Oh','AAAAAA'))&&E.cxAvailable('link',b('Oh','AAAAAA')));
+  assert.ok(!E.cxAvailable('link',b('Oh','',['AA','AA','AA'])));                       // no monodentate at all
+  assert.equal(E.spareLetter(b('Oh','ABCDEF')),'G');                                    // letters up to H exist, so a spare is always found
+});
+test('linkage: nitrite on one ligand of MA4B2, named, with the altered flag on the non-default donor',()=>{
+  const {plan,F}=cx('link','Oh','AAAABB',[],{letter:'B',ident:'NO2'});
+  assert.equal(plan.kind,'link'); assert.equal(F.groups.length,1); assert.equal(F.variants.length,3);
+  const sk=F.variants.map(v=>Object.values(v.skin).filter(x=>x.alt).length);
+  same(sk.slice().sort(),[0,1,1]);                                                      // per ligand letter: N,N none · N,O the O-bound one · O,O its one letter
+  assert.ok(F.variants.every(v=>v.A.c.kind==='link'));
+  assert.ok(F.variants.some(v=>Object.values(v.skin).some(x=>x.text==='ONO'&&x.alt)));
+  same(plan.baseNames,{B:{html:'NO<sub>2</sub>',text:'NO₂'}});
+});
+test('ionisation: [M(NH3)5Br]·SO4 against [M(NH3)5(SO4)]·Br, with the outside ion named',()=>{
+  const {plan,F}=cx('ion','Oh','AAAAAB',[],{letter:'B',ident:'Br',spare:'SO4',n:1});
+  assert.equal(plan.kind,'ion'); assert.equal(F.groups.length,2); assert.equal(F.tally.stereo,2);
+  const base=E.cxBaseGroup(F,{geom:'Oh',mono:'AAAAAB',chel:[]}), other=F.groups.find(g=>g!==base);
+  assert.ok(base&&other); assert.ok(F.groups[0].parent===F.groups[1].parent,'both are the same abstract formula, which is why the base is found by composition'); assert.equal(base.outerText,'SO₄'); assert.equal(other.outerText,'Br');
+  assert.ok(/SO<sub>4<\/sub>/.test(other.innerFormula)&&/Br/.test(base.innerFormula));
+  const ov=other.variants[0]; assert.ok(Object.values(ov.skin).some(x=>x.text==='SO₄'&&x.alt));   // the ligand brought in is marked
+  assert.ok(Object.values(base.variants[0].skin).every(x=>!x.alt));                               // the base composition is not altered
+});
+test('hydrate: water against a halide gives the classic CrCl3.6H2O set (4 spheres, 6 stereoisomers)',()=>{
+  const {plan,F}=cx('ion','Oh','AAAAAA',[],{letter:'A',ident:'H2O',spare:'Cl',n:3});
+  assert.equal(plan.kind,'hydrate'); assert.equal(F.groups.length,4); assert.equal(F.tally.stereo,6);
+  assert.ok(F.variants.every(v=>v.A.c.kind==='hydrate'));
+  assert.ok(F.groups.some(g=>g.outerText==='3Cl')&&F.groups.some(g=>g.outerText==='3H₂O'));
+});
+test('k1/k2: nitrate bonds through one atom or two and another ligand gives way; the k2 ligand is marked and tagged',()=>{
+  const {plan,F}=cx('kap','Oh','AAAABB',[],{letter:'B',ident:'NO3'});
+  assert.equal(plan.kind,'kap'); assert.equal(F.groups.length,3);                       // 2 x k1 · k2 + k1 · 2 x k2
+  const base=E.cxBaseGroup(F,{geom:'Oh',mono:'AAAABB',chel:[]}); assert.ok(base&&base.outerText==='');
+  const alt=F.variants.flatMap(v=>Object.values(v.skin)).filter(x=>x.alt);
+  assert.ok(alt.length>0&&alt.every(x=>x.tag==='κ²'&&x.text==='NO₃'));
+  assert.ok(F.groups.every(g=>g.variants[0].A.stereo>0));
+});
+test('choices outside the vetted lists are refused with a short message',()=>{
+  const b={geom:'Oh',mono:'AAAAAB',chel:[]}, bad=(k,sel,re)=>assert.throws(()=>E.cxPlan(k,b,sel),re);
+  bad('link',{letter:'B',ident:'Cl'},/linkage/); bad('link',{letter:'Z',ident:'NO2'},/not in this formula/);
+  bad('ion',{letter:'B',ident:'SO4',spare:'H2O'},/trade places/); bad('ion',{letter:'B',ident:'Cl',spare:'Cl'},/trade places/); bad('ion',{letter:'B',ident:'XYZ',spare:'Cl'},/trade places/);
+  bad('kap',{letter:'B',ident:'Cl'},/one atom or two/);
+  assert.throws(()=>E.cxPlan('kap',{geom:'Oh',mono:'AAAAAA',chel:[]},{letter:'A',ident:'NO3'}),/give way/);
+  assert.throws(()=>E.cxPlan('nope',b,{letter:'B'}),/Unknown/);
+});
+test('unnamed families are unchanged by the new options (no names, no alt flags except on later donors)',()=>{
+  const F=fam('Oh','AAAABB',[],'B');
+  assert.ok(F.variants.every(v=>Object.values(v.skin).every(x=>x.text==='A'||x.text==='B'||x.text.startsWith('B'))));
+  assert.ok(F.groups.every(g=>g.outerText===''));
 });
 
 console.log(fails?`\n${fails} failed`:'\nall passed'); process.exit(fails?1:0);

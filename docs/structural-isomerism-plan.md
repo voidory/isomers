@@ -2,6 +2,8 @@
 
 Status: **all four phases are built**; phase 4 is only the denticity half (see below). Phases 0 to 2 have headless tests; phase 3 is quiz and Builder UI, checked in a browser. Numbers below were first produced by a throwaway prototype against the unmodified engine, and are now asserted by `node tests/engine.mjs`.
 
+> **UI rework (after phase 4).** The large "Complicate this formula" sheet, with its matrix table, tallies and paragraphs, was too much explanation for a visualisation app. It was replaced by a compact strip under the viewports (section 6b). The counting engine is unchanged. The old sheet is archived, not deleted, as the starting point for a future learning view: [archive/complicate-panel-v1.md](archive/complicate-panel-v1.md). Where sections 6 and 7 below describe the sheet, read them as the history; 6b is the current interface.
+
 | Phase | State |
 |---|---|
 | 0 Test harness, `rsLabel` hardening, naming hook, skin plumbing | done |
@@ -165,6 +167,31 @@ All backward compatible, and each checkable against the 248 existing labels stay
 - **Deep links:** `#x:<geom>:<pool>` alongside the existing `#<case id>`.
 - **Builder:** after phase 1, a Builder drawing with a recognised ambidentate gets "this is one of N linkage forms" in its status line.
 - **Quiz:** new question types behind a toggle, off by default, using the same pattern as `Q.nh`. Existing "how many stereoisomers" questions are unchanged.
+
+## 6b. The current interface: complications on the visualisation page
+
+**What it does.** "Complicate this" no longer opens a sheet. It shows the change on the page: Viewport 1 keeps the base isomer, Viewport 2 shows the altered one, and a strip under the viewports (on the phone, at the top of the Compare tab) picks the complication, the ligand and the variant.
+
+**Marking the altered molecule** (drawn on the canvas, so it also appears in a live mirror and on the phone): a dashed violet frame, a label (`linkage isomer`, `ionisation isomer`, `hydrate isomer`, `denticity isomer`), a dashed ring round every ligand that differs from the base (a later donor atom, bonded through two atoms, or brought in from outside), and `outside the sphere: …` for an ion outside. The base molecule is drawn plain, with only the outside note. The Compare stamp says which kind of isomers the two are (or `same bonding` when the variant is just the base with its ligand named).
+
+**Only vetted ligands are offered**, so there are no abstract donor atoms any more (`VETTED` in the engine):
+
+| Complication | Offered | Rule |
+|---|---|---|
+| Linkage | nitrite (NO₂/ONO), thiocyanate (SCN/NCS), cyanide (CN/NC) | ligands that bond through either of two atoms |
+| Ionisation | Cl⁻, Br⁻, I⁻, NO₃⁻, SO₄²⁻ | an anion swaps with another anion outside the sphere; 1 to 3 spares |
+| Hydrate | H₂O with Cl⁻, Br⁻ or I⁻ | water swaps only with a halide |
+| κ¹/κ² | nitrate, acetate, carbonate, sulfate | bonds through one oxygen or two; another ligand of the formula gives way |
+
+A formula letter is given one of these (`cxPlan`); the other letters stay letters. Availability is checked (`cxAvailable`): linkage needs a monodentate ligand, ionisation a spare letter, κ¹/κ² a second ligand to make room.
+
+**Variants.** The strip lists the derived forms as chips. For linkage they are the binding forms, and a second row lists the derived isomers of the base isomer in Viewport 1. For ionisation, hydrate and κ¹/κ² they are the inner-sphere compositions (e.g. `[MA5(SO4)]·Br`), then their isomers. For these the derived isomers are not tied to the base isomer in Viewport 1, because the formula itself changes. Switching the isomer in Viewport 1 re-derives the linkage chips; loading a different formula closes the strip and gives Viewport 2 back.
+
+**Entry points.** The "Complicate this" row in a formula's panel (desktop and phone list), the linkage links shown when a typed formula spells both ends of an ambidentate ligand, and the Builder's "Complicate this" (the drawn isomer becomes the base). Deep links look like `#x?g=Oh&m=AAAAAB&c=&t=ion&l=B&i=Br&s=SO4&n=1&f=0&k=0`.
+
+**Engine changes.** `structuralFamily` takes optional `names` and `kind`; its skins carry an `alt` flag; groups and variants carry `outerText` (the outside ions as plain text) and the result a `famId`. `cxBaseGroup` finds the group that is the original formula: it cannot be found by comparing parent analyses, because `[A₅B]·C` and `[A₅C]·B` are the same abstract formula. All of this is tested headlessly in `tests/engine.mjs`; the drawing, strip and phone layout were checked in a browser.
+
+**Not done / known limits.** Chip labels for large families can be long; the strip scrolls sideways on the phone. In landscape on a phone the strip leaves the two viewports fairly small. Charge, conductivity and stability are still not modelled.
 
 ## 7. Phasing
 
