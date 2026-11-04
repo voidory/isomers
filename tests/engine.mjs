@@ -11,13 +11,12 @@ const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   /
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
 const here=path.dirname(fileURLToPath(import.meta.url));
 
-test('every bank formula is unchanged (counts, names, point groups)',()=>{
-  const golden=JSON.parse(fs.readFileSync(path.join(here,'golden-bank.json'),'utf8'));
-  const now=E.BANK.map(c=>{const A=E.ANALYSIS[c.id];return [c.id,A.stereo,A.geometric,A.pairs,
-    A.isomers.map(i=>[i.label,i.sym.plain,i.chiral?1:0,i.trans,i.chir||''].join('|'))];}).sort((a,b)=>a[0]<b[0]?-1:1);
-  assert.equal(now.length,golden.length);
-  const bad=now.filter((r,i)=>JSON.stringify(r)!==JSON.stringify(golden[i])).map(r=>r[0]);
-  same(bad,[],'changed: '+bad.slice(0,5).join(', '));
+test('every original bank formula is unchanged (counts, names, point groups)',()=>{
+  const golden=JSON.parse(fs.readFileSync(path.join(here,'golden-bank.json'),'utf8')), byId=new Map(E.BANK.map(c=>[c.id,c]));
+  const bad=[]; for(const g of golden){const c=byId.get(g[0]); if(!c){bad.push(g[0]+' missing');continue;}
+    const A=E.ANALYSIS[c.id], r=[c.id,A.stereo,A.geometric,A.pairs,A.isomers.map(i=>[i.label,i.sym.plain,i.chiral?1:0,i.trans,i.chir||''].join('|'))];
+    if(JSON.stringify(r)!==JSON.stringify(g)) bad.push(g[0]);}
+  same(bad,[],'changed: '+bad.slice(0,5).join(', ')); assert.equal(golden.length,248);
 });
 
 test('tetrahedral R/S works with non-contiguous letters (was hard-coded to A-D)',()=>{

@@ -903,7 +903,7 @@ for(const G of Object.values(GEOMS)){
   G.n=P.length;
   G.transOf=P.map((p,i)=>P.findIndex((q,j)=>j!==i && V.dot(V.norm(p),V.norm(q))<-0.99));
   G.edges=[];
-  for(let i=0;i<G.n;i++)for(let j=i+1;j<G.n;j++) if(V.dot(V.norm(P[i]),V.norm(P[j]))>-0.5) G.edges.push([i,j]);
+  for(let i=0;i<G.n;i++)for(let j=i+1;j<G.n;j++) if(V.dot(V.norm(P[i]),V.norm(P[j]))>-0.5+1e-6) G.edges.push([i,j]);   // tolerance: sites exactly 120° apart are not neighbours, all of them or none
   G.group=buildGroup(G);
   G.rots=G.group.filter(g=>g.det>0);
   G.sigma=G.group.find(g=>Math.abs(g.m[0][0]+1)<1e-9&&Math.abs(g.m[1][1]-1)<1e-9&&Math.abs(g.m[2][2]-1)<1e-9); // x → −x
@@ -1082,6 +1082,7 @@ function classify(elems){
 function letterCounts(str){const c={};for(const ch of str)c[ch]=(c[ch]||0)+1;return c;}
 const ID=x=>x;   // names take an optional lbl(letter) -> text hook, so a variant can name its ligands (NO₂, ONO) instead of B, C
 function transPairs(G,cfg,lbl=ID){
+  if(G.transPairs) return G.transPairs(cfg,lbl);   // a shape with its own descriptors (the trigonal bipyramid)
   if(G.id==='Td') return '';
   const seen=new Set(), out=[];
   // trien/cyclam donors: secondary amine NH (an N–H stereocentre) or terminal NH₂
@@ -1123,6 +1124,7 @@ function ligUnits(cfg){  // connected groups of ≥3 linked positions = tri- and
   return units;
 }
 function nameIso(c,G,cfg,lbl=ID){
+  if(G.nameIso) return G.nameIso(c,cfg,lbl);        // likewise
   if(G.id==='Td') return '';
   const units=ligUnits(cfg);
   if(units.length){
