@@ -1482,12 +1482,12 @@ function analysisFor(geom,mono,chel){
 
 const MODE_TAG={3:{m:'mer',f:'fac',c:'cyc'},4:{p:'planar',f:'folded',t:'tripod',r:'cyc',rp:'cyc, planar',xn:'trien, N–H',rn:'cyclam, N–H'}};
 const NAMED_LIG={xn:'trien',rn:'cyclam'};   // tetradentates modelled as the real ligand: written by name, donors drawn as N
-const ligHTML=x=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];if(NAMED_LIG[mode])return `(${NAMED_LIG[mode]})`;return `(${L})`+(t?`<sup>${t}</sup>`:'');};
-function formulaHTML(c){
+const ligHTML=(x,lbl=ID)=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];if(NAMED_LIG[mode])return `(${NAMED_LIG[mode]})`;return `(${L.split('').map(lbl).join('')})`+(t?`<sup>${t}</sup>`:'');};
+function formulaHTML(c,lbl=ID){
   let f='M'; const cc={};
   (c.chel||[]).forEach(x=>cc[x]=(cc[x]||0)+1);
-  Object.keys(cc).sort((a,b)=>ligDent(b)-ligDent(a)||(a<b?-1:1)).forEach(k=>{f+=ligHTML(k)+(cc[k]>1?`<sub>${cc[k]}</sub>`:'');});
-  const mc=letterCounts(c.mono||''); Object.keys(mc).sort().forEach(k=>{f+=k+(mc[k]>1?`<sub>${mc[k]}</sub>`:'');});
+  Object.keys(cc).sort((a,b)=>ligDent(b)-ligDent(a)||(a<b?-1:1)).forEach(k=>{f+=ligHTML(k,lbl)+(cc[k]>1?`<sub>${cc[k]}</sub>`:'');});
+  const mc=letterCounts(c.mono||''); Object.keys(mc).sort().forEach(k=>{f+=lbl(k)+(mc[k]>1?`<sub>${mc[k]}</sub>`:'');});
   return `[${f}]`;
 }
 function summaryHTML(A){
@@ -1572,6 +1572,69 @@ function neighbourHTML(c){
   return `<div class="nbr"><div class="nbr-h">One substitution away</div>`+nb.map(o=>{const B=ANALYSIS[o.c.id];
     const chg=A.stereo===B.stereo?`still ${B.stereo}`:`${A.stereo} → ${B.stereo}`;
     return `<button class="nbr-row" data-case-go="${o.c.id}"><span class="xf">${formulaHTML(o.c)}</span><small>${o.desc} (${lab[o.dir]}) · ${chg} stereoisomer${B.stereo===1?'':'s'}, ${B.pairs?B.pairs+' enantiomeric pair'+(B.pairs>1?'s':''):(B.stereo>1?'all achiral':'achiral')}</small></button>`;}).join('')+'</div>';
+}
+
+/* =====================================================================
+   1b. STRUCTURAL LAYER — which atom (or species) is bonded to the metal
+   Stereo isomers share their bonds and differ in arrangement; structural isomers differ in what is bonded.
+   This layer never enumerates a polyhedron: it chooses how ligands bind, renames the result as an ordinary
+   stereo formula, and hands that to analysisFor. A "family" is one base formula plus one complication.
+   Phase 1 (abstract mode): a monodentate letter X becomes ambidentate, with d donor atoms (default two, x and y).
+   Identical copies are indistinguishable, so k copies over d donors give C(k+d-1, d-1) binding forms.
+   ===================================================================== */
+const FAMILY_CAP=120;                                           // most binding forms one family will analyse
+const DEFAULT_DONORS=[{id:'x',tag:'x'},{id:'y',tag:'y'}];       // abstract donor atoms, drawn as B^x and B^y
+function compositions(k,d){                                     // ways to split k identical copies over d donors
+  if(d===1) return [[k]];
+  const out=[]; for(let i=k;i>=0;i--) compositions(k-i,d-1).forEach(r=>out.push([i,...r])); return out;}
+/* letters actually used by a formula, renamed contiguously from A in the order given (the engine reads A, B, C ...) */
+function compactTokens(monoTok,chel,order){
+  const used=new Set(monoTok); chel.forEach(x=>lig(x).L.split('').forEach(l=>used.add(l+'0')));
+  const toks=[...used].sort((a,b)=>order(a)-order(b)), map={}; toks.forEach((t,i)=>map[t]='ABCDEFGH'[i]);
+  return {map,mono:monoTok.map(t=>map[t]).join(''),
+    chel:chel.map(x=>{const {L,mode}=lig(x);return L.split('').map(l=>map[l+'0']).join('')+(mode?':'+mode:'');})};
+}
+/* base: {geom,mono,chel}; amb: [{letter, donors?:[{id,tag}]}] (letters that occur in base.mono).
+   Returns the family: every binding form with its own analysis, and the matrix of parent isomers x binding forms. */
+function structuralFamily(base,amb){
+  const geom=base.geom, G=GEOMS[geom], mono=base.mono||'', chel=base.chel||[];
+  const defs=amb.map(a=>({letter:a.letter,donors:a.donors||DEFAULT_DONORS,k:[...mono].filter(c=>c===a.letter).length}));
+  defs.forEach(d=>{if(!d.k) throw new Error('letter '+d.letter+' is not a monodentate ligand in this formula');});
+  if(new Set(defs.map(d=>d.letter)).size<defs.length) throw new Error('a letter can be made ambidentate once');
+  const n=defs.reduce((t,d)=>t*compositions(d.k,d.donors.length).length,1);
+  if(n>FAMILY_CAP) return {tooMany:n,cap:FAMILY_CAP};
+  const firstSeen=[...new Set([...chel.map(x=>lig(x).L).join('').split(''),...mono])];   // stable order of parent letters
+  const rank=t=>firstSeen.indexOf(t[0])*10+(+t.slice(1)||0);
+  // the parent: the base formula itself, every donor of a ligand forgotten
+  const P=compactTokens([...mono].map(c=>c+'0'),chel,rank), parent=analysisFor(geom,P.mono,P.chel);
+  const forms=[];
+  (function rec(i,pick){
+    if(i===defs.length){forms.push(pick.slice());return;}
+    compositions(defs[i].k,defs[i].donors.length).forEach(c=>{pick.push(c);rec(i+1,pick);pick.pop();});})(0,[]);
+  const variants=forms.map((pick,vi)=>{
+    const left=Object.fromEntries(defs.map((d,j)=>[d.letter,pick[j].slice()]));
+    const monoTok=[...mono].map(c=>{const a=left[c];if(!a)return c+'0';const m=a.findIndex(x=>x>0);a[m]--;return c+m;});
+    const C=compactTokens(monoTok,chel,rank), back={};                           // child letter -> {parent letter, donor index}
+    Object.keys(C.map).forEach(t=>back[C.map[t]]={base:P.map[t[0]+'0'],mode:+t.slice(1)||0,letter:t[0]});
+    const donorOf=l=>{const d=defs.find(x=>x.letter===back[l].letter);return d?d.donors[back[l].mode]:null;};
+    const text=l=>{const dn=donorOf(l),b=back[l].letter;return dn&&dn.tag?`${b}<sup>${dn.tag}</sup>`:b;};
+    const skin={}; Object.keys(back).forEach(l=>{const dn=donorOf(l);skin[l]={text:back[l].letter,tag:dn?dn.tag:'',base:back[l].letter};});
+    const id='fam:'+geom+':'+C.mono+'|'+C.chel.join(',')+'#'+pick.map(p=>p.join('.')).join('/');
+    const A=analyzeCase({id,geom,mono:C.mono,chel:C.chel},text);
+    A.isomers.forEach(iso=>isoById[iso.id]=iso);
+    const project=iso=>{const cfg={...iso.cfg,labels:iso.cfg.labels.map(l=>P.map[back[l].letter+'0'])};
+      return parent.isomers.find(q=>q.key===canon(cfg,G.rots));};
+    const cells=A.isomers.map(iso=>({iso,parent:project(iso)}));
+    const title=formulaHTML({chel:C.chel,mono:C.mono},text);
+    const desc=defs.map((d,j)=>pick[j].map((c,m)=>c?`${c}×${d.letter}<sup>${d.donors[m].tag||d.donors[m].id}</sup>`:'').filter(Boolean).join(' + ')).join('; ');
+    return {id,pick,title,desc,A,skin,cells,formula:{geom,mono:C.mono,chel:C.chel}};
+  });
+  const tally={forms:variants.length,geometric:0,pairs:0,stereo:0};
+  variants.forEach(v=>{tally.geometric+=v.A.geometric;tally.pairs+=v.A.pairs;tally.stereo+=v.A.stereo;});
+  const rows=parent.isomers.map(p=>({parent:p,cells:variants.map(v=>v.cells.filter(x=>x.parent===p).map(x=>x.iso))}));
+  // chirality that the complication switches on: a chiral child whose parent isomer is achiral
+  const newChiral=[]; variants.forEach(v=>v.cells.forEach(x=>{if(x.iso.chiral&&!x.parent.chiral)newChiral.push({variant:v,iso:x.iso,parent:x.parent});}));
+  return {base:{geom,mono,chel},defs,parent,variants,rows,tally,newChiral};
 }
 
 /*ENGINE-END*/
