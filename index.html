@@ -633,7 +633,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
     <section class="mscreen" data-tab="build" id="tabBuild" hidden>
       <div class="bsteps seg" id="bSteps"><button data-step="1">1 · Shape</button><button data-step="2">2 · Ligands</button></div>
       <p class="bstep-hint s1">Choose the shape, then the layout that looks like the drawing on your paper.</p>
-      <p class="bstep-hint s2">Tap each position to place a ligand. ⌒ joins two neighbouring positions into a chelate ring; two rings through one position make a tridentate ligand.</p>
+      <p class="bstep-hint s2">Tap each position to place a ligand. ⌒ joins two neighbouring positions into a chelate ring. Linking more positions builds tri- and tetradentate ligands: chains, tripods or rings.</p>
       <div id="bHost"></div>
     </section>
     <section class="mscreen" data-tab="quiz" id="tabQuiz" hidden><div id="qHost"></div></section>
@@ -840,15 +840,34 @@ function uniquePerms(arr){
     for(const k of keys) if(counts[k]>0){counts[k]--;cur.push(k);rec();cur.pop();counts[k]++;} })();
   return out;
 }
-/* multidentate ligand specs: 'AB' = bidentate (letters = its two donor ends);
-   'ABA:x' = linear tridentate, donors in chain order, x = flexible (fac or mer), m = mer only (rigid, terpy-like),
-   f = fac only; 'AAA:c' = cyclic/tripodal tridentate capping a face (tacn-like): all three donors linked */
+/* Multidentate ligand specs. Letters are the donor atoms; ':' + mode says how the ligand is joined and may bind.
+   bidentate 'AB'.  tridentate chain 'ABA:x' (donors in chain order; x flexible, m mer only, f fac only),
+   face-capping ring 'AAA:c'.  tetradentate chain 'ABBA:x' (x flexible, p planar only, f folded only),
+   tripod 'BAAA:t' (first letter = central donor, then the three arms), macrocycle 'AAAA:r' (flexible) or ':rp' (planar only). */
 const lig=s=>{const [L,mode]=s.split(':');return {L,mode:mode||''};};
 const ligDent=s=>lig(s).L.length;
-function normItem(s){const {L,mode}=lig(s);
-  if(L.length===2) return L.split('').sort().join('');
-  if(mode==='c') return L.split('').sort().join('')+':c';
-  const r=L.split('').reverse().join('');return (L<r?L:r)+':'+mode;}
+const P6=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+/* the ways a ligand's own donor framework maps onto itself (as reorderings of its donor string) */
+function ligPerms(d,mode){
+  if(d===2) return [[0,1],[1,0]];
+  if(d===3) return mode==='c'?P6:[[0,1,2],[2,1,0]];
+  if(mode==='t') return P6.map(a=>[0,a[0]+1,a[1]+1,a[2]+1]);
+  if(mode==='r'||mode==='rp') return [[0,1,2,3],[1,2,3,0],[2,3,0,1],[3,0,1,2],[3,2,1,0],[0,3,2,1],[1,0,3,2],[2,1,0,3]];
+  return [[0,1,2,3],[3,2,1,0]];}
+function ligImages(L,mode){return ligPerms(L.length,mode).map(p=>p.map(i=>L[i]).join(''));}
+/* the ligand's symmetry type: which framework moves keep its donor labels, up to relabelling its positions.
+   Isomer counts depend only on this, so e.g. macrocycles (AAAB) and (ABAC) are the same type. */
+function ligClass(s){const {L,mode}=lig(s),P=ligPerms(L.length,mode),comp=(p,q)=>q.map(i=>p[i]),inv=p=>{const r=[];p.forEach((v,i)=>r[v]=i);return r;};
+  const S=P.filter(p=>p.map(i=>L[i]).join('')===L);
+  return P.map(t=>S.map(x=>comp(comp(t,x),inv(t)).join('')).sort().join('|')).sort()[0]+'#'+L.length+mode;}
+function normItem(s){const {L,mode}=lig(s);const m=ligImages(L,mode).sort()[0];return mode?m+':'+mode:m;}
+const relabelFirst=str=>{const m={};let k=0;return str.split('').map(c=>m[c]||(m[c]='ABCDEFGH'[k++])).join('');};
+function ligPattern(s){const {L,mode}=lig(s);return ligImages(L,mode).map(relabelFirst).sort()[0]+(mode?':'+mode:'');}
+/* a formula up to ligand identity: which distinct ligands (symmetry type + copies) and the monodentate multiplicities */
+function speciesKey(mono,chel){const cnt={};chel.forEach(x=>{const n=normItem(x);cnt[n]=(cnt[n]||0)+1;});
+  const sp=Object.keys(cnt).map(n=>ligClass(n)+'×'+cnt[n]).sort().join(',');
+  const mc={};for(const ch of mono)mc[ch]=(mc[ch]||0)+1;
+  return sp+'|'+Object.values(mc).sort((a,b)=>b-a).join('.');}
 function enumerateRaw(G,mono,chel){
   const out=[], labels=new Array(G.n).fill(null), edges=[];
   const letters=mono.split(''), adj=(i,j)=>G.edges.some(e=>(e[0]===i&&e[1]===j)||(e[0]===j&&e[1]===i));
@@ -857,27 +876,41 @@ function enumerateRaw(G,mono,chel){
     const free=[]; labels.forEach((l,i)=>{if(!l)free.push(i);});
     for(const p of uniquePerms(letters)){const L=labels.slice(); free.forEach((si,k)=>L[si]=p[k]); out.push({labels:L,edges:edges.map(e=>e.slice())});}
   }
+  const place=(sites,Ls,add,next)=>{sites.forEach((v,k)=>labels[v]=Ls[k]);edges.push(...add);next();edges.length-=add.length;sites.forEach(v=>labels[v]=null);};
   (function rec(ci){
     if(ci===chel.length){fill();return;}
-    const {L:c,mode}=lig(chel[ci]);
+    const {L:c,mode}=lig(chel[ci]), free=[...Array(G.n).keys()].filter(i=>!labels[i]), next=()=>rec(ci+1);
     if(c.length===2){
       for(const [a,b] of G.edges){
         if(labels[a]||labels[b]) continue;
         const ors=c[0]===c[1]?[[c[0],c[1]]]:[[c[0],c[1]],[c[1],c[0]]];
-        for(const [la,lb] of ors){labels[a]=la;labels[b]=lb;edges.push([a,b]);rec(ci+1);edges.pop();labels[a]=null;labels[b]=null;}
+        for(const o of ors) place([a,b],o,[[a,b]],next);
       }
       return;
     }
-    // tridentate: donors on a–b–c with a–b and b–c adjacent; a–c adjacent = fac, otherwise (trans) = mer
-    for(let a=0;a<G.n;a++)for(let b=0;b<G.n;b++)for(let d=0;d<G.n;d++){
-      if(a===b||b===d||a===d||labels[a]||labels[b]||labels[d]||!adj(a,b)||!adj(b,d)) continue;
-      const fac=adj(a,d);
-      if(mode==='m'&&fac) continue;
-      if((mode==='f'||mode==='c')&&!fac) continue;
-      labels[a]=c[0];labels[b]=c[1];labels[d]=c[2];
-      const add=[E(a,b),E(b,d)].concat(mode==='c'?[E(a,d)]:[]);
-      edges.push(...add); rec(ci+1); edges.length-=add.length;
-      labels[a]=labels[b]=labels[d]=null;
+    if(c.length===3){
+      // a–b–d chain: a–b and b–d adjacent; a–d adjacent = fac, otherwise (trans) = mer
+      for(const a of free)for(const b of free)for(const d of free){
+        if(a===b||b===d||a===d||!adj(a,b)||!adj(b,d)) continue;
+        const fac=adj(a,d);
+        if(mode==='m'&&fac) continue;
+        if((mode==='f'||mode==='c')&&!fac) continue;
+        place([a,b,d],c,[E(a,b),E(b,d)].concat(mode==='c'?[E(a,d)]:[]),next);
+      }
+      return;
+    }
+    // tetradentate on sites (a,b,d,e)
+    for(const a of free)for(const b of free)for(const d of free)for(const e of free){
+      if(new Set([a,b,d,e]).size<4) continue;
+      const rest=[...Array(G.n).keys()].filter(i=>![a,b,d,e].includes(i));
+      const planar=rest.length===2&&G.transOf[rest[0]]===rest[1];       // octahedron: the two free positions are trans
+      if(mode==='t'){ if(!adj(a,b)||!adj(a,d)||!adj(a,e)) continue; place([a,b,d,e],c,[E(a,b),E(a,d),E(a,e)],next); continue; }
+      if(!adj(a,b)||!adj(b,d)||!adj(d,e)) continue;
+      const ring=mode==='r'||mode==='rp';
+      if(ring&&!adj(e,a)) continue;
+      if((mode==='p'||mode==='rp')&&!planar) continue;
+      if(mode==='f'&&planar) continue;
+      place([a,b,d,e],c,[E(a,b),E(b,d),E(d,e)].concat(ring?[E(e,a)]:[]),next);
     }
   })(0);
   return out;
@@ -971,25 +1004,35 @@ function monoParts(G,L,sites,counts){
   if(singles.length===2&&!doubles.length&&!triples.length) parts.push(anyT(singles.map(x=>pos(x)[0]))?'trans':'cis');
   return parts;
 }
-function triUnits(cfg){  // connected groups of 3 linked positions = tridentate ligands
+function ligUnits(cfg){  // connected groups of ≥3 linked positions = tri- and tetradentate ligands
   const adjL={};cfg.edges.forEach(([a,b])=>{(adjL[a]=adjL[a]||[]).push(b);(adjL[b]=adjL[b]||[]).push(a);});
   const seen=new Set(),units=[];
   Object.keys(adjL).map(Number).forEach(v=>{if(seen.has(v))return;const comp=[],st=[v];seen.add(v);
     while(st.length){const x=st.pop();comp.push(x);adjL[x].forEach(y=>{if(!seen.has(y)){seen.add(y);st.push(y);}});}
-    if(comp.length===3){const mid=comp.find(x=>adjL[x].length===2&&comp.filter(y=>adjL[y].length===2).length===1);
-      units.push({sites:comp,mid:mid===undefined?null:mid,ends:mid===undefined?null:comp.filter(x=>x!==mid)});}});
+    if(comp.length<3) return;
+    const deg={};comp.forEach(x=>deg[x]=adjL[x].length);
+    const nE=comp.reduce((t,x)=>t+deg[x],0)/2, ends=comp.filter(x=>deg[x]===1);
+    const mid=comp.length===3&&ends.length===2?comp.find(x=>deg[x]===2):null;
+    units.push({sites:comp,deg,nE,ends,mid});});
   return units;
 }
 function nameIso(c,G,cfg){
   if(G.id==='Td') return '';
-  const tri=triUnits(cfg);
-  if(tri.length){
+  const units=ligUnits(cfg);
+  if(units.length){
     if(G.id!=='Oh') return '';
     const isT=(i,j)=>G.transOf[i]===j;
-    const shape=u=>u.ends&&isT(u.ends[0],u.ends[1])?'mer':'fac';
-    if(tri.length===2&&shape(tri[0])==='fac'&&shape(tri[1])==='fac'&&tri[0].mid!==null&&tri[1].mid!==null)
+    const tri=units.filter(u=>u.sites.length===3);
+    const triShape=u=>u.ends.length===2&&isT(u.ends[0],u.ends[1])?'mer':'fac';
+    if(tri.length===2&&triShape(tri[0])==='fac'&&triShape(tri[1])==='fac'&&tri[0].mid!==null&&tri[1].mid!==null)
       return isT(tri[0].mid,tri[1].mid)?'s-fac':'u-fac';
-    return tri.map(shape).sort().join(', ');
+    return units.map(u=>{
+      if(u.sites.length===3) return triShape(u);
+      const rest=[...Array(G.n).keys()].filter(i=>!u.sites.includes(i)), planar=rest.length===2&&isT(rest[0],rest[1]);
+      if(u.nE===4) return planar?'trans':'cis';                                          // macrocycle: flat or folded
+      if(u.ends.length===3) return '';                                                    // tripod: one shape only
+      return planar?'trans':(isT(u.ends[0],u.ends[1])?'cis-α':'cis-β');                   // chain (trien-type)
+    }).filter(Boolean).sort().join(', ');
   }
   const L=cfg.labels, inEdge=new Set(cfg.edges.flat());
   const monoSites=[...Array(G.n).keys()].filter(i=>!inEdge.has(i));
@@ -1033,7 +1076,12 @@ function analyzeCase(c){
   const G=GEOMS[c.geom], mono=c.mono||'', chel=c.chel||[];
   if(mono.length+chel.reduce((t,x)=>t+ligDent(x),0)!==G.n) throw new Error('bad case '+c.id);
   const raw=enumerateRaw(G,mono,chel), orbits=new Map();
-  for(const cfg of raw){const k=canon(cfg,G.rots);if(!orbits.has(k))orbits.set(k,[]);orbits.get(k).push(cfg);}
+  // build each set of rotation-equivalent arrangements once: rotate an unseen arrangement 24 ways and mark all it reaches
+  const seenK=new Set();
+  for(const cfg of raw){if(seenK.has(keyOf(cfg)))continue;
+    const members=[];let ck=null;
+    for(const g of G.rots){const c2=applyCfg(g.perm,cfg),k=keyOf(c2);if(seenK.has(k))continue;seenK.add(k);members.push(c2);if(ck===null||k<ck)ck=k;}
+    orbits.set(ck,members);}
   const dispKey=cfg=>G.order.map(i=>cfg.labels[i]).join('');
   // prefer drawings whose chelate rings sit cleanly between neighbouring ligands
   // (penalise chelates whose drawn arc would sweep across another ligand's label in the 2-D template)
@@ -1125,19 +1173,13 @@ const CASES=[
  {id:'td-mabcd-c',geom:'Td',mono:'CD',chel:['AB'],study:true,
   insight:`Any two tetrahedral positions are adjacent, so the chelate fits on any edge. That leaves four different donor atoms (A, B, C, D) around the metal and no mirror plane: one enantiomeric pair, just like [MABCD].`,
   hint:`Count the different donor atoms. A tetrahedron with four different ones is chiral.`},
- {id:'td-mabac',geom:'Td',chel:['AB','AC'],study:true,
-  insight:`Two different unsymmetrical chelates share the A donor type. As in [M(AB)<sub>2</sub>], the two chelate edges are perpendicular, and with B and C different no mirror plane or S<sub>4</sub> axis survives (C<sub>1</sub>). One enantiomeric pair.`,
-  hint:`Start from [M(AB)<sub>2</sub>]: does making one chelate different restore any symmetry?`},
- {id:'td-mabcd2',geom:'Td',chel:['AB','CD'],study:true,
+  {id:'td-mabcd2',geom:'Td',chel:['AB','CD'],study:true,
   insight:`Two completely different unsymmetrical chelates give four different donor atoms on the tetrahedron, so there is no symmetry at all (C<sub>1</sub>): one enantiomeric pair.`,
   hint:`Four different donor atoms on a tetrahedron: think stereogenic carbon.`},
  {id:'sp-mabcd-c',geom:'SP',mono:'CD',chel:['AB'],study:true,
   insight:`The chelate fixes A and B cis to each other. C then sits trans to A or trans to B, with D in the last place: 2 geometric isomers. The molecular plane is a mirror plane, so neither is chiral.`,
   hint:`Fix the chelate, then ask what can sit trans to A.`},
- {id:'sp-mabac',geom:'SP',chel:['AB','AC'],study:true,
-  insight:`The two chelates fill the square. Their two A ends are either adjacent (cis) or opposite (trans): 2 isomers, both planar and achiral.`,
-  hint:`Where are the two A ends relative to each other?`},
- {id:'sp-mabcd2',geom:'SP',chel:['AB','CD'],study:true,
+  {id:'sp-mabcd2',geom:'SP',chel:['AB','CD'],study:true,
   insight:`With one AB and one CD chelate, A ends up trans to either C or D: 2 isomers, both achiral.`,
   hint:`Fix the AB chelate; the CD chelate can lie two ways round.`},
  {id:'oh-ma2bcde',geom:'Oh',mono:'AABCDE',study:true,
@@ -1202,54 +1244,89 @@ const EXTRA=[
  {id:'oh-mab3',geom:'Oh',chel:['AB','AB','AB'],hint:`The three A ends can be fac or mer, and every tris-chelate propeller has a handedness.`},
  {id:'oh-maab2c2',geom:'Oh',mono:'BBCC',chel:['AA'],hint:`Place the chelate first, then decide where the B pair and the C pair go (cis or trans).`},
 ];
-/* Every formula containing a tridentate ligand, generated, not hand-picked. Counts depend only on which
-   ligands are present (a symmetry maps each ligand onto an identical one), so each ligand is described by its
-   type alone: 9 tridentate types, symmetric/unsymmetric bidentates, and monodentates; different ligands get
-   different letters. Placements that a shape cannot accept (e.g. a mer-only ligand on a tetrahedron) are dropped,
-   and modes that give identical placements on a shape are merged (on a tetrahedron every chain caps a face;
-   on a square every chain is mer). */
-const TRI_TYPES={Oh:['ABA:x','ABC:x','ABA:m','ABC:m','ABA:f','ABC:f','AAA:c','AAB:c','ABC:c'],Td:['ABA:x','ABC:x','AAA:c','AAB:c','ABC:c'],SP:['ABA:x','ABC:x']};
-function triCases(){
-  const out=[], LET='ABCDEFGH';
-  const relabel=(spec,start)=>{const {L,mode}=lig(spec),m={};let k=start;const R=L.split('').map(x=>m[x]||(m[x]=LET[k++])).join('');return {s:mode?R+':'+mode:R,next:k};};
-  const add=(geom,items,monoPat,fam)=>{let k=0;const chel=[];
-    items.forEach(it=>{const r=relabel(it,k);chel.push(r.s);k=r.next;});
-    const mono=monoPat.split('').map(x=>LET[k+'ABC'.indexOf(x)]).join('');
-    out.push({id:'tri-'+geom+'-'+chel.join('_').replace(/:/g,'')+'-'+mono,geom,mono,chel,study:true,fam,gen:true});};
+/* EVERY formula is generated, not hand-picked. Isomer counts depend only on which ligands are present: a rotation
+   or reflection must map each ligand onto an identical one, so a ligand is described by the symmetry of its own donor
+   framework, and different ligands simply get different letters. For each shape the generator takes every way to split
+   the positions among ligands (denticities 1–4), every ligand type for each part, and every choice of which ligands are
+   identical copies. Combinations a shape cannot hold are dropped; modes that give identical placements on a shape are
+   merged (on a tetrahedron every chain wraps the shape; on a square every chain and ring lies flat).
+   Ligand types (representatives of each symmetry class):
+     bidentate: AA symmetric, AB unsymmetric
+     tridentate: chain ABA/ABC × flexible/mer-only/fac-only; face-capping ring AAA/AAB/ABC
+     tetradentate: chain ABBA/ABCD × flexible/planar-only/folded-only; tripod with arms AAA/AAB/ABC;
+                   macrocycle AAAA/ABAB/AAAB/AABB/ABCD × flexible/planar-only */
+const MULTI_TYPES={
+  Oh:{2:['AA','AB'],3:['ABA:x','ABC:x','ABA:m','ABC:m','ABA:f','ABC:f','AAA:c','AAB:c','ABC:c'],
+      4:['ABBA:x','ABCD:x','ABBA:p','ABCD:p','ABBA:f','ABCD:f','BAAA:t','CAAB:t','DABC:t',
+         'AAAA:r','ABAB:r','AAAB:r','AABB:r','ABCD:r','AAAA:rp','ABAB:rp','AAAB:rp','AABB:rp','ABCD:rp']},
+  Td:{2:['AA','AB'],3:['ABA:x','ABC:x','AAA:c','AAB:c','ABC:c'],4:['ABBA:x','ABCD:x','BAAA:t','CAAB:t','DABC:t']},
+  SP:{2:['AA','AB'],3:['ABA:x','ABC:x'],4:['ABBA:x','ABCD:x','AAAA:r','ABAB:r','AAAB:r','AABB:r','ABCD:r']},
+};
+function intPartitions(n,max=n){if(n===0)return [[]];const out=[];for(let k=Math.min(n,max);k>=1;k--)for(const p of intPartitions(n-k,k))out.push([k,...p]);return out;}
+function generateAll(){
+  const out=new Map(), LET='ABCDEFGH';
   for(const g of ['Oh','Td','SP']){
-    const T=TRI_TYPES[g], rest=GEOMS[g].n-3;
-    T.forEach(t=>{ if(rest===1) add(g,[t],'A','t1'); else ['AAA','AAB','ABC'].forEach(mp=>add(g,[t],mp,'t1')); });
-    if(g==='Oh'){
-      T.forEach(t=>['AA','AB'].forEach(bi=>add(g,[t,bi],'A','t2b')));
-      T.forEach((t,i)=>{ add(g,[t,t].map((x,k)=>k===0?x:x),'','t3same');           // the same ligand twice
-        T.slice(i).forEach(u=>add(g,[t,u],'','t3')); });                              // two different ligands
+    const T=MULTI_TYPES[g];
+    for(const part of intPartitions(GEOMS[g].n,4)){
+      const multi=part.filter(d=>d>1), k=part.length-multi.length;
+      const seqs=[];
+      (function rec(i,acc){if(i===multi.length){seqs.push(acc.slice());return;}
+        T[multi[i]].forEach((t,ti)=>{if(i>0&&multi[i]===multi[i-1]&&ti<acc[i-1].ti)return;acc.push({t,ti});rec(i+1,acc);acc.pop();});})(0,[]);
+      for(const seq of seqs){
+        const idsList=[];      // which slots of the same type are the same ligand
+        (function rec(i,ids){if(i===seq.length){idsList.push(ids.slice());return;}
+          const same=[...new Set(seq.slice(0,i).map((x,j)=>x.t===seq[i].t?ids[j]:null).filter(x=>x!==null))];
+          [...same,'n'+i].forEach(id=>{ids.push(id);rec(i+1,ids);ids.pop();});})(0,[]);
+        for(const ids of idsList) for(const mp of intPartitions(k)){
+          let n=0;const map={},chel=[];
+          seq.forEach((x,i)=>{if(!(ids[i] in map)){const {L,mode}=lig(x.t),m={};const R=L.split('').map(ch=>m[ch]||(m[ch]=LET[n++])).join('');map[ids[i]]=mode?R+':'+mode:R;}chel.push(map[ids[i]]);});
+          const mono=mp.map(cnt=>LET[n++].repeat(cnt)).join('');
+          const key=g+':'+speciesKey(mono,chel);
+          if(!out.has(key)) out.set(key,{geom:g,mono,chel});
+        }
+      }
     }
   }
-  // a pair of identical ligands must share letters: rewrite 't3same' entries so both copies use the first copy's letters
-  out.forEach(c=>{if(c.fam==='t3same'){c.chel=[c.chel[0],c.chel[0]];c.fam='t3';c.id=c.id.replace(/^tri-/,'tri2-');}});
-  return out;
+  return [...out.values()];
 }
-const TRI_CASES=[];
-const TRI_NOTES={
- 'tri-Oh-ABAx-CCC':`A flexible tridentate ligand like dien wraps either a face (fac) or a meridian (mer), and the three C ligands take what is left, which has the same shape. Both arrangements keep a mirror plane: 2 isomers. Compare the rigid (mer-only) and face-capping versions, which allow just one.`,
- 'tri-Oh-ABAm-CCC':`A rigid planar ligand like terpy can only bind meridionally, so the fac form of [M(ABA)C<sub>3</sub>] is impossible: one arrangement (C<sub>2v</sub>).`,
- 'tri-Oh-AAAc-BBB':`A face-capping ligand like tacn can only bind facially: one arrangement (C<sub>3v</sub>).`,
- 'tri2-Oh-ABAx_CDCx-':`Two flexible tridentates like dien: both mer (D<sub>2d</sub>); both fac with their central donors trans (s-fac, C<sub>2h</sub>, centrosymmetric); or both fac with their central donors cis (u-fac, C<sub>2</sub>), which is chiral. 3 geometrical isomers, 4 stereoisomers. One fac plus one mer is impossible: the positions left by a meridian always form another meridian.`,
- 'tri2-Oh-ABAm_CDCm-':`Two rigid ligands like terpy must both bind mer, at right angles to each other: one arrangement (D<sub>2d</sub>), as in [Fe(terpy)<sub>2</sub>]<sup>2+</sup>.`,
- 'tri2-Oh-AAAc_BBBc-':`Two face-capping ligands like tacn sit on opposite faces: one arrangement (D<sub>3d</sub>).`,
- 'tri-Td-ABCx-D':`On a tetrahedron a tridentate ligand always caps a face. With three different donor ends plus D, all four donor atoms differ: no symmetry (C<sub>1</sub>), one enantiomeric pair.`,
- 'tri-Td-ABAx-C':`On a tetrahedron the chain caps a face. The mirror plane through M, B and C swaps the two identical A ends: one arrangement (C<sub>s</sub>).`,
- 'tri-SP-ABAx-C':`On a square a tridentate ligand can only span three positions in a row (mer), as in [Pt(dien)Cl]<sup>+</sup>: one arrangement.`,
- 'tri-Oh-ABCf-DDD':`The ligand must bind fac, and with three different donor ends nothing can reflect it onto itself: one arrangement, which is chiral (C<sub>1</sub>).`,
- 'tri-Oh-ABCc-DDD':`A face-capping ligand with three different donors: one arrangement, and it is chiral, because the donors can run clockwise or anticlockwise around the face.`,
-};
-const ANALYSIS={};
-[...CASES,...EXTRA].forEach(c=>{ANALYSIS[c.id]=analyzeCase(c);});
-triCases().forEach(c=>{const raw=enumerateRaw(GEOMS[c.geom],c.mono,c.chel);if(!raw.length)return;if(TRI_NOTES[c.id])c.insight=TRI_NOTES[c.id];ANALYSIS[c.id]=analyzeCase(c);TRI_CASES.push(c);});
-const BANK=[...CASES,...EXTRA,...TRI_CASES];
+/* hand-written explanations for landmark cases, matched to generated formulas by ligand identity */
+const NOTES=[
+ ['Oh','CCC',['ABA:x'],`A flexible tridentate ligand like dien wraps either a face (fac) or a meridian (mer), and the three C ligands take what is left, which has the same shape. Both arrangements keep a mirror plane: 2 isomers. Compare the rigid (mer-only) and face-capping versions, which allow just one.`],
+ ['Oh','CCC',['ABA:m'],`A rigid planar ligand like terpy can only bind meridionally, so the fac form of [M(ABA)C<sub>3</sub>] is impossible: one arrangement (C<sub>2v</sub>).`],
+ ['Oh','BBB',['AAA:c'],`A face-capping ligand like tacn can only bind facially: one arrangement (C<sub>3v</sub>).`],
+ ['Oh','',['ABA:x','ABA:x'],`Two flexible tridentates like dien: both mer (D<sub>2d</sub>); both fac with their central donors trans (s-fac, C<sub>2h</sub>, centrosymmetric); or both fac with their central donors cis (u-fac, C<sub>2</sub>), which is chiral. 3 geometrical isomers, 4 stereoisomers. One fac plus one mer is impossible: the positions left by a meridian always form another meridian.`],
+ ['Oh','',['ABA:m','ABA:m'],`Two rigid ligands like terpy must both bind mer, at right angles to each other: one arrangement (D<sub>2d</sub>), as in [Fe(terpy)<sub>2</sub>]<sup>2+</sup>.`],
+ ['Oh','',['AAA:c','AAA:c'],`Two face-capping ligands like tacn sit on opposite faces: one arrangement (D<sub>3d</sub>).`],
+ ['Td','D',['ABC:x'],`On a tetrahedron a tridentate ligand always caps a face. With three different donor ends plus D, all four donor atoms differ: no symmetry (C<sub>1</sub>), one enantiomeric pair.`],
+ ['Td','C',['ABA:x'],`On a tetrahedron the chain caps a face. The mirror plane through M, B and C swaps the two identical A ends: one arrangement (C<sub>s</sub>).`],
+ ['SP','C',['ABA:x'],`On a square a tridentate ligand can only span three positions in a row (mer), as in [Pt(dien)Cl]<sup>+</sup>: one arrangement.`],
+ ['Oh','DDD',['ABC:f'],`The ligand must bind fac, and with three different donor ends nothing can reflect it onto itself: one arrangement, which is chiral (C<sub>1</sub>).`],
+ ['Oh','EE',['ABBA:x'],`A flexible chain of four donors like trien lies flat (trans: the two C ligands are trans, C<sub>2v</sub>) or folds. Folded with its two end donors trans to each other is cis-α (C<sub>2</sub>); folded with them cis is cis-β (C<sub>1</sub>). Both folded forms are chiral: 1 + 2 + 2 = 5 stereoisomers, as for [Co(trien)Cl<sub>2</sub>]<sup>+</sup>. Real trien complexes can also differ in the orientation of their N–H groups, which this model ignores.`],
+ ['Oh','',['ABBA:x','CC'],`A chelate needs two cis positions, so the flat (trans) form of the chain is impossible here. Only cis-α and cis-β remain, each as a pair of enantiomers: 4 stereoisomers, as for [Co(trien)(ox)]<sup>+</sup>.`],
+ ['Oh','EE',['BAAA:t'],`A tripodal ligand like tren always leaves one free position trans to its central donor and one cis to it. With two identical C ligands there is a single arrangement (C<sub>s</sub>); make them different and there are two.`],
+ ['Oh','EE',['AAAA:r'],`A flexible macrocycle like cyclam lies flat with the two C ligands trans (D<sub>4h</sub>) or folds with them cis (C<sub>2v</sub>): 2 isomers, both achiral in this model. A rigid planar ring like a porphyrin allows only the trans form. Real cyclam complexes also differ in their N–H orientations, which this model ignores.`],
+ ['Oh','EE',['AAAA:rp'],`A rigid planar macrocycle like a porphyrin can only lie flat, leaving the two C ligands trans: one arrangement (D<sub>4h</sub>).`],
+ ['Oh','DDD',['ABC:c'],`A face-capping ligand with three different donors: one arrangement, and it is chiral, because the donors can run clockwise or anticlockwise around the face.`],
+];
+const NOTE_BY_KEY={}; NOTES.forEach(([g,m,ch,t])=>{NOTE_BY_KEY[g+':'+speciesKey(m,ch)]=t;});
+const ANALYSIS={}, BANK=[];
+(function buildBank(){
+  const HAND=[...CASES,...EXTRA], hand={};
+  HAND.forEach(c=>{const k=c.geom+':'+speciesKey(c.mono||'',c.chel||[]);if(!hand[k])hand[k]=c;});
+  const keys=new Set();
+  generateAll().forEach(f=>{
+    const k=f.geom+':'+speciesKey(f.mono,f.chel);
+    if(!enumerateRaw(GEOMS[f.geom],f.mono,f.chel).length) return;          // the shape cannot hold this combination
+    const c=hand[k]||{id:'g-'+f.geom+'-'+f.chel.map(x=>x.replace(':','')).join('_')+'-'+f.mono,geom:f.geom,mono:f.mono,chel:f.chel,study:true,gen:true};
+    if(!c.insight&&NOTE_BY_KEY[k]) c.insight=NOTE_BY_KEY[k];
+    ANALYSIS[c.id]=analyzeCase(c); BANK.push(c); keys.add(k);
+  });
+  HAND.forEach(c=>{const k=c.geom+':'+speciesKey(c.mono||'',c.chel||[]);if(!keys.has(k)){console.warn('hand case outside the generated set',c.id);ANALYSIS[c.id]=analyzeCase(c);BANK.push(c);keys.add(k);}});
+})();
 
-const MODE_TAG={m:'mer',f:'fac',c:'cyc'};
-const ligHTML=x=>{const {L,mode}=lig(x);return `(${L})`+(MODE_TAG[mode]?`<sup>${MODE_TAG[mode]}</sup>`:'');};
+
+const MODE_TAG={3:{m:'mer',f:'fac',c:'cyc'},4:{p:'planar',f:'folded',t:'tripod',r:'cyc',rp:'cyc, planar'}};
+const ligHTML=x=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];return `(${L})`+(t?`<sup>${t}</sup>`:'');};
 function formulaHTML(c){
   let f='M'; const cc={};
   (c.chel||[]).forEach(x=>cc[x]=(cc[x]||0)+1);
@@ -1276,19 +1353,27 @@ const CATS=[
 ];
 const catOf=A=>A.geometric===1?(A.pairs?'enan':'one'):(A.pairs?'both':'geo');
 const caseLetters=c=>new Set((c.mono||'')+(c.chel||[]).map(x=>lig(x).L).join(''));
-const TRI_KIND={x:'flexible tridentate',m:'rigid tridentate (mer only)',f:'tridentate (fac only)',c:'face-capping tridentate'};
-const ligKinds=c=>{const k=[],ch=c.chel||[],bi=ch.filter(x=>ligDent(x)===2);if(c.mono)k.push('monodentate');
-  if(bi.some(x=>x[0]===x[1]))k.push('symmetric chelate');if(bi.some(x=>x[0]!==x[1]))k.push('unsymmetric chelate');
-  ch.filter(x=>ligDent(x)===3).forEach(x=>{const t=TRI_KIND[lig(x).mode];if(!k.includes(t))k.push(t);});return k;};
+const ligKind=x=>{const {L,mode}=lig(x),d=L.length;
+  if(d===2) return L[0]===L[1]?'symmetric chelate':'unsymmetric chelate';
+  if(d===3) return {x:'flexible tridentate',m:'rigid tridentate (mer only)',f:'tridentate (fac only)',c:'face-capping tridentate'}[mode];
+  return {x:'flexible tetradentate chain',p:'planar tetradentate chain',f:'folded tetradentate chain',t:'tripodal tetradentate',r:'flexible macrocycle',rp:'planar macrocycle'}[mode];};
+const ligKinds=c=>{const k=[];if(c.mono)k.push('monodentate');(c.chel||[]).forEach(x=>{const t=ligKind(x);if(!k.includes(t))k.push(t);});return k;};
 const FAMS=[
-  {id:'mb',name:'Monodentate & bidentate ligands'},
+  {id:'m',name:'Monodentate ligands only'},
+  {id:'b',name:'With bidentate ligands'},
   {id:'t1',name:'One tridentate + monodentates'},
   {id:'t2b',name:'Tridentate + bidentate + monodentate'},
   {id:'t3',name:'Two tridentate ligands',note:'A mer-only ligand never shares an octahedron with a fac-only or face-capping one: the three positions left by a meridian always form another meridian.'},
+  {id:'qc',name:'Tetradentate chains (trien-type)',note:'A chain of four donors lies flat (trans: the two free positions are trans) or folds (cis-α: its two end donors are trans to each other; cis-β: they are not).'},
+  {id:'qt',name:'Tripodal tetradentates (tren-type)',note:'A central donor with three arms always leaves one free position trans to the central donor and one cis to it.'},
+  {id:'qr',name:'Macrocycles (cyclam- or porphyrin-type)',note:'A ring of four donors lies flat (trans) or, if flexible, folds (cis). A rigid planar macrocycle like a porphyrin can only lie flat, so it cannot hold a bidentate ligand.'},
 ];
-const famOf=c=>c.fam||'mb';
+function famOf(c){const ks=(c.chel||[]).map(x=>({d:ligDent(x),mode:lig(x).mode}));
+  const q=ks.find(k=>k.d===4); if(q) return q.mode==='t'?'qt':(q.mode==='r'||q.mode==='rp')?'qr':'qc';
+  const t=ks.filter(k=>k.d===3).length; if(t===2) return 't3'; if(t===1) return ks.some(k=>k.d===2)?'t2b':'t1';
+  return ks.length?'b':'m';}
 const ligChips=c=>ligKinds(c).map(k=>`<span class="chip lig">${k}</span>`).join('');
-function casesFor(g,chiralOnly,fam='mb'){
+function casesFor(g,chiralOnly,fam='m'){
   const key=c=>{const A=ANALYSIS[c.id];return [A.stereo,caseLetters(c).size,(c.chel||[]).length,formulaHTML(c)];};
   const list=BANK.filter(c=>c.geom===g&&famOf(c)===fam&&(!chiralOnly||ANALYSIS[c.id].pairs>0));
   list.sort((a,b)=>{const x=key(a),y=key(b);for(let i=0;i<4;i++){if(x[i]<y[i])return -1;if(x[i]>y[i])return 1;}return 0;});
@@ -1309,31 +1394,23 @@ function formulaCanon(mono,chel){
     if(best===null||k<best)best=k;}
   return best;
 }
-/* formula up to ligand identity: every distinct ligand gets fresh letters (isomer counts depend only on this) */
-function speciesForm(mono,chel){const LET='ABCDEFGHIJ';let k=0;const seen={},items=[];
-  chel.forEach(x=>{const n=normItem(x);if(!(n in seen)){const {L,mode}=lig(n),m={};seen[n]=normItem(L.split('').map(ch=>m[ch]||(m[ch]=LET[k++])).join('')+(mode?':'+mode:''));}items.push(seen[n]);});
-  const mm={};return formulaCanon(mono.split('').map(ch=>mm[ch]||(mm[ch]=LET[k++])).join(''),items);}
 const NB={}; let bankKeys=null;
-/* formulas in the app that differ from this one by changing a single donor */
+const DENT_WORD=['','','bidentate','tridentate','tetradentate'];
+const MODE_SWAPS={3:{x:[['m','make it rigid (mer only)'],['f','restrict it to fac']],m:[['x','make it flexible']],f:[['x','make it flexible']]},
+  4:{x:[['p','restrict it to lie flat'],['f','restrict it to folded (cis) shapes']],p:[['x','make it flexible']],f:[['x','make it flexible']],r:[['rp','make the macrocycle rigid and flat']],rp:[['r','make the macrocycle flexible']]}};
+/* formulas in the app that differ from this one by changing a single donor, or one ligand's flexibility */
 function neighbours(c){
   if(NB[c.id]) return NB[c.id];
-  if(!bankKeys){bankKeys={};BANK.forEach(b=>{const k=b.geom+':'+speciesForm(b.mono||'',b.chel||[]);if(!bankKeys[k])bankKeys[k]=b;});}
-  const mono=c.mono||'',chel=c.chel||[],used=[...caseLetters(c)].sort(),NEW='Z',self=speciesForm(mono,chel),out=new Map();
-  const consider=(m,ch,desc)=>{const k=speciesForm(m,ch);if(k===self)return;const b=bankKeys[c.geom+':'+k];if(b&&!out.has(b.id))out.set(b.id,{c:b,desc});};
-  [...new Set(mono)].forEach(X=>{const i=mono.indexOf(X);
-    [...new Set(mono)].filter(y=>y!==X).concat(NEW).forEach(Y=>consider(mono.slice(0,i)+Y+mono.slice(i+1),chel,`one ${X} → ${Y===NEW?'a new ligand':Y}`));});
-  chel.forEach((pr,ci)=>{if(ligDent(pr)!==3)return;const {L,mode}=lig(pr);const sw=x=>{const ch=chel.slice();ch[ci]=x;return ch;};
-    if(mode==='c'){const cnt={};L.split('').forEach(x=>cnt[x]=(cnt[x]||0)+1);const ks=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
-      if(ks.length===1) consider(mono,sw(ks[0]+ks[0]+NEW+':c'),'make one ring donor different');
-      else if(ks.length===2){consider(mono,sw(ks[0]+ks[0]+ks[0]+':c'),'make all three ring donors the same');consider(mono,sw(ks[0]+NEW+ks[1]+':c'),'make all three ring donors different');}
-      else consider(mono,sw(ks[0]+ks[0]+ks[1]+':c'),'make two ring donors the same');
-      return;}
-    const sym=L[0]===L[2], the=chel.filter(x=>ligDent(x)===3).length>1?'one ':'the ';
-    consider(mono,sw((sym?L[0]+L[1]+NEW:L[0]+L[1]+L[0])+':'+mode),sym?`give ${the}tridentate two different ends`:`give ${the}tridentate two identical ends`);
-    ({x:[['m',`make ${the}tridentate rigid (mer only)`],['f',`restrict ${the}tridentate to fac`]],m:[['x',`make ${the}tridentate flexible`]],f:[['x',`make ${the}tridentate flexible`]]}[mode]||[]).forEach(([md,d])=>consider(mono,sw(L+':'+md),d));});
-  chel.forEach((pr,ci)=>ligDent(pr)===2&&[0,1].forEach(e=>{const X=pr[e];
-    used.filter(y=>y!==X).concat(NEW).forEach(Y=>{const ch=chel.slice();ch[ci]=e?pr[0]+Y:Y+pr[1];
-      consider(mono,ch,`one ${X} end of a (${pr}) chelate → ${Y===NEW?'a new donor':Y}`);});}));
+  if(!bankKeys){bankKeys={};BANK.forEach(b=>{const k=b.geom+':'+speciesKey(b.mono||'',b.chel||[]);if(!bankKeys[k])bankKeys[k]=b;});}
+  const mono=c.mono||'',chel=c.chel||[],NEW='Z',self=speciesKey(mono,chel),out=new Map();
+  const consider=(m,ch,desc)=>{const k=speciesKey(m,ch);if(k===self)return;const b=bankKeys[c.geom+':'+k];if(b&&!out.has(b.id))out.set(b.id,{c:b,desc});};
+  const monoL=[...new Set(mono)];
+  monoL.forEach(X=>{const i=mono.indexOf(X);monoL.filter(y=>y!==X).concat(NEW).forEach(Y=>consider(mono.slice(0,i)+Y+mono.slice(i+1),chel,`one ${X} → ${Y===NEW?'a new ligand':Y}`));});
+  chel.forEach((pr,ci)=>{const {L,mode}=lig(pr),sw=x=>{const ch=chel.slice();ch[ci]=x;return ch;};
+    const copies=chel.filter(x=>normItem(x)===normItem(pr)).length, ref=`${copies>1?'one':'the'} ${ligHTML(pr)} ${DENT_WORD[L.length]}`;
+    for(let p=0;p<L.length;p++) [NEW].concat([...new Set(L)].filter(y=>y!==L[p])).forEach(Y=>{const nl=L.slice(0,p)+Y+L.slice(p+1);
+      consider(mono,sw(mode?nl+':'+mode:nl),`${ref}: one ${L[p]} donor → ${Y===NEW?'a new donor':Y}`);});
+    ((MODE_SWAPS[L.length]||{})[mode]||[]).forEach(([md,d])=>consider(mono,sw(L+':'+md),`${ref}: ${d}`));});
   const n=caseLetters(c).size;
   return NB[c.id]=[...out.values()].map(o=>({...o,dir:Math.sign(caseLetters(o.c).size-n)})).sort((a,b)=>a.dir-b.dir);
 }
@@ -1604,7 +1681,7 @@ const ICONS={
 };
 const isoById={}; Object.values(ANALYSIS).forEach(A=>A.isomers.forEach(i=>isoById[i.id]=i));
 
-const SB={chiralOnly:false,famOpen:new Set(['Td:mb','SP:mb','Oh:mb'])};
+const SB={chiralOnly:false,famOpen:new Set(['Td:m','Td:b','SP:m','SP:b','Oh:m','Oh:b'])};
 function fillNbr(caseEl){const slot=caseEl.querySelector('.nbr-slot');if(slot&&!slot.dataset.done){slot.innerHTML=neighbourHTML(BANK.find(c=>c.id===caseEl.dataset.case));slot.dataset.done='1';}}
 function caseHTML(c){
   const A=ANALYSIS[c.id];
@@ -1625,7 +1702,7 @@ function renderSidebar(){
   $$('#sideList details.fam').forEach(d=>{if(d.open)SB.famOpen.add(d.dataset.key);else SB.famOpen.delete(d.dataset.key);});
   $('#sideList').innerHTML=['Td','SP','Oh'].map(g=>`<div class="geo-head">${ICONS[g]}<span>${GEOMS[g].name}</span><span class="chip">${GEOMS[g].sym}</span></div>`+
     FAMS.map(f=>{const groups=casesFor(g,SB.chiralOnly,f.id),n=groups.reduce((t,x)=>t+x.cases.length,0);if(!n)return '';const key=g+':'+f.id;
-      return `<details class="fam" data-key="${key}" ${SB.famOpen.has(key)?'open':''}><summary>${f.name} <span class="famn">${n}</span></summary>${f.note&&g==='Oh'?`<p class="fam-note">${f.note}</p>`:''}`+
+      return `<details class="fam" data-key="${key}" ${SB.famOpen.has(key)?'open':''}><summary>${f.name} <span class="famn">${n}</span></summary>${f.note&&(g==='Oh'||f.id[0]==='q')?`<p class="fam-note">${f.note}</p>`:''}`+
         groups.map(({cat,cases})=>`<div class="cat-head"><b>${cat.name}</b><small>${cat.blurb}</small></div>`+cases.map(caseHTML).join('')).join('')+`</details>`;}).join('')).join('');
   open.forEach(id=>{const e=$(`#sideList .case[data-case="${id}"]`);if(e){e.classList.add('open');fillNbr(e);}});
 }
@@ -1775,7 +1852,7 @@ BANK.forEach(c=>{caseByKey[formulaKey(c.geom,c.mono||'',c.chel||[])]=c.id;});
 function analysisFor(geom,mono,chel){
   const k=formulaKey(geom,mono,chel);
   if(!caseByKey[k]){
-    const c={id:'custom:'+k,geom,mono:mono.split('').sort().join(''),chel:chel.map(normItem).sort(),fam:chel.some(x=>ligDent(x)===3)?'custom':'mb'};
+    const c={id:'custom:'+k,geom,mono:mono.split('').sort().join(''),chel:chel.map(normItem).sort()};
     ANALYSIS[c.id]=analyzeCase(c); ANALYSIS[c.id].isomers.forEach(i=>isoById[i.id]=i); caseByKey[k]=c.id;
   }
   return ANALYSIS[caseByKey[k]];
@@ -1793,9 +1870,13 @@ function builderResult(){
   B.edges.forEach(([a])=>{if(done.has(a))return;const comp=new Set([a]),st=[a];
     while(st.length){const x=st.pop();B.edges.forEach(([p,q])=>{const y=p===x?q:q===x?p:null;if(y!==null&&!comp.has(y)){comp.add(y);st.push(y);}});}
     comp.forEach(v=>done.add(v));const vs=[...comp],deg=v=>B.edges.filter(e=>e.includes(v)).length;
-    if(vs.length===2) chel.push(vs.map(v=>B.labels[v]).sort().join(''));
-    else if(vs.every(v=>deg(v)===2)) chel.push(normItem(vs.map(v=>B.labels[v]).join('')+':c'));
-    else{const mid=vs.find(v=>deg(v)===2),ends=vs.filter(v=>v!==mid);chel.push(normItem(B.labels[ends[0]]+B.labels[mid]+B.labels[ends[1]]+':x'));}});
+    // walk a chain or ring in order of its links
+    const walk=start=>{const order=[start];while(order.length<vs.length){const x=order[order.length-1];const y=vs.find(v=>!order.includes(v)&&B.edges.some(([p,q])=>(p===x&&q===v)||(q===x&&p===v)));if(y===undefined)break;order.push(y);}return order;};
+    const lbl=o=>o.map(v=>B.labels[v]).join('');
+    if(vs.length===2) chel.push(lbl(vs).split('').sort().join(''));
+    else if(vs.every(v=>deg(v)===2)) chel.push(normItem(lbl(walk(vs[0]))+(vs.length===3?':c':':r')));      // closed ring
+    else if(vs.length===4&&vs.some(v=>deg(v)===3)){const c0=vs.find(v=>deg(v)===3);chel.push(normItem(lbl([c0,...vs.filter(v=>v!==c0)])+':t'));}   // tripod
+    else chel.push(normItem(lbl(walk(vs.find(v=>deg(v)===1)))+':x'));});                                        // open chain, read as flexible
   const A=analysisFor(B.geom,mono,chel), G=GEOMS[B.geom], cfg=builderCfg();
   const iso=A.isomers.find(i=>i.key===canon(cfg,G.rots));
   return {A,iso,cfg,q:G.layouts[B.layout].q.clone()};
@@ -1827,6 +1908,9 @@ function renderBuilder(){
       one of ${res.A.stereo} stereoisomer${res.A.stereo>1?'s':''} (${res.A.geometric} geometric${res.A.pairs?`, ${res.A.pairs} enantiomeric pair${res.A.pairs>1?'s':''}`:''}).`;
   }
 }
+function isRing4(v){ // the component through v is a 4-cycle (every position has two links)
+  const seen=new Set([v]),st=[v];while(st.length){const x=st.pop();B.edges.forEach(([p,q])=>{const y=p===x?q:q===x?p:null;if(y!==null&&!seen.has(y)){seen.add(y);st.push(y);}});}
+  return [...seen].every(x=>B.edges.filter(e=>e.includes(x)).length===2);}
 function builderMsg(t){const m=$('#bMsg');m.innerHTML=t;m.classList.toggle('show',!!t);}
 function pickSite(i){
   const G=GEOMS[B.geom]; builderMsg('');
@@ -1839,7 +1923,8 @@ function pickSite(i){
       else if(!G.edges.some(e=>e[0]===a&&e[1]===b)) builderMsg('A chelate has to span two <i>adjacent</i> (cis) positions. Those two are trans.');
       else{ B.edges.push([a,b]);
         const comp=v=>{const seen=new Set([v]),st=[v];while(st.length){const x=st.pop();B.edges.forEach(([p,q])=>{const y=p===x?q:q===x?p:null;if(y!==null&&!seen.has(y)){seen.add(y);st.push(y);}});}return seen.size;};
-        if(comp(a)>3){B.edges.pop();builderMsg('A ligand can bind through at most three positions here. Two links through one position make a tridentate ligand; a third would make a larger one.');} }
+        const sz=comp(a), nE=B.edges.filter(([p,q])=>{const seen=new Set([a]),st=[a];while(st.length){const x=st.pop();B.edges.forEach(([u,v])=>{const y=u===x?v:v===x?u:null;if(y!==null&&!seen.has(y)){seen.add(y);st.push(y);}});}return seen.has(p);}).length;
+        if(sz>4||(sz===4&&nE>4)||(sz===4&&nE===4&&!isRing4(a))){B.edges.pop();builderMsg(sz>4?'A ligand can bind through at most four positions here.':'That makes a ligand shape this app does not model. Four linked positions can be a chain, a tripod (one position linked to the other three) or a ring.');} }
       B.pending=null;
     }
   } else if(B.tool==='erase'){B.labels[i]=null;B.edges=B.edges.filter(e=>!e.includes(i));}
@@ -1877,7 +1962,7 @@ function buildBuilder(){
 /* =====================================================================
    4. QUIZ UI
    ===================================================================== */
-const Q={fams:new Set(['mb','tri']),cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
+const Q={fams:new Set(['mb','tri','tet']),cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
 try{Q.best=+localStorage.getItem('isoSketchBest')||0;const m=localStorage.getItem('isoAnsMode');if(m==='mc'||m==='type')Q.mode=m;}catch(e){}
 const TYPE_TEXT={
   stereo:`How many <b>stereoisomers</b> (counting each enantiomer separately) are possible for`,
@@ -1893,6 +1978,8 @@ function gloss(c){
   if(bi.some(x=>x[0]===x[1])) bits.push(`AA = symmetrical bidentate ligand (like en)`);
   if(bi.some(x=>x[0]!==x[1])) bits.push(`AB = unsymmetrical bidentate ligand (like glycinate), donor ends A and B`);
   if(bi.length) bits.push(`chelates span ${c.geom==='Td'?'an edge':'cis positions'}`);
+  const tet=chel.filter(x=>ligDent(x)===4);
+  if(tet.length) bits.push(`four-letter groups = tetradentate ligands: a chain like trien (unmarked = flexible; <sup>planar</sup> = lies flat only; <sup>folded</sup> = folds only), a <sup>tripod</sup> like tren (first letter = central donor), or a macrocycle <sup>cyc</sup> like cyclam (<sup>cyc, planar</sup> = rigid and flat, like a porphyrin)`);
   if(tri.length) bits.push(`(ABA), (ABC) = tridentate ligands, donors in chain order (like dien); <sup>mer</sup> = rigid, binds only meridionally (like terpy); <sup>fac</sup> = binds only facially; <sup>cyc</sup> = cyclic or tripodal, caps a face (like tacn); unmarked chains are flexible`);
   return bits.join(' · ')+'. Ligands are idealised as points; chelate-ring conformations are ignored.';
 }
@@ -1905,8 +1992,8 @@ function setAnswerMode(m){
 function nextQuestion(){
   clearResults(); hidePop();
   const quizzable=c=>caseLetters(c).size>1;   // [MA6]-type formulas are too trivial to ask about
-  const fk=c=>famOf(c)==='mb'?'mb':'tri';
-  // pick the ligand family first, so the 96 generated tridentate formulas don't crowd out the rest
+  const fk=c=>{const f=famOf(c);return f==='m'||f==='b'?'mb':f[0]==='t'?'tri':'tet';};
+  // pick the ligand group first, so the many tri- and tetradentate formulas don't crowd out the rest
   const famsAvail=[...Q.fams].filter(f=>BANK.some(c=>fk(c)===f&&quizzable(c)&&Q.geoms.has(c.geom)));
   const fpick=famsAvail.length?famsAvail[Math.floor(Math.random()*famsAvail.length)]:'mb';
   let pool=BANK.filter(c=>fk(c)===fpick&&quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last); if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom));
@@ -2040,7 +2127,7 @@ function hidePop(){$('#pop').classList.remove('show');}
 function buildFilters(){
   const f=$('#filters');
   f.innerHTML=`<span>ask about:</span>`+['Td','SP','Oh'].map(g=>`<button class="btn ${Q.geoms.has(g)?'on':''}" data-geo="${g}">${GEOMS[g].name}</button>`).join('')+
-    `<span class="dot-sep">·</span>`+[['mb','mono- & bidentate'],['tri','tridentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join('')+
+    `<span class="dot-sep">·</span>`+[['mb','mono- & bidentate'],['tri','tridentate'],['tet','tetradentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join('')+
     `<span class="dot-sep">·</span>`+[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}">${l}</button>`).join('')+
     `<span class="keyhint">${Q.mode==='mc'?'keys 1–4 answer · Enter = next':'Enter = check, then Enter = next'}</span>`;
 }
@@ -2081,7 +2168,7 @@ function setMode(mode){
   if(mode==='quiz'&&!Q.cur) nextQuestion();
 }
 /* the phone app re-uses the same live drawings, quiz card and builder: they are moved into its screens */
-const M={chiralOnly:false,fam:'mb',tab:'explore',stack:[{t:'home'}],VX:null,homes:new Map(),moved:false,toastT:0};
+const M={chiralOnly:false,fam:'m',tab:'explore',stack:[{t:'home'}],VX:null,homes:new Map(),moved:false,toastT:0};
 const MOVES=[['#stage1','#cHost1'],['#stage2','#cHost2'],['#quizScroll','#qHost'],['#builder .bsheet','#bHost']];
 function placeElements(mobile){
   MOVES.forEach(([sel])=>{if(!M.homes.has(sel)){const el=$(sel);M.homes.set(sel,{el,parent:el.parentNode,next:el.nextSibling});}});
@@ -2156,16 +2243,16 @@ const chev='<span class="chev" aria-hidden="true">›</span>';
 function xListHTML(top){
   if(top.t==='home'){
     return `<p class="xintro">Pick a geometry and a formula to see every isomer, drawn the way an exam paper draws it. Then turn it with your finger.</p>`+
-      ['Oh','SP','Td'].map(g=>{const n=BANK.filter(c=>c.geom===g).length,nt=BANK.filter(c=>c.geom===g&&famOf(c)!=='mb').length;
-        return `<button class="xrow big" data-go="geo:${g}">${ICONS[g]}<span class="xr-main"><b>${GEOMS[g].name}</b><small>${n} formulas (${nt} with tridentate ligands) · bare shape ${GEOMS[g].sym}</small></span>${chev}</button>`;}).join('')+
+      ['Oh','SP','Td'].map(g=>{const n=BANK.filter(c=>c.geom===g).length,nt=BANK.filter(c=>c.geom===g&&!['m','b'].includes(famOf(c))).length;
+        return `<button class="xrow big" data-go="geo:${g}">${ICONS[g]}<span class="xr-main"><b>${GEOMS[g].name}</b><small>${n} formulas (${nt} with tri- or tetradentate ligands) · bare shape ${GEOMS[g].sym}</small></span>${chev}</button>`;}).join('')+
       `<button class="xrow big accent" data-gotab="build"><span class="xr-ico">✎</span><span class="xr-main"><b>Build from an exam drawing</b><small>Copy a structure from your paper and turn it</small></span>${chev}</button>`;
   }
   if(top.t==='geo'){
-    const fams=FAMS.filter(f=>BANK.some(c=>c.geom===top.id&&famOf(c)===f.id)); if(!fams.some(f=>f.id===M.fam)) M.fam='mb';
+    const fams=FAMS.filter(f=>BANK.some(c=>c.geom===top.id&&famOf(c)===f.id)); if(!fams.some(f=>f.id===M.fam)) M.fam=fams[0].id;
     const fnote=FAMS.find(f=>f.id===M.fam).note;
     return `<div class="xfams" role="group" aria-label="Ligands">${fams.map(f=>`<button class="xfam ${f.id===M.fam?'on':''}" data-fam="${f.id}">${f.name}</button>`).join('')}</div>
       <div class="seg xfilter" role="group" aria-label="Filter"><button data-filter="all" class="${M.chiralOnly?'':'on'}">All formulas</button><button data-filter="chiral" class="${M.chiralOnly?'on':''}">Has enantiomers</button></div>`+
-      (fnote&&top.id==='Oh'?`<p class="xins">${fnote}</p>`:'')+
+      (fnote&&(top.id==='Oh'||M.fam[0]==='q')?`<p class="xins">${fnote}</p>`:'')+
       casesFor(top.id,M.chiralOnly,M.fam).map(({cat,cases})=>`<div class="xcat"><b>${cat.name}</b><small>${cat.blurb}</small></div>`+
         cases.map(c=>`<button class="xrow" data-go="case:${c.id}"><span class="xr-main"><span class="xf">${formulaHTML(c)}</span><small>${countsHTML(ANALYSIS[c.id],true)}</small><span class="xchips">${ligChips(c)}</span></span>${chev}</button>`).join('')).join('');
   }
