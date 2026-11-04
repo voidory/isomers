@@ -1,6 +1,6 @@
 # Five-coordinate shapes and Berry pseudorotation: architecture plan
 
-Status: proposal. Nothing in `index.html` has changed. Every number below comes from a throwaway prototype run against the real engine, headlessly, with a trigonal bipyramid injected into a copy of it. The prototype is not in the repository.
+Status: proposal, with the four owner decisions in section 7 settled. Nothing in `index.html` has changed. Every number below comes from a throwaway prototype run against the real engine, headlessly, with a trigonal bipyramid injected into a copy of it. The prototype is not in the repository.
 
 ## 1. The point
 
@@ -57,7 +57,7 @@ Run through the existing code, the TBP exposed four problems, all in the descrip
 | Static TBP shape | **Build** |
 | Berry sets view, chirality rule, ring blocking | **Build** (this is the point) |
 | Berry animation | Build, after the above |
-| Square pyramid as a static shape (C₄ᵥ) | Build later; it is the transition state and is also seen as a stable shape (e.g. d⁸ and d⁹ complexes) |
+| Square pyramid as a static shape (C₄ᵥ) | **Build later, as a shape in its own right**, and also as the animation's transition frame. The literature has isolable square-pyramidal forms (section 8) |
 | Coordination-number isomers (a ligand's κ¹→κ² adding a bond, so 5 sites become 6) | Unlocked by the above; see section 4.6 |
 | Barriers, which form is lower in energy | **Out.** Same stance as the rest of the app: it counts what connectivity allows |
 | Other fluxional processes (turnstile, Bartell, Ugi's permutation-group theory generally) | Out |
@@ -113,9 +113,14 @@ The viewport rotates a rigid molecule; Berry needs the sites themselves to move.
 - **Controller.** A `View.berry(pivot)` that interpolates, then on completion replaces `disp.cfg` with the permuted configuration, re-seats the orientation so the picture is continuous, and clears the override. A "Berry" button appears in the viewport tools for TBP isomers only; disabled, with the reason, when rings block every pivot.
 - **Risk.** Chelate bridges are drawn from the site positions, so mid-path they need to stay readable; this is the part to prototype first.
 
-### 4.5 The square pyramid (later)
+### 4.5 The square pyramid (later): a shape, and the transition frame
 
-A static C₄ᵥ shape with an apex and four basal sites, chelate edges apex–basal and adjacent basal–basal. It plays two roles: the transition-state frame in the animation, and a shape in its own right for complexes where it is the minimum. Each SP configuration joins two TBP isomers (the apical ligand is the pivot; either basal pair can open to become axial), giving a bipartite graph. As elsewhere in the app, the model says nothing about which is lower in energy.
+A static C₄ᵥ shape with an apex and four basal sites, chelate edges apex–basal and adjacent basal–basal. It has two roles:
+
+- **A shape in its own right.** The literature has square-pyramidal five-coordinate complexes that are stable and isolable, including one compound isolated as *both* a square-pyramidal and a trigonal-bipyramidal form (section 8). The app already names this relation: two shapes for one formula are "polytopal (allogon) isomers" in the Compare stamp, and that wording is kept. For the same formula, a TBP isomer and an SPy isomer are polytopal isomers of each other; that the two interconvert is shown as the Berry relation, not hidden.
+- **The transition frame** in the animation (4.4).
+
+Each SPy configuration joins two TBP isomers (the apical ligand is the pivot; either basal trans pair can open to become axial), giving a bipartite graph between the two shapes, which the Berry layer exposes. As elsewhere, the model says nothing about which is lower in energy, and the panel says so; section 8 shows that either can be the minimum.
 
 ### 4.6 Coordination-number isomers (what this unlocks)
 
@@ -143,9 +148,22 @@ The structural layer holds the number of sites fixed because each shape has a fi
 
 Stopping after phase 2 is a complete, useful feature.
 
-## 7. Decisions for the owner
+## 7. Decisions (settled)
 
-1. **Is the Berry view the headline, or an add-on?** I recommend both numbers shown together, static first (consistent with the other shapes), with the Berry reading one tap away.
-2. **Ring blocking.** The model forbids a ring ending up across two equatorial sites. That is the textbook rule for five-membered rings, but real complexes with larger rings or strained geometries can bend the rule. I would keep it, stated in the panel, and offer a switch only if someone asks.
-3. **Square pyramid as a shape in phase 4, or only as the animation frame?** Needs a view on whether the app should claim it as a stable isomer at all.
-4. **Quiz.** Left out above. Say if you want a "how many fluxional sets" question.
+1. **Berry view.** Both numbers shown together, static first (consistent with the other shapes), with the Berry reading one tap away.
+2. **Ring blocking.** Kept: a ring may not end up spanning two equatorial sites. Stated in the panel, no switch.
+3. **Square pyramid.** A shape in its own right (phase 4) and the animation frame, on the evidence in section 8.
+4. **Quiz.** Nothing for the quiz. The Berry view is an explore feature, for interest.
+
+## 8. Literature behind decision 3
+
+The question was whether a square-pyramidal form is ever a stable, isolable structure, and not only a transition state of the Berry path. It is:
+
+- Dicyanotris(5-methyl-5H-dibenzophosphole)nickel(II) was isolated as **two allogon isomers** from different solvents: one tetragonal-pyramidal (a phosphole ligand at the apex, cyanides bent away at 141°), one trigonal-bipyramidal (axial cyanides at 176°). Powell, H. M. et al., *J. Chem. Soc. A*, 1971, DOI 10.1039/j19710001803.
+- A large chromium–nickel–cyanide cluster contains square-pyramidal and trigonal-bipyramidal [Ni(CN)₅]³⁻ units together. Sokol, J. J. et al., *Angew. Chem. Int. Ed.*, 2001, DOI 10.1002/1521-3773(20010105)40:1<236::aid-anie236>3.0.co;2-c.
+- Copper(II) generally stabilises an elongated square pyramid, slightly preferred to a compressed trigonal bipyramid; the surface is flat and packing can shift it. Reinen, D. et al., 1989, DOI 10.1016/0301-0104(89)80126-0.
+- Berry pseudorotation observed directly: in a five-coordinate ruthenium complex two square-pyramidal isomers exchange through a trigonal-bipyramidal intermediate, a barrier of about 2 kcal/mol and a time constant of a few picoseconds. Porter, T. M. et al., *Chem. Sci.*, 2018, DOI 10.1039/c8sc03258k.
+
+Two cautions follow and belong in the panel's wording. First, isolation in a crystal is not the same as being separate in solution: the same complexes can exchange in solution on very short timescales. Second, an ideal square pyramid is the exception: most complexes sit between the two shapes on a continuum (Blackman, A. G. et al., *Dalton Trans.*, 2020, DOI 10.1039/d0dt02985h). The app's idealised shapes are the two ends of that continuum, which is consistent with how it treats every other shape.
+
+I searched for the classic report of both [Ni(CN)₅]³⁻ shapes in one crystal and could not confirm it, so it is not cited.
