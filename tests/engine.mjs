@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEngine} from './load-engine.mjs';
 
-const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById']);
+const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE']);
 let fails=0;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   // arrays from the vm context have another prototype
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
@@ -86,6 +86,41 @@ test('variants name their ligands, and two ambidentate letters multiply',()=>{
   assert.ok(F.variants.some(v=>v.A.isomers.some(i=>/A<sup>x<\/sup><sub>2<\/sub> trans/.test(i.label))),'names carry the donor tag');
   assert.ok(E.structuralFamily({geom:'Oh',mono:'AAAABB',chel:[]},[{letter:'B',donors:[{id:'1',tag:'1'},{id:'2',tag:'2'},{id:'3',tag:'3'}]}]).tally.forms===6);   // C(2+2,2)
   assert.throws(()=>fam('Oh','AAAABB',[],'Z'));
+});
+
+/* ---- ionisation and hydrate: which ligands sit inside the sphere ---- */
+const pool=(geom,mono,chel,outside,mobile,amb=[])=>E.structuralFamily({geom,mono,chel},amb,{outside,mobile});
+test('hydrate isomers CrCl3.6H2O: 4 inner spheres, 6 stereoisomers',()=>{
+  const F=pool('Oh','AAAAAA',[],{B:3},['A','B']);             // A = H2O, B = Cl
+  assert.equal(F.tally.spheres,4); assert.equal(F.tally.stereo,6);
+  same(F.groups.map(g=>g.parent.stereo).sort(),[1,1,2,2]);   // aqua, chloro, dichloro (cis/trans), trichloro (fac/mer)
+});
+test('ionisation isomers [Co(NH3)5Br]SO4 / [Co(NH3)5(SO4)]Br: 2 inner spheres',()=>{
+  const F=pool('Oh','AAAAAB',[],{C:1},['B','C']);            // NH3 stays in; Br and SO4 compete for the sixth site
+  assert.equal(F.tally.spheres,2); assert.equal(F.tally.stereo,2);
+  assert.ok(F.groups.every(g=>/·/.test(g.innerTitle)),F.groups.map(g=>g.innerTitle).join(' | '));
+});
+test('MA4B2 with a spare C that may swap in: 2 spheres, 4 stereoisomers',()=>{
+  const F=pool('Oh','AAAABB',[],{C:1},['B','C']); assert.equal(F.tally.spheres,2); assert.equal(F.tally.stereo,4);
+});
+test('a ligand that is not allowed to leave cannot have spares outside; chelates keep their sites',()=>{
+  assert.throws(()=>pool('Oh','AAAAAB',[],{C:1},['B']));
+  assert.throws(()=>pool('Oh','AAAAAB',[],{B:1},['A']),/./);              // no way to fill six sites
+  const F=pool('Oh','BB',['AA','AA'],{C:2},['B','C']); assert.equal(F.sites,2);   // [M(en)2X2] with two spare C
+  assert.equal(F.tally.spheres,3);                                          // B2, BC, C2 inside
+});
+test('linkage and ionisation compose: every sphere gets its own binding forms',()=>{
+  const F=pool('Oh','AAAABB',[],{C:1},['B','C'],[{letter:'B'}]);
+  assert.equal(F.tally.spheres,2);
+  // sphere B2: 3 binding forms; sphere BC: 2 (B bonded x or y)
+  same(F.groups.map(g=>g.variants.length).sort(),[2,3]);
+  assert.ok(F.variants.every(v=>v.cells.every(x=>x.parent)));
+});
+test('named ambidentate presets write and draw their own labels',()=>{
+  const F=E.structuralFamily({geom:'Oh',mono:'AAAABB',chel:[]},[{letter:'B',donors:E.AMBIDENTATE.NO2.donors}]);
+  assert.equal(F.tally.forms,3); assert.ok(F.variants.some(v=>/NO<sub>2<\/sub>/.test(v.title)&&/ONO/.test(v.title)),F.variants.map(v=>v.title).join(' | '));
+  const mixed=F.variants.find(v=>/NO₂/.test(JSON.stringify(v.skin))&&/ONO/.test(JSON.stringify(v.skin))); assert.ok(mixed);
+  assert.ok(F.variants.every(v=>v.A.isomers.every(i=>!/\bB<sub>/.test(i.label))));
 });
 
 console.log(fails?`\n${fails} failed`:'\nall passed'); process.exit(fails?1:0);
