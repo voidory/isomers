@@ -1,14 +1,23 @@
 # Structural isomerism: architecture plan
 
-Status: **phases 0 and 1 are built** (abstract ambidentate mode, with tests); phases 2 to 4 are not. Numbers below were first produced by a throwaway prototype against the unmodified engine, and are now asserted by `node tests/engine.mjs`.
+Status: **phases 0, 1 and 2 are built**, with tests; phases 3 and 4 are not. Numbers below were first produced by a throwaway prototype against the unmodified engine, and are now asserted by `node tests/engine.mjs`.
 
 | Phase | State |
 |---|---|
 | 0 Test harness, `rsLabel` hardening, naming hook, skin plumbing | done |
 | 1 Abstract ambidentate letters: solver, lowering, family panel, tagged labels, Compare stamp | done |
-| 2 Ionisation / hydrate, named presets (NO₂, SCN), typed-formula recognition, deep links | not started |
+| 2 Ionisation / hydrate pools, named presets (NO₂/ONO, SCN/NCS, CN/NC), typed linkage pairs in the finder, deep links | done (see below for what was narrowed) |
 | 3 Quiz types, Builder status line | not started |
 | 4 κ¹/κ² modes, ambidentate chelate ends | not started |
+
+### Phase 2: what was built, and what was narrowed
+
+- **One function, two independent complications.** `structuralFamily(base, amb, {outside, mobile})`: ligands may bond through several donors (`amb`), and spare copies outside the sphere may swap in (`outside` and `mobile`). Each inner-sphere composition is a group with its own binding forms and its own matrix. The panel shows both complications together, so they compose.
+- **Pool, not a tab.** Ionisation and hydrate need more species than sites (CrCl₃·6H₂O is nine ligands for six sites), so the panel has a pool table (copies in the sphere, spare copies outside, may swap). It starts from the formula you opened, and the new ligand is a spare letter.
+- **Presets** over the abstract donors: nitrite, thiocyanate and cyanide. Named ligands are drawn donor atom first, with the donor atom bold and underlined. This replaced the plan's idea of anchoring the bond at the donor glyph, which does not read well for vertical bonds.
+- **Finder:** typing a formula that spells an ambidentate both ways (`[Co(NH3)4(NO2)(ONO)]`, `M(NO2)3(NH3)3`) shows a "Linkage isomers" card that opens the family with that form marked "your formula".
+- **Deep links:** `#x?g=Oh&m=AAAABB&c=&l=B&p=SCN&o=C1&s=BC` opens the panel in a given state (geometry, monodentate letters, chelates, ambidentate letters, preset, spare copies, swappable ligands). The panel keeps the address in step with its state. This also fixed an existing bug: on a phone, `#<formula id>` links never worked, because starting the phone layout rewrote the address before it was read.
+- **Narrowed:** typed ionisation formulas such as `[Co(NH3)5Br]SO4` are not recognised. They need an outer-sphere grammar in the parser and real charges for counter-ions, which is a feature of its own. Ionisation and hydrate stay abstract (letters, no charges or conductivity); only the three ambidentate ligands have names.
 
 ## 1. The idea in one paragraph
 

@@ -121,6 +121,7 @@ test('named ambidentate presets write and draw their own labels',()=>{
   assert.equal(F.tally.forms,3); assert.ok(F.variants.some(v=>/NO<sub>2<\/sub>/.test(v.title)&&/ONO/.test(v.title)),F.variants.map(v=>v.title).join(' | '));
   const mixed=F.variants.find(v=>/NO₂/.test(JSON.stringify(v.skin))&&/ONO/.test(JSON.stringify(v.skin))); assert.ok(mixed);
   assert.ok(F.variants.every(v=>v.A.isomers.every(i=>!/\bB<sub>/.test(i.label))));
+  assert.ok(F.variants.some(v=>v.title.includes('(NO<sub>2</sub>)<sub>2</sub>')),'polyatomic ligand with a count is parenthesised');
 });
 
 console.log(fails?`\n${fails} failed`:'\nall passed'); process.exit(fails?1:0);
