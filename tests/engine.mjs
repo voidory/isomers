@@ -124,4 +124,30 @@ test('named ambidentate presets write and draw their own labels',()=>{
   assert.ok(F.variants.some(v=>v.title.includes('(NO<sub>2</sub>)<sub>2</sub>')),'polyatomic ligand with a count is parenthesised');
 });
 
+/* ---- denticity: a ligand bonds through one atom (kappa-1, one site) or two (kappa-2, a chelate, two sites) ---- */
+const kappa=(mono,outside,mobile,chelate,amb=[],chel=[])=>E.structuralFamily({geom:'Oh',mono,chel},amb,{outside,mobile,chelate});
+test('denticity [M(X)2(NH3)4]: X bonds through one or two atoms, NH3 gives way',()=>{
+  const F=kappa('AAAABB',{},['A','B'],['B']);                 // A = NH3, B = X
+  assert.equal(F.tally.spheres,4);
+  // (k1,k2) of X: 2,0 -> MA4B2 (2) ; 1,1 -> M(AA)A3B (2) ; 0,2 -> M(AA)2A2 (3) ; 0,1 -> M(AA)A4 (1)
+  same(F.groups.map(g=>g.parent.stereo).sort(),[1,2,2,3]); assert.equal(F.tally.stereo,8);
+  assert.ok(F.groups.every(g=>g.variants.every(v=>v.cells.every(x=>x.parent))));
+  assert.ok(F.variants.some(v=>/κ²/.test(v.title)&&/κ¹/.test(v.title)),F.variants.map(v=>v.title).join(' | '));
+  assert.ok(F.variants.some(v=>/\(B<sup>κ²<\/sup>\)<sub>2<\/sub>/.test(v.title)),'two kappa-2 copies are written (X^k2)2');
+});
+test('a kappa-2 ligand needs room: with nothing allowed to leave there is one form',()=>{
+  const F=kappa('AAAABB',{},[],['B']); assert.equal(F.tally.spheres,1); assert.equal(F.tally.stereo,2);
+});
+test('denticity cannot be combined with ambidentate on one ligand, and uses the right site count',()=>{
+  assert.throws(()=>kappa('AAAABB',{},['A','B'],['B'],[{letter:'B'}]));
+  assert.throws(()=>kappa('AAAABB',{},[],['Z']));
+  const F=kappa('AAAABB',{C:1},['A','B','C'],['B']);           // a spare C that can also take a site
+  assert.ok(F.tally.spheres>4); assert.equal(F.sites,6);
+  for(const g of F.groups){const k=Object.values(g.inner); assert.equal(k.reduce((t,x)=>t+x.k1+2*x.k2,0),6);}   // every sphere is full
+});
+test('denticity composes with linkage on another ligand',()=>{
+  const F=kappa('AAAABB',{},['A','B'],['B'],[{letter:'A'}]);
+  assert.ok(F.variants.length>F.groups.length); assert.ok(F.variants.every(v=>v.cells.every(x=>x.parent)));
+});
+
 console.log(fails?`\n${fails} failed`:'\nall passed'); process.exit(fails?1:0);

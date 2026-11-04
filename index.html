@@ -1517,7 +1517,7 @@ function analysisFor(geom,mono,chel){
 
 const MODE_TAG={3:{m:'mer',f:'fac',c:'cyc'},4:{p:'planar',f:'folded',t:'tripod',r:'cyc',rp:'cyc, planar',xn:'trien, N–H',rn:'cyclam, N–H'}};
 const NAMED_LIG={xn:'trien',rn:'cyclam'};   // tetradentates modelled as the real ligand: written by name, donors drawn as N
-const ligHTML=(x,lbl=ID)=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];if(NAMED_LIG[mode])return `(${NAMED_LIG[mode]})`;return `(${L.split('').map(lbl).join('')})`+(t?`<sup>${t}</sup>`:'');};
+const ligHTML=(x,lbl=ID)=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];if(NAMED_LIG[mode])return `(${NAMED_LIG[mode]})`;const w=lbl.chel&&lbl.chel(x);if(w)return w;return `(${L.split('').map(lbl).join('')})`+(t?`<sup>${t}</sup>`:'');};
 const caseTitle=c=>c.titleHTML||formulaHTML(c);   // a structural-family variant writes its own title
 function formulaHTML(c,lbl=ID){
   let f='M'; const cc={};
@@ -1632,22 +1632,28 @@ function compositions(k,d){                                     // ways to split
   if(d===1) return [[k]];
   const out=[]; for(let i=k;i>=0;i--) compositions(k-i,d-1).forEach(r=>out.push([i,...r])); return out;}
 /* letters actually used by a formula, renamed contiguously from A in the order given (the engine reads A, B, C ...) */
-function compactTokens(monoTok,chel,order){
-  const used=new Set(monoTok); chel.forEach(x=>lig(x).L.split('').forEach(l=>used.add(l+'0')));
+/* A formula in tokens: a monodentate is the token of its letter + donor index ('B0', 'B1'), and a kappa-2 copy of a ligand
+   is a symmetric chelate whose two donors are the token 'B9'. Letters are then renamed contiguously from A in rank order
+   (the engine reads A, B, C ...). chelT: [{toks:[...],mode}]. */
+const chelToks=chel=>chel.map(x=>{const {L,mode}=lig(x);return {toks:L.split('').map(c=>c+'0'),mode};});
+function compactTokens(monoTok,chelT,order){
+  const used=new Set(monoTok); chelT.forEach(c=>c.toks.forEach(t=>used.add(t)));
   const toks=[...used].sort((a,b)=>order(a)-order(b)), map={}; toks.forEach((t,i)=>map[t]='ABCDEFGH'[i]);
   return {map,mono:monoTok.map(t=>map[t]).join(''),
-    chel:chel.map(x=>{const {L,mode}=lig(x);return L.split('').map(l=>map[l+'0']).join('')+(mode?':'+mode:'');})};
+    chel:chelT.map(c=>c.toks.map(t=>map[t]).join('')+(c.mode?':'+c.mode:''))};
 }
 /* The complications, one function.
    base: {geom,mono,chel}.  amb: [{letter,donors?}] makes a monodentate letter ambidentate (linkage isomers).
    opts.outside {letter:n} adds n spare copies of a ligand to the pool; opts.mobile [letters] says which ligands may sit
-   outside the coordination sphere (ionisation and hydrate isomers). The sphere has exactly as many sites as the shape
-   has, so a ligand leaving means another takes its place. Identical copies are indistinguishable throughout.
+   outside the coordination sphere (ionisation and hydrate isomers). opts.chelate [letters] lets a ligand bond through
+   one atom (kappa-1, one site) or two (kappa-2, a chelate, two sites): denticity isomers. The sphere has exactly as many
+   sites as the shape has, so a ligand leaving, or bonding through one atom instead of two, changes what else fits.
+   Identical copies are indistinguishable throughout.
    Returns groups (one per inner-sphere composition), each with its binding forms, the base isomers they refine
    (rows), and the totals. */
 function structuralFamily(base,amb=[],opts={}){
   const geom=base.geom, G=GEOMS[geom], mono=base.mono||'', chel=base.chel||[];
-  const outside=opts.outside||{}, mobile=new Set(opts.mobile||[]);
+  const outside=opts.outside||{}, mobile=new Set(opts.mobile||[]), kap=new Set(opts.chelate||[]);
   const sites=G.n-chel.reduce((t,x)=>t+ligDent(x),0);
   const letters=[...new Set([...mono,...Object.keys(outside).filter(l=>outside[l]>0).sort()])];
   const N=Object.fromEntries(letters.map(l=>[l,[...mono].filter(c=>c===l).length+(outside[l]||0)]));
@@ -1655,46 +1661,62 @@ function structuralFamily(base,amb=[],opts={}){
   const defs=amb.map(a=>({letter:a.letter,donors:a.donors||DEFAULT_DONORS}));
   defs.forEach(d=>{if(!N[d.letter]) throw new Error('letter '+d.letter+' is not a monodentate ligand in this formula');});
   if(new Set(defs.map(d=>d.letter)).size<defs.length) throw new Error('a letter can be made ambidentate once');
-  // inner-sphere compositions: how many copies of each ligand are bonded
+  kap.forEach(l=>{if(!N[l]) throw new Error('letter '+l+' is not a monodentate ligand in this formula');
+    if(defs.some(d=>d.letter===l)) throw new Error('a ligand is either ambidentate or kappa-1/kappa-2 here, not both');});
+  // inner-sphere compositions: for each ligand, how many copies bond through one atom (k1) and through two (k2); k1 + 2*k2 sites
   const inners=[]; (function rec(i,left,acc){
     if(i===letters.length){if(left===0)inners.push({...acc});return;}
-    const l=letters[i]; for(let b=mobile.has(l)?0:N[l];b<=N[l]&&b<=left;b++){acc[l]=b;rec(i+1,left-b,acc);}})(0,sites,{});
+    const l=letters[i], lo=mobile.has(l)?0:N[l];
+    for(let k2=0;k2<=(kap.has(l)?N[l]:0);k2++) for(let k1=0;k1+k2<=N[l];k1++){
+      if(k1+k2<lo||k1+2*k2>left) continue; acc[l]={k1,k2}; rec(i+1,left-k1-2*k2,acc);}})(0,sites,{});
   if(!inners.length) throw new Error('these ligands cannot fill the '+sites+' sites');
-  const nForms=inners.reduce((t,b)=>t+defs.reduce((u,d)=>u*compositions(b[d.letter],d.donors.length).length,1),0);
+  const nForms=inners.reduce((t,b)=>t+defs.reduce((u,d)=>u*compositions(b[d.letter].k1,d.donors.length).length,1),0);
   if(nForms>FAMILY_CAP) return {tooMany:nForms,cap:FAMILY_CAP};
   const firstSeen=[...new Set([...chel.map(x=>lig(x).L).join('').split(''),...letters])];   // stable order of parent letters
   const rank=t=>firstSeen.indexOf(t[0])*10+(+t.slice(1)||0);
-  const famId='fam:'+geom+'|'+mono+'|'+chel.join(',')+'|'+defs.map(d=>d.letter+d.donors.map(x=>x.id).join('')).join(',')+'|'+letters.map(l=>l+N[l]+(mobile.has(l)?'m':'')).join('');
+  const famId='fam:'+geom+'|'+mono+'|'+chel.join(',')+'|'+defs.map(d=>d.letter+d.donors.map(x=>x.id).join('')).join(',')+'|'+letters.map(l=>l+N[l]+(mobile.has(l)?'m':'')+(kap.has(l)?'k':'')).join('');
+  /* how a token is written: B^x for a donor atom, B^k2 / B^k1 for how many atoms bond, or the preset's own name */
+  const tokText=t=>{const l=t[0],m=+t.slice(1)||0;
+    if(m===9) return `${l}<sup>κ²</sup>`; if(kap.has(l)) return `${l}<sup>κ¹</sup>`;
+    const d=defs.find(x=>x.letter===l); return d?donorHTML(l,d.donors[m]):l;};
+  const lblFor=tokOf=>{const f=l=>tokText(tokOf(l));
+    f.chel=x=>{const L=lig(x).L; if(L.length!==2||L[0]!==L[1]) return null; const t=tokOf(L[0]); return t[1]==='9'?`(${t[0]}<sup>κ²</sup>)`:null;};   // a kappa-2 ligand is written once
+    return f;};
   const allVariants=[], newChiral=[];
   const groups=inners.map(b=>{
-    const innerMono=letters.map(l=>l.repeat(b[l])).join('');
-    const P=compactTokens([...innerMono].map(c=>c+'0'),chel,rank), parent=analysisFor(geom,P.mono,P.chel);
-    const outer=letters.filter(l=>N[l]>b[l]).map(l=>`${N[l]-b[l]>1?N[l]-b[l]:''}${l}`).join('·');
+    const innerMono=letters.map(l=>l.repeat(b[l].k1)).join('');
+    const k2chel=letters.flatMap(l=>Array.from({length:b[l].k2},()=>({toks:[l+'9',l+'9'],mode:''})));
+    const chelT=[...chelToks(chel),...k2chel];
+    const P=compactTokens([...innerMono].map(c=>c+'0'),chelT,rank), parent=analysisFor(geom,P.mono,P.chel);
+    const pTok={}; Object.keys(P.map).forEach(t=>pTok[P.map[t]]=t);
+    const outer=letters.filter(l=>N[l]>b[l].k1+b[l].k2).map(l=>`${N[l]-b[l].k1-b[l].k2>1?N[l]-b[l].k1-b[l].k2:''}${l}`).join('·');
     const forms=[]; (function rec(i,pick){
       if(i===defs.length){forms.push(pick.slice());return;}
-      compositions(b[defs[i].letter],defs[i].donors.length).forEach(c=>{pick.push(c);rec(i+1,pick);pick.pop();});})(0,[]);
+      compositions(b[defs[i].letter].k1,defs[i].donors.length).forEach(c=>{pick.push(c);rec(i+1,pick);pick.pop();});})(0,[]);
+    const kdesc=[...kap].filter(l=>N[l]).map(l=>[b[l].k2?`${b[l].k2}×${l}<sup>κ²</sup>`:'',b[l].k1?`${b[l].k1}×${l}<sup>κ¹</sup>`:''].filter(Boolean).join(' + ')).filter(Boolean).join('; ');
     const variants=forms.map(pick=>{
       const left=Object.fromEntries(defs.map((d,j)=>[d.letter,pick[j].slice()]));
       const monoTok=[...innerMono].map(c=>{const a=left[c];if(!a)return c+'0';const m=a.findIndex(x=>x>0);a[m]--;return c+m;});
-      const C=compactTokens(monoTok,chel,rank), back={};                         // child letter -> {parent letter, donor index}
-      Object.keys(C.map).forEach(t=>back[C.map[t]]={base:P.map[t[0]+'0'],mode:+t.slice(1)||0,letter:t[0]});
-      const donorOf=l=>{const d=defs.find(x=>x.letter===back[l].letter);return d?d.donors[back[l].mode]:null;};
-      const text=l=>{const dn=donorOf(l);return dn?donorHTML(back[l].letter,dn):back[l].letter;};
-      const skin={};   // donor:true marks a named ligand, spelled donor atom first
-      Object.keys(back).forEach(l=>{const dn=donorOf(l);skin[l]={text:dn&&dn.text?dn.text:back[l].letter,tag:dn&&!dn.text&&dn.tag?dn.tag:'',base:back[l].letter,donor:!!(dn&&dn.text)};});
-      const title=formulaHTML({chel:C.chel,mono:C.mono},text)+(outer?`<span class="outer">·${outer}</span>`:'');
-      const id='fam:'+geom+':'+C.mono+'|'+C.chel.join(',')+'#'+letters.map(l=>b[l]).join('.')+'#'+pick.map(p=>p.join('.')).join('/');
-      const A=analyzeCase({id,geom,mono:C.mono,chel:C.chel,family:famId,titleHTML:title},text);
+      const C=compactTokens(monoTok,chelT,rank), back={};                         // child letter -> its token, and the parent letter it forgets to
+      Object.keys(C.map).forEach(t=>back[C.map[t]]={tok:t,letter:t[0],base:P.map[t[1]==='9'?t:t[0]+'0']});
+      const lbl=lblFor(l=>back[l].tok);
+      const skin={}; Object.keys(back).forEach(l=>{const {tok,letter}=back[l],m=+tok.slice(1)||0,d=defs.find(x=>x.letter===letter),dn=d?d.donors[m]:null;
+        skin[l]={text:dn&&dn.text?dn.text:letter,tag:m===9?'κ²':kap.has(letter)?'κ¹':(dn&&!dn.text&&dn.tag?dn.tag:''),base:letter,donor:!!(dn&&dn.text)};});   // donor:true marks a named ligand, spelled donor atom first
+      const title=formulaHTML({chel:C.chel,mono:C.mono},lbl)+(outer?`<span class="outer">·${outer}</span>`:'');
+      const id='fam:'+geom+':'+C.mono+'|'+C.chel.join(',')+'#'+letters.map(l=>b[l].k1+'.'+b[l].k2).join('/')+'#'+pick.map(p=>p.join('.')).join('/');
+      const A=analyzeCase({id,geom,mono:C.mono,chel:C.chel,family:famId,titleHTML:title},lbl);
       A.isomers.forEach(iso=>isoById[iso.id]=iso);
-      const project=iso=>{const cfg={...iso.cfg,labels:iso.cfg.labels.map(l=>P.map[back[l].letter+'0'])};
+      const project=iso=>{const cfg={...iso.cfg,labels:iso.cfg.labels.map(l=>back[l].base)};
         return parent.isomers.find(q=>q.key===canon(cfg,G.rots));};
       const cells=A.isomers.map(iso=>({iso,parent:project(iso)}));
-      const desc=defs.map((d,j)=>pick[j].map((c,m)=>c?`${c}×${donorHTML(d.letter,d.donors[m])}`:'').filter(Boolean).join(' + ')).filter(Boolean).join('; ');
+      const adesc=defs.map((d,j)=>pick[j].map((c,m)=>c?`${c}×${donorHTML(d.letter,d.donors[m])}`:'').filter(Boolean).join(' + ')).filter(Boolean).join('; ');
+      const desc=[kdesc,adesc].filter(Boolean).join('; ');
       const v={id,pick,title,desc,A,skin,cells,inner:b,formula:{geom,mono:C.mono,chel:C.chel}};
       allVariants.push(v); v.cells.forEach(x=>{if(x.iso.chiral&&!x.parent.chiral)newChiral.push({variant:v,iso:x.iso,parent:x.parent});});
       return v;});
     const rows=parent.isomers.map(p=>({parent:p,cells:variants.map(v=>v.cells.filter(x=>x.parent===p).map(x=>x.iso))}));
-    return {inner:b,outer,innerTitle:formulaHTML({chel:P.chel,mono:P.mono},l=>Object.keys(P.map).find(t=>P.map[t]===l)[0])+(outer?`<span class="outer">·${outer}</span>`:''),parent,variants,rows};
+    const innerFormula=formulaHTML({chel:P.chel,mono:P.mono},lblFor(l=>pTok[l]));
+    return {inner:b,outer,innerFormula,innerTitle:innerFormula+(outer?`<span class="outer">·${outer}</span>`:''),parent,variants,rows};
   });
   const tally={forms:allVariants.length,spheres:groups.length,geometric:0,pairs:0,stereo:0};
   allVariants.forEach(v=>{tally.geometric+=v.A.geometric;tally.pairs+=v.A.pairs;tally.stereo+=v.A.stereo;});
