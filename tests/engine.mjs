@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEngine} from './load-engine.mjs';
 
-const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE']);
+const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','berrySets','berryMoves','berryOf','berryWhy','permParity']);
 let fails=0;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   // arrays from the vm context have another prototype
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
@@ -179,6 +179,42 @@ test('the structural layer works on the trigonal bipyramid: linkage, ionisation 
       assert.ok(F.groups.every(g=>Object.values(g.inner).reduce((t,k)=>t+k.k1+2*k.k2,0)===F.sites),'sphere full: '+c.id);}}}
   assert.ok(n>20,n+' families');
   const F=E.structuralFamily({geom:'TBP',mono:'AAAAB',chel:[]},[{letter:'A'}]); assert.equal(F.tally.forms,5);
+});
+
+/* ---- Berry pseudorotation ---- */
+const sizes=B=>B.sets.map(x=>x.isos.length).sort((a,b)=>b-a);
+test('Berry moves are derived from the shape and are even permutations',()=>{
+  const mv=E.berryMoves(E.GEOMS.TBP); assert.equal(mv.length,6); assert.ok(mv.every(m=>E.permParity(m.perm)===0));
+  assert.equal(E.berryMoves(E.GEOMS.Oh).length,0);
+});
+test('Berry sets, monodentates: one set unless all five ligands differ, then two mirror-image sets',()=>{
+  const B=m=>E.berryOf(E.analyzeCase({id:'b'+m,geom:'TBP',mono:m,chel:[]}));
+  same(['AAAAA','AAAAB','AAABB','AAABC','AABBC','AABCD'].map(m=>B(m).sets.length),[1,1,1,1,1,1]);
+  const R=B('ABCDE'); same(sizes(R),[10,10]); assert.ok(R.sets.every(x=>x.chiral&&!x.racemises)); assert.equal(R.sets[0].mirror,1); assert.equal(R.sets[1].mirror,0);
+  assert.ok(B('AABCD').sets[0].racemises&&B('AABBC').sets[0].racemises);   // identical ligands: pseudorotation racemises
+  assert.equal(B('AABCD').blocked,0);
+});
+test('parity rule: with a repeated ligand and no rings every chiral configuration racemises; with all different it cannot',()=>{
+  for(const m of ['AABBC','AABCD','AAABC']){const B=E.berryOf(E.analyzeCase({id:'p'+m,geom:'TBP',mono:m,chel:[]})); assert.ok(B.sets.every(x=>!x.chiral));}
+});
+test('Berry sets partition the isomers, mirror sets are consistent, and chelate rings always block something',()=>{
+  let split=0;
+  for(const c of tbp){const A=E.ANALYSIS[c.id],B=E.berryOf(A);
+    assert.equal(B.sets.reduce((t,x)=>t+x.isos.length,0),A.isomers.length,c.id);
+    assert.equal(new Set(B.sets.flatMap(x=>x.isos.map(i=>i.id))).size,A.isomers.length,c.id);
+    for(const x of B.sets) if(x.chiral){assert.notEqual(x.mirror,x.index); assert.equal(B.sets[x.mirror].isos.length,x.isos.length,c.id); assert.equal(B.sets[x.mirror].mirror,x.index);}
+    if((c.chel||[]).length){assert.ok(B.blocked>0,c.id+' has no blocked move'); if(B.sets.length>1) split++;}}
+  assert.equal(split,17);        // 17 of the 32 chelate formulas keep several sets (agrees with the independent prototype)
+});
+test('tripodal tetradentate: its one configuration is rigid, every move blocked',()=>{
+  const c=tbp.find(c=>(c.chel||[]).some(x=>/:t$/.test(x))&&E.ANALYSIS[c.id].stereo===1), B=E.berryOf(E.ANALYSIS[c.id]);
+  assert.ok(B.allBlocked); assert.equal(B.sets.length,1);
+  assert.ok(E.berryWhy(E.ANALYSIS[c.id],B).length>=0);
+});
+test('every TBP formula matches the Berry golden file',()=>{
+  const now=tbp.map(c=>{const A=E.ANALYSIS[c.id],B=E.berryOf(A);return [c.id,B.sets.length,sizes(B),B.sets.filter(x=>x.chiral).length,B.sets.filter(x=>x.racemises).length,B.blocked,B.moves];}).sort((a,b)=>a[0]<b[0]?-1:1);
+  const f=path.join(here,'golden-berry.json'); if(!fs.existsSync(f)||process.env.UPDATE_GOLDEN){fs.writeFileSync(f,JSON.stringify(now));console.log('     (wrote golden-berry.json)');}
+  same(now,JSON.parse(fs.readFileSync(f,'utf8')));
 });
 
 console.log(fails?`\n${fails} failed`:'\nall passed'); process.exit(fails?1:0);

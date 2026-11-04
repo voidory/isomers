@@ -1,6 +1,17 @@
 # Five-coordinate shapes and Berry pseudorotation: architecture plan
 
-Status: proposal, with the four owner decisions in section 7 settled. Nothing in `index.html` has changed. Every number below comes from a throwaway prototype run against the real engine, headlessly, with a trigonal bipyramid injected into a copy of it. The prototype is not in the repository.
+Status: **phases 0 to 2 are built** (edge rule and hooks, the static trigonal bipyramid, the Berry layer with its UI and Compare relation), with tests; phases 3 to 5 are not. The four owner decisions in section 7 are settled.
+
+| Phase | State |
+|---|---|
+| 0 Edge-rule tolerance, descriptor hooks, id-based bank test | done |
+| 1 Static TBP: shape, drawing, naming, generator, finder, Builder (kept out of the quiz) | done |
+| 2 Berry layer: sets, chirality rule, ring blocking, panel block, Compare relation | done |
+| 3 Berry animation | not started |
+| 4 Square pyramid shape | not started |
+| 5 Variable-coordination-number families (separate decision) | not started |
+
+What changed from the plan while building: moves that put a ring across two equatorial sites are rejected inside `berrySets` (as designed), and the TBP's chelate formulas include tridentate chains in both flexible and mer-only forms. The counts match the prototype exactly (39 formulas; 17 of the 32 chelate formulas keep several sets); the numbers are now asserted by `node tests/engine.mjs`, with golden files `tests/golden-tbp.json` and `tests/golden-berry.json`. Every number below comes from a throwaway prototype run against the real engine, headlessly, with a trigonal bipyramid injected into a copy of it. The prototype is not in the repository.
 
 ## 1. The point
 

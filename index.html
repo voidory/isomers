@@ -249,6 +249,12 @@ table.fmat{border-collapse:collapse;font-size:14px}
 .fmat td.n0{color:var(--ink3)}
 .fmat td.n2{background:#fff6cc;font-weight:bold}
 .fmat tr.tot td{border-top:2px solid var(--ink);font-family:var(--hand)}
+.bblock{margin-top:10px;padding-top:6px;border-top:1.5px dashed var(--grid2);display:flex;flex-direction:column;gap:5px}
+.bblock .bh{font-family:var(--hand);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink2)}
+.bblock .bnum{font-family:var(--hand);font-size:20px}
+.bwhy{font-size:13.5px;line-height:1.4;margin:0;color:var(--ink2)}
+.bset{border:1.5px solid var(--ink3);border-radius:8px 3px 8px 3px;padding:3px 6px;background:var(--card)}
+.bset summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:14px}
 .fsec{display:flex;flex-direction:column;gap:5px;border-top:1.5px dashed var(--grid2);padding-top:6px}
 .fsec-h{font-family:var(--hand);font-size:16px}.fsec-h small{font-size:12.5px;color:var(--ink2);margin-left:6px}
 .fnote{font-size:12.5px;color:var(--ink2)}
@@ -1630,7 +1636,7 @@ function neighbourHTML(c){
   const A=ANALYSIS[c.id], lab={'-1':'one fewer ligand type','0':'same number of ligand types','1':'one more ligand type'};
   return `<div class="nbr"><div class="nbr-h">One substitution away</div>`+nb.map(o=>{const B=ANALYSIS[o.c.id];
     const chg=A.stereo===B.stereo?`still ${B.stereo}`:`${A.stereo} → ${B.stereo}`;
-    return `<button class="nbr-row" data-case-go="${o.c.id}"><span class="xf">${formulaHTML(o.c)}</span><small>${o.desc} (${lab[o.dir]}) · ${chg} stereoisomer${B.stereo===1?'':'s'}, ${B.pairs?B.pairs+' enantiomeric pair'+(B.pairs>1?'s':''):(B.stereo>1?'all achiral':'achiral')}</small></button>`;}).join('')+'</div>';
+    return `<button class="nbr-row" data-case-go="${o.c.id}"><span class="xf">${formulaHTML(o.c)}</span><small>${o.desc} (${lab[o.dir]}) · ${chg} ${isFluxional(o.c)?'configuration':'stereoisomer'}${B.stereo===1?'':'s'}, ${B.pairs?B.pairs+' enantiomeric pair'+(B.pairs>1?'s':''):(B.stereo>1?'all achiral':'achiral')}</small></button>`;}).join('')+'</div>';
 }
 
 /* =====================================================================
@@ -1745,6 +1751,55 @@ function structuralFamily(base,amb=[],opts={}){
   allVariants.forEach(v=>{tally.geometric+=v.A.geometric;tally.pairs+=v.A.pairs;tally.stereo+=v.A.stereo;});
   return {base:{geom,mono,chel},defs,sites,letters,N,groups,variants:allVariants,
     parent:groups.length===1?groups[0].parent:null,rows:groups.length===1?groups[0].rows:null,tally,newChiral};
+}
+
+/* =====================================================================
+   1c. BERRY PSEUDOROTATION — which five-coordinate configurations interconvert
+   A Berry move keeps one equatorial ligand (the pivot) and swaps the two axial ligands with the other two equatorial ones,
+   passing through a square pyramid. As a permutation of positions it is (ax1 u)(ax2 v): two swaps, so EVEN. An enantiomer
+   differs from its mirror image by an odd permutation, so Berry moves keep handedness unless two ligands are identical
+   (swapping identical ligands is invisible). A move is not allowed if it would put a chelate ring across two equatorial
+   sites: that arrangement is not a configuration at all. Both mappings per pivot are included (they differ by a C2).
+   ===================================================================== */
+function berryMoves(G){
+  if(!G.axial) return [];
+  const out=[], [a0,a1]=G.axial;
+  for(const p of G.equatorial){const [i,j]=G.equatorial.filter(x=>x!==p);
+    for(const [u,v] of [[i,j],[j,i]]){const q=G.sites.map((_,k)=>k); q[a0]=u;q[u]=a0;q[a1]=v;q[v]=a1; out.push({pivot:p,perm:q});}}
+  return out;
+}
+const permParity=q=>{const seen=[];let t=0;q.forEach((_,i)=>{if(seen[i])return;let j=i,l=0;while(!seen[j]){seen[j]=1;j=q[j];l++;}t+=l-1;});return t%2;};
+function berrySets(A){
+  const G=A.G; if(!G.axial) return null;
+  const moves=berryMoves(G), edgeOK=new Set(G.edges.map(e=>e.join('-')));
+  const byKey=new Map(A.isomers.map(i=>[i.key,i])), parent=new Map(A.isomers.map(i=>[i.key,i.key]));
+  const find=k=>{while(parent.get(k)!==k){parent.set(k,parent.get(parent.get(k)));k=parent.get(k);}return k;};
+  let blocked=0, tried=0;
+  for(const iso of A.isomers) for(const m of moves){
+    tried++; const c2=applyCfg(m.perm,iso.cfg);
+    if(!c2.edges.every(e=>edgeOK.has(e[0]+'-'+e[1]))){blocked++;continue;}      // a ring may not end up across two equatorial sites
+    const k=canon(c2,G.rots); if(!byKey.has(k)) throw new Error('a Berry move left the isomers of '+A.c.id);
+    parent.set(find(iso.key),find(k));}
+  const byRoot=new Map(); A.isomers.forEach(i=>{const r=find(i.key);if(!byRoot.has(r))byRoot.set(r,[]);byRoot.get(r).push(i);});
+  const sets=[...byRoot.entries()].map(([root,isos],index)=>({index,root,isos}));
+  const idx=new Map(sets.map(s=>[s.root,s.index]));
+  sets.forEach(s=>{
+    s.racemises=s.isos.some(i=>i.chiral&&find(i.mirrorKey)===s.root);
+    s.chiral=!s.racemises&&s.isos.some(i=>i.chiral);
+    s.mirror=s.chiral?idx.get(find(s.isos.find(i=>i.chiral).mirrorKey)):null;});
+  return {sets,moves:tried,blocked,allBlocked:tried>0&&blocked===tried,setOf:iso=>sets[idx.get(find(iso.key))]};
+}
+const berryOf=A=>A.berry!==undefined?A.berry:(A.berry=berrySets(A));
+/* why the grouping came out as it did, in words */
+function berryWhy(A,B){
+  const out=[];
+  if(A.isomers.length===1) return ['There is only one configuration, so there is nothing to interconvert.'];
+  if(B.allBlocked) out.push('Every pseudorotation is blocked: each would put a chelate ring across two equatorial sites. These configurations are rigid.');
+  else if(B.blocked) out.push('Chelate rings block some pseudorotations: a ring may not end up across two equatorial sites.');
+  if(A.pairs){
+    if(B.sets.some(s=>s.racemises)) out.push('Pseudorotation can turn a chiral configuration into its mirror image here, so these racemise: two ligands are identical, and swapping identical ligands changes nothing visible.');
+    else if(!B.allBlocked) out.push('Pseudorotation never turns a configuration into its mirror image here: a Berry move swaps two pairs of positions (an even permutation), and no two ligands are identical to make up the difference. Each chiral set is the mirror image of another set.');}
+  return out;
 }
 
 /*ENGINE-END*/
@@ -2162,7 +2217,7 @@ function caseBodyHTML(c){
     return `<div class="pairbox"><div class="pairlab"><span>enantiomeric pair</span><button data-pair="${grp[0].id}">compare ⇄</button></div>${row(grp[0])}${row(grp[1])}</div>`;
   }).join('');
   return `<div class="ligchips">${ligChips(c)}</div><p class="insight">${c.insight||summaryHTML(A)}</p>
-    <p class="tally">${countsHTML(A)}</p>${rows}${neighbourHTML(c)}${complicateHTML(c)}`;
+    <p class="tally">${countsHTML(A)}</p>${rows}${berryHTML(c,false)}${neighbourHTML(c)}${complicateHTML(c)}`;
 }
 function rowHTML(e,mobile,searching){
   const c=e.c,A=e.A,geo=searching?`<span class="chip fgeo" title="${GEOMS[c.geom].name}">${GEOMS[c.geom].name}</span>`:'';
@@ -2309,12 +2364,19 @@ function refreshUI(){
       else if(formulaHTML(a.caseRef)===formulaHTML(b.caseRef)){stamp='<span class="stamp diff">different geometry</span>';why='Same formula, different coordination polyhedron: polytopal (allogon) isomers, not stereoisomers of one another.';}
       else {stamp='<span class="stamp diff">not isomers</span>';why='Different ligand sets, so these are simply different compounds.';}
     } else if(a.key===b.key){stamp='<span class="stamp same">identical</span>';why=live?'This complex is achiral: its mirror image is the same molecule.':'Same stereoisomer, even if the drawings look different. Some rotation superimposes them. Try it!';}
-    else if(a.mirrorKey===b.key){stamp='<span class="stamp enan">enantiomers</span>';why='Non-superimposable mirror images: identical in every scalar property except the sign of optical rotation, and their behaviour toward other chiral things.';}
-    else {stamp='<span class="stamp dia">diastereomers</span>';why='Stereoisomers that are not mirror images, so they differ in physical and chemical properties.';}
+    else if(a.mirrorKey===b.key){stamp='<span class="stamp enan">enantiomers</span>';why='Non-superimposable mirror images: identical in every scalar property except the sign of optical rotation, and their behaviour toward other chiral things.'+fluxNote(a,b,true);}
+    else {stamp='<span class="stamp dia">diastereomers</span>';why='Stereoisomers that are not mirror images, so they differ in physical and chemical properties.'+fluxNote(a,b,false);}
   }
   $('#rel').innerHTML=`${stamp}<span class="why">${why}</span>`;
   setFlag(2,live?'live mirror image of Viewport 1 (turn Viewport 1 and watch)':($('#flag2').dataset.live?'':null));
   refreshMobile();
+}
+/* five-coordinate pair: do they interconvert by Berry pseudorotation? */
+function fluxNote(a,b,mirror){
+  const A=ANALYSIS[a.caseId]; if(!A||!isFluxional(a.caseRef)) return '';
+  const B=berryOf(A), same=B.setOf(a)===B.setOf(b);
+  if(same) return mirror?' <b>Here pseudorotation can interconvert them</b>, so this pair racemises.':' <b>But they interconvert by Berry pseudorotation</b>, so in practice they are one fluxional species.';
+  return ' Pseudorotation does not connect them'+(B.allBlocked||B.blocked?' (chelate rings block the moves)':'')+', so they stay separate.';
 }
 function setFlag(n,html){if(html===null)return;if(html&&isMobile()&&!/^live mirror/.test(html))toast(html);const f=$('#flag'+n);f.innerHTML=html;f.dataset.live=app.live&&n===2?'1':'';f.classList.toggle('show',!!html);}
 function hideAlignMsg(){$('#alignMsg').classList.remove('show');}
@@ -2507,6 +2569,19 @@ const monoLetters=c=>[...new Set(c.mono||'')];
 const countOf=(m,l)=>[...m].filter(x=>x===l).length;
 const spareLetter=b=>{const used=new Set((b.mono||'')+(b.chel||[]).map(x=>lig(x).L).join(''));return 'ABCDEFGH'.split('').find(l=>!used.has(l))||null;};
 const poolLetters=()=>{const ls=monoLetters(FAM.base),S=FAM.pool?spareLetter(FAM.base):null;return S?[...ls,S]:ls;};
+/* five-coordinate shapes: static configurations grouped into the sets that interconvert by Berry pseudorotation */
+function berryHTML(c,mobile){
+  if(!isFluxional(c)) return '';
+  const A=ANALYSIS[c.id], B=berryOf(A), n=B.sets.length, row=iso=>mobile
+    ?`<button class="xrow iso" data-go="iso:${iso.id}"><span class="xr-main"><span>${iso.label}</span><span class="xchips"><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span></span></span>${chev}</button>`
+    :`<div class="iso" data-iso="${iso.id}"><span class="nm" title="load into Viewport 1">${iso.label}</span><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span><button class="ld" data-to="1" title="Load into Viewport 1">1</button><button class="ld" data-to="2" title="Load into Viewport 2">2</button></div>`;
+  const tag=s=>s.racemises?'<span class="chip chiral">includes mirror images</span>':s.chiral?`<span class="chip chiral">chiral set · mirror image of set ${s.mirror+1}</span>`:'<span class="chip achiral">achiral</span>';
+  return `<div class="bblock"><div class="bh">Berry pseudorotation</div>
+    <div><span class="bnum">${A.stereo}</span> configuration${A.stereo>1?'s':''} <span class="bnum">→ ${n}</span> fluxional set${n>1?'s':''}</div>
+    ${berryWhy(A,B).map(t=>`<p class="bwhy">${t}</p>`).join('')}
+    ${n>1||A.stereo>1?B.sets.map(s=>`<details class="bset"><summary><b>Set ${s.index+1}</b> · ${s.isos.length} configuration${s.isos.length>1?'s':''} ${tag(s)}</summary>${s.isos.map(row).join('')}</details>`).join(''):''}
+    <p class="bwhy">Sets are the configurations that pseudorotation can join; each set is one observable species. This counts what the connectivity allows and does not model barriers.</p></div>`;
+}
 function complicateHTML(c){
   if(!monoLetters(c).length) return '';
   return `<div class="nbr"><div class="nbr-h">Complicate it</div><button class="nbr-row" data-complicate="${c.id}"><span class="xf">Add a structural complication</span><small>Let a ligand bond through more than one atom (linkage isomers), or swap places with a copy outside the sphere (ionisation and hydrate isomers), and see the new isomers appear on top of these stereoisomers.</small></button></div>`;
@@ -2971,7 +3046,7 @@ function xListHTML(top){
   const row=iso=>`<button class="xrow iso" data-go="iso:${iso.id}"><span class="xr-main"><span>${iso.label}</span><span class="xchips"><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span></span></span>${chev}</button>`;
   return `<p class="xins">${A.c.insight||summaryHTML(A)}</p>
     <div class="xchips">${ligChips(A.c)}</div><div class="xtally">${countsHTML(A)}</div>`+
-    A.groups.map(g=>g.length===1?row(g[0]):`<div class="xpair"><div class="xpair-h"><span>enantiomeric pair</span><button class="btn" data-cmp="${g[0].id}">Compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+neighbourHTML(A.c)+complicateHTML(A.c);
+    A.groups.map(g=>g.length===1?row(g[0]):`<div class="xpair"><div class="xpair-h"><span>enantiomeric pair</span><button class="btn" data-cmp="${g[0].id}">Compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+berryHTML(A.c,true)+neighbourHTML(A.c)+complicateHTML(A.c);
 }
 function xInfoHTML(iso){
   const ch=iso.chiral?`<span class="chip chiral">chiral</span> No σ, i or S<sub>n</sub>; only ${iso.sym.proper}. Its mirror image is ${iso.partner.label}.`
