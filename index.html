@@ -297,9 +297,17 @@ body.mobile .nbr-h{font-size:13px}
 .fstat{font-size:12.5px;color:var(--ink2);padding:0 2px}
 .linkbtn{border:0;background:none;padding:0;color:#1b62b0;text-decoration:underline;font:inherit;cursor:pointer}
 .fempty{font-size:14.5px;color:var(--ink2);margin:10px 2px}
-.fgeo-head{display:flex;align-items:center;gap:8px;margin:14px 0 2px;font-family:var(--hand);font-size:19px}
-.fgeo-head svg{width:28px;height:28px;flex:none}
-.fgeo-head small{margin-left:auto;font-size:12px;color:var(--ink3)}
+.fgeo-head{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:10px 0 2px;padding:8px 12px;font-family:var(--hand);font-size:19px;background:var(--card);border:2px solid var(--ink);border-radius:var(--wob);box-shadow:3px 3px 0 var(--ink)}
+.fgeo-head:hover{background:var(--hl)}
+.fgeo-head[aria-expanded="true"]{background:#fff6cc}
+.fgeo-head:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
+.fgeo-head svg{width:32px;height:32px;flex:none}
+.fgeo-name{display:flex;flex-direction:column;line-height:1.15}
+.fgeo-name small{font-family:var(--body);font-size:13px;color:var(--ink2)}
+.fgeo-arrow{font-size:12px;transition:transform .2s}
+.fgeo-head[aria-expanded="true"] .fgeo-arrow{transform:rotate(90deg)}
+.fgeo-body{padding:0 0 4px 4px;display:flex;flex-direction:column}
+.side .fgeo-head{scroll-margin-top:84px}
 .fsub{font-family:var(--hand);font-size:12px;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink2);margin:10px 2px 5px;border-bottom:1.5px dashed var(--grid2);padding-bottom:2px}
 .chip.fgeo{background:var(--paper);border-color:var(--ink3);font-size:11.5px;color:var(--ink2)}
 .case-btn .cmain{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0}
@@ -317,7 +325,8 @@ body.mobile .nbr-h{font-size:13px}
 #xHome .fchip{font-size:15px;padding:5px 11px;min-height:36px}
 #xHome .fres{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px max(16px,env(safe-area-inset-right,0px)) 28px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:8px}
 #xHome .fsub{margin:10px 2px 0}
-#xHome .fgeo-head{margin:12px 0 0}
+#xHome .fgeo-head{margin:6px 0 0;min-height:64px;font-size:21px}
+#xHome .fgeo-body{gap:8px}
 #xHome .xrow{min-height:54px;padding:8px 12px}
 #xHome .xf{font-size:20px}
 
@@ -538,7 +547,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
     </div>
     <div class="mode-toggle" id="modeToggle" role="tablist" aria-label="Mode">
       <span class="knob"></span>
-      <button class="on" data-mode="study" role="tab">Study<span class="long"> Matrix</span></button>
+      <button class="on" data-mode="study" role="tab">Explore</button>
       <button data-mode="quiz" role="tab"><span class="long">Isomer </span>Quiz<span class="long"> Game</span></button>
     </div>
   </header>
@@ -1806,7 +1815,7 @@ function frame(now){
 }
 
 /* =====================================================================
-   3. STUDY MATRIX UI
+   3. EXPLORE: FORMULA FINDER UI
    ===================================================================== */
 const ICONS={
   Td:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M20 4 L5 31 L33 34 Z"/><path d="M20 4 L27 23"/><path d="M5 31 L27 23 L33 34" stroke-dasharray="3 3"/></svg>`,
@@ -1820,7 +1829,7 @@ const isoById={}; Object.values(ANALYSIS).forEach(A=>A.isomers.forEach(i=>isoByI
 const GEO_ORDER=['Td','SP','Oh'];
 const DENT_FACET=[[1,'monodentate only'],[2,'bidentate'],[3,'tridentate'],[4,'tetradentate']];
 const CAT_SHORT={one:'no isomers',geo:'geometrical only',enan:'enantiomers only',both:'geometrical + enantiomers'};
-const FIND={q:'',geo:new Set(),dent:new Set(),cat:new Set(),open:null,facets:false};
+const FIND={q:'',geo:new Set(),dent:new Set(),cat:new Set(),open:null,facets:false,shapeOpen:new Set()};   // shapeOpen: shapes expanded in the browse list (all start closed)
 const maxDent=c=>Math.max(1,...(c.chel||[]).map(ligDent));
 const stripTags=h=>h.replace(/<[^>]+>/g,'');
 const chiralView=()=>FIND.cat.size>0&&[...FIND.cat].every(k=>k==='enan'||k==='both');   // filtering to chiral formulas: open isomers beside their mirror image
@@ -1947,12 +1956,15 @@ function resultsHTML(mobile){
     if(exact&&exact<list.length) html+=`<div class="fsub">That formula</div>`+list.slice(0,exact).map(e=>rowHTML(e,mobile,true)).join('')+`<div class="fsub">Close matches</div>`+list.slice(exact).map(e=>rowHTML(e,mobile,true)).join('');
     else html+=list.map(e=>rowHTML(e,mobile,true)).join('');
   } else {
-    let g=null,f=null;
-    list.forEach(e=>{
-      if(e.c.geom!==g){g=e.c.geom;f=null;const n=list.filter(x=>x.c.geom===g).length;
-        html+=`<div class="fgeo-head">${ICONS[g]}<span>${GEOMS[g].name}</span><small>${n}</small></div>`;}
-      if(e.fam!==f){f=e.fam;html+=`<div class="fsub">${FAMS.find(x=>x.id===f).name}</div>`;}
-      html+=rowHTML(e,mobile,false);
+    // browse: one collapsed heading per shape; open a shape to list its formulas
+    GEO_ORDER.forEach(g=>{
+      const rows=list.filter(e=>e.c.geom===g); if(!rows.length) return;
+      const open=FIND.shapeOpen.has(g), pairs=rows.filter(e=>e.A.pairs).length;
+      html+=`<button class="fgeo-head" data-shape="${g}" aria-expanded="${open}"><span class="fgeo-arrow" aria-hidden="true">▶</span>${ICONS[g]}<span class="fgeo-name">${GEOMS[g].name}<small>${rows.length} formula${rows.length>1?'s':''} · ${pairs} with enantiomers</small></span></button>`;
+      if(!open) return;
+      let f=null; html+=`<div class="fgeo-body">`;
+      rows.forEach(e=>{if(e.fam!==f){f=e.fam;html+=`<div class="fsub">${FAMS.find(x=>x.id===f).name}</div>`;}html+=rowHTML(e,mobile,false);});
+      html+=`</div>`;
     });
   }
   const filt=FIND.geo.size||FIND.dent.size||FIND.cat.size;
@@ -1979,12 +1991,12 @@ function mountFinder(root,{mobile,onPick}){
   inp.addEventListener('input',()=>{FIND.q=inp.value;FINDERS.forEach(G=>{renderFinder(G);});root.querySelector('.fres').scrollTop=0;if(!mobile)$('#side').scrollTop=0;});
   inp.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&inp.value){e.stopPropagation();FIND.q='';inp.value='';renderFinders();}
-    else if(e.key==='ArrowDown'){const b=root.querySelector('.case-btn,.xrow');if(b){e.preventDefault();b.focus();}}
+    else if(e.key==='ArrowDown'){const b=root.querySelector('.fgeo-head,.case-btn,.xrow');if(b){e.preventDefault();b.focus();}}
     else if(e.key==='Enter'){const r=findMatches().list[0];if(r){e.preventDefault();inp.blur();onPick(r.c.id,true);}}
   });
   root.addEventListener('keydown',e=>{
-    if(!['ArrowDown','ArrowUp'].includes(e.key)||!e.target.matches('.case-btn,.xrow')) return;
-    const all=[...root.querySelectorAll('.case-btn,.xrow')],i=all.indexOf(e.target),n=all[i+(e.key==='ArrowDown'?1:-1)];
+    if(!['ArrowDown','ArrowUp'].includes(e.key)||!e.target.matches('.fgeo-head,.case-btn,.xrow')) return;
+    const all=[...root.querySelectorAll('.fgeo-head,.case-btn,.xrow')],i=all.indexOf(e.target),n=all[i+(e.key==='ArrowDown'?1:-1)];
     e.preventDefault(); if(n) n.focus(); else if(e.key==='ArrowUp') inp.focus();
   });
   root.addEventListener('click',e=>{
@@ -1993,6 +2005,8 @@ function mountFinder(root,{mobile,onPick}){
     if(e.target.closest('[data-fclear]')){FIND.q='';renderFinders();inp.focus();return;}
     if(e.target.closest('[data-freset]')){FIND.geo.clear();FIND.dent.clear();FIND.cat.clear();renderFinders();return;}
     if(e.target.closest('[data-ftoggle]')){FIND.facets=!FIND.facets;renderFinders();return;}
+    const sh=e.target.closest('[data-shape]'); if(sh){const g=sh.dataset.shape;FIND.shapeOpen.has(g)?FIND.shapeOpen.delete(g):FIND.shapeOpen.add(g);
+      renderFinders();const b=root.querySelector(`[data-shape="${g}"]`);if(b){b.focus({preventScroll:true});if(FIND.shapeOpen.has(g))b.scrollIntoView({block:'start',behavior:'smooth'});}return;}
   });
   renderFinder(F);
   return F;
@@ -2001,7 +2015,7 @@ function mountFinder(root,{mobile,onPick}){
 function setHash(id){try{history.replaceState(null,'',id?'#'+id:location.pathname+location.search);}catch(e){}}
 function openCase(id,{load=true,scroll=true}={}){
   if(!findMatches().list.some(e=>e.c.id===id)) resetFind();     // make sure it is in the list
-  FIND.open=id; renderFinders(); setHash(id);
+  FIND.open=id; FIND.shapeOpen.add(ANALYSIS[id].c.geom); renderFinders(); setHash(id);
   const el=$(`#side .case[data-case="${id}"]`);
   if(el&&scroll) el.scrollIntoView({block:'start',behavior:'smooth'});
   if(load){const A=ANALYSIS[id],iso=A.isomers[0];
