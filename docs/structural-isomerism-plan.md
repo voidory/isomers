@@ -9,7 +9,8 @@ Status: **all four phases are built**; phase 4 is only the denticity half (see b
 | 2 Ionisation / hydrate pools, named presets (NO₂/ONO, SCN/NCS, CN/NC), typed linkage pairs in the finder, deep links | done (see below for what was narrowed) |
 | 3 Quiz question (total isomers), Builder hook | done |
 | 4 κ¹/κ² denticity within the sphere model | done |
-| 4b Ambidentate chelate ends; true coordination-number change (5-coordinate shapes) | not planned |
+| 4b Ambidentate chelate ends | not planned |
+| 4c True coordination-number change (needs 5-coordinate shapes, which are fluxional by Berry pseudorotation) | designed separately: [five-coordinate-berry-plan.md](five-coordinate-berry-plan.md) |
 
 ### Phase 4: denticity, what was built
 
