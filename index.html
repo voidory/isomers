@@ -168,6 +168,24 @@ main[hidden]{display:none!important}
 .quiz{min-height:0}
 .quiz-scroll{height:100%;overflow-y:auto;padding:18px 18px 60px}
 .quiz-inner{max-width:1100px;margin:0 auto}
+.seg.learn-nav{display:inline-flex;margin:0 0 12px}
+body.mobile .seg.learn-nav{display:flex}body.mobile .seg.learn-nav button{flex:1}
+.lessons{display:flex;flex-direction:column;gap:12px}
+.lessons h2{font-family:var(--hand);font-size:24px;margin:0}
+.lessons .lintro{color:var(--ink2);margin:0}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.lcard{text-align:left;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font:inherit;color:inherit}
+button.lcard{cursor:pointer}button.lcard:hover{background:var(--hl)}
+.lcard .lt{font-family:var(--hand);font-size:18px}
+.lcard p{margin:0;font-size:14px;color:var(--ink2)}
+.lcard.planned{opacity:.7;border-style:dashed}
+.lmod{padding:14px 18px}
+.lmod h3{font-family:var(--hand);font-size:21px;margin:4px 0 8px}
+.ltab{border-collapse:collapse;font-size:14px;width:100%}
+.ltab th,.ltab td{border:1.5px solid var(--ink3);padding:4px 8px;text-align:left;vertical-align:top}
+.ltab th{font-family:var(--hand);font-weight:normal;background:var(--paper)}
+.ltab-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.lnote{font-size:14px;color:var(--ink2)}
 .qcard{padding:18px 22px;position:relative}
 .qcard::before{content:"";position:absolute;left:-2px;top:16px;bottom:16px;width:2px;border-left:2px dashed #e9a5a0}
 .q-meta{font-family:var(--hand);font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink2);display:flex;gap:8px;align-items:center}
@@ -589,7 +607,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
     <div class="mode-toggle" id="modeToggle" role="tablist" aria-label="Mode">
       <span class="knob"></span>
       <button class="on" data-mode="study" role="tab">Explore</button>
-      <button data-mode="quiz" role="tab"><span class="long">Isomer </span>Quiz<span class="long"> Game</span></button>
+      <button data-mode="quiz" role="tab">Learn</button>
     </div>
   </header>
 
@@ -645,6 +663,8 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
   <main class="quiz" id="quiz" hidden>
     <div class="quiz-scroll" id="quizScroll">
       <div class="quiz-inner">
+        <div class="learn-nav seg" id="learnNav" role="tablist" aria-label="Learn"><button data-lview="quiz" role="tab" class="on">Quiz</button><button data-lview="lessons" role="tab">Lessons</button></div>
+        <div id="learnQuiz">
         <div class="qcard sketch" id="qcard">
           <div class="q-meta" id="qMeta"></div>
           <div class="q-text" id="qText"></div>
@@ -667,6 +687,8 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
           <div class="filters" id="filters"></div>
         </div>
         <div class="results" id="results"></div>
+        </div>
+        <div class="lessons" id="learnLessons" hidden></div>
       </div>
     </div>
   </main>
@@ -733,7 +755,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
       <p class="sabout">Ligands are idealised as points and chelate rings as symmetric bridges. Every isomer count is worked out from the symmetry of the shape, not typed in by hand. R/S labels for tetrahedral [MABCD] assume the made-up priority order A &gt; B &gt; C &gt; D.</p>
     </section>
   </div>
-  <nav class="mtabs" id="mTabs" role="tablist"><button data-tab="explore" role="tab" aria-label="Explore"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h5.5A2.5 2.5 0 0 1 12 7.5V20a2 2 0 0 0-2-2H4z"/><path d="M20 5h-5.5A2.5 2.5 0 0 0 12 7.5V20a2 2 0 0 1 2-2h6z"/></svg></span>Explore</button><button data-tab="compare" role="tab" aria-label="Compare"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="7" rx="1.5"/><rect x="4" y="13.5" width="16" height="7" rx="1.5"/><path d="M2 12h20" stroke-dasharray="2 2"/></svg></span>Compare</button><button data-tab="build" role="tab" aria-label="Build"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.5-1L19 8.5 15.5 5 5 15.5z"/><path d="M13.5 7l3.5 3.5"/></svg></span>Build</button><button data-tab="quiz" role="tab" aria-label="Quiz"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .8-1 1.5v.5"/><path d="M12 16.8v.2"/></svg></span>Quiz</button><button data-tab="more" role="tab" aria-label="More"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/></svg></span>More</button></nav>
+  <nav class="mtabs" id="mTabs" role="tablist"><button data-tab="explore" role="tab" aria-label="Explore"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h5.5A2.5 2.5 0 0 1 12 7.5V20a2 2 0 0 0-2-2H4z"/><path d="M20 5h-5.5A2.5 2.5 0 0 0 12 7.5V20a2 2 0 0 1 2-2h6z"/></svg></span>Explore</button><button data-tab="compare" role="tab" aria-label="Compare"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="7" rx="1.5"/><rect x="4" y="13.5" width="16" height="7" rx="1.5"/><path d="M2 12h20" stroke-dasharray="2 2"/></svg></span>Compare</button><button data-tab="build" role="tab" aria-label="Build"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.5-1L19 8.5 15.5 5 5 15.5z"/><path d="M13.5 7l3.5 3.5"/></svg></span>Build</button><button data-tab="quiz" role="tab" aria-label="Learn"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 9 12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11v4.6c1.4 1.6 3.4 2.4 5.5 2.4s4.1-.8 5.5-2.4V11"/><path d="M21.5 9v5"/></svg></span>Learn</button><button data-tab="more" role="tab" aria-label="More"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/></svg></span>More</button></nav>
 </div>
 <div class="mtoast" id="mToast" role="status" aria-live="polite"></div>
 <div class="tour" id="tour" hidden>
@@ -1703,6 +1725,67 @@ function cxPlan(kind,base,sel){
 /* the inner-sphere group that is the original formula (same ligands, all bonded through one atom, nothing swapped) */
 const cxBaseGroup=(F,base)=>F.groups.find(g=>F.letters.every(l=>g.inner[l].k1===countOf(base.mono||'',l)&&g.inner[l].k2===0))||null;
 
+/* =====================================================================
+   1e. REAL LIGANDS FOR EXAM-STYLE FORMULAS
+   An abstract formula is dressed as a real complex: each ligand becomes a real ligand with the SAME symmetry type
+   (an AA chelate becomes en, ox, bipy ...; a mer-only ABA tridentate terpy or dipic), so every count is unchanged.
+   No formula uses one letter in two different ligands, so ligands can be swapped one for one. A formula whose ligand
+   type has no well-known real example is simply not offered in this mode.
+   ===================================================================== */
+const RL=(key,name,html,text,charge,donors,note='',w=1)=>({key,name,html,text,charge,donors,dent:donors.length,note,w});   // w: how often it is picked
+const REAL={
+  mono:[RL('NH3','ammine','NH<sub>3</sub>','NH₃',0,['N'],'',4),RL('H2O','aqua','H<sub>2</sub>O','H₂O',0,['O'],'',3),RL('py','pyridine','py','py',0,['N'],'',2),
+        Object.assign(RL('PPh3','triphenylphosphine','PPh<sub>3</sub>','PPh₃',0,['P'],'bulky'),{max:2}),RL('Cl','chlorido','Cl','Cl',-1,['Cl'],'',4),RL('Br','bromido','Br','Br',-1,['Br'],'',2),
+        RL('I','iodido','I','I',-1,['I']),RL('F','fluorido','F','F',-1,['F'])],
+  chel:{
+    'AA':[RL('en','ethane-1,2-diamine','en','en',0,['N','N']),RL('ox','oxalate','ox','ox',-2,['O','O']),RL('bipy','2,2′-bipyridine','bipy','bipy',0,['N','N']),
+          RL('phen','1,10-phenanthroline','phen','phen',0,['N','N']),RL('acac','acetylacetonate','acac','acac',-1,['O','O'])],
+    'AB':[RL('gly','glycinate','gly','gly',-1,['N','O'],'bonds through N and O'),RL('pic','picolinate','pic','pic',-1,['N','O'],'bonds through N and O'),RL('quin','quinolin-8-olate','quin','quin',-1,['N','O'],'bonds through N and O')],
+    'ABA:x':[RL('dien','diethylenetriamine','dien','dien',0,['N','N','N'],'flexible: fac or mer'),RL('ida','iminodiacetate','ida','ida',-2,['O','N','O'],'flexible: fac or mer')],
+    'ABA:m':[RL('terpy','2,2′:6′,2″-terpyridine','terpy','terpy',0,['N','N','N'],'rigid and flat: mer only'),RL('dipic','pyridine-2,6-dicarboxylate','dipic','dipic',-2,['O','N','O'],'rigid and flat: mer only')],
+    'AAA:c':[RL('tacn','1,4,7-triazacyclononane','tacn','tacn',0,['N','N','N'],'caps a face: fac only'),RL('Tp','hydrotris(pyrazolyl)borate','Tp','Tp',-1,['N','N','N'],'caps a face: fac only')],
+    'ABBA:x':[RL('trien','triethylenetetramine','trien','trien',0,['N','N','N','N'],'flexible chain: trans, cis-α or cis-β')],
+    'ABBA:p':[RL('salen','N,N′-ethylenebis(salicylideneiminate)','salen','salen',-2,['O','N','N','O'],'lies flat')],
+    'ABBB:t':[RL('tren','tris(2-aminoethyl)amine','tren','tren',0,['N','N','N','N'],'tripod: a central N and three arms')],
+    'AAAA:r':[RL('cyclam','1,4,8,11-tetraazacyclotetradecane','cyclam','cyclam',0,['N','N','N','N'],'flexible ring: flat or folded')],
+    'AAAA:rp':[RL('por','porphyrinate','por','por',-2,['N','N','N','N'],'rigid flat ring'),RL('pc','phthalocyaninate','pc','pc',-2,['N','N','N','N'],'rigid flat ring')],
+  },
+  metals:{Oh:[['Co',3],['Cr',3],['Rh',3],['Ru',2],['Pt',4],['Fe',3]],SP:[['Pt',2],['Pd',2]],Td:[['Zn',2],['Co',2]]},
+};
+const ATOMIC=new Set(['Cl','Br','I','F']);                          // written without brackets in a formula
+const realPattern=x=>{const p=ligPattern(x),{L}=lig(x);return relabelFirst(L)===p.split(':')[0]?p:null;};   // donors read in the ligand's own order
+const realizable=c=>{const need={};
+  for(const x of new Set(c.chel||[])){const p=realPattern(x);if(!p||!REAL.chel[p])return false;need[p]=(need[p]||0)+1;}
+  return Object.entries(need).every(([p,n])=>REAL.chel[p].length>=n)&&new Set(c.mono||'').size<=REAL.mono.length;};   // enough different real ligands of each type
+const chargeHTML=q=>q===0?'':`<sup>${Math.abs(q)>1?Math.abs(q):''}${q>0?'+':'−'}</sup>`;
+/* [M(chelates)(neutral)(anionic)]charge, polyatomic and abbreviated ligands in brackets */
+const realFormula=(metal,parts,charge)=>`[${metal}${parts.map(({r,n})=>(ATOMIC.has(r.key)?r.html:`(${r.html})`)+(n>1?`<sub>${n}</sub>`:'')).join('')}]${chargeHTML(charge)}`;
+/* a real complex for an abstract formula; force: {letter: real ligand} fixes some monodentates (e.g. an ambidentate one) */
+function realize(c,rand=Math.random,force={}){
+  if(!realizable(c)) return null;
+  const chel=c.chel||[], mono=c.mono||'', pick=a=>a[Math.floor(rand()*a.length)%a.length];
+  const pickW=a=>{let t=rand()*a.reduce((u,r)=>u+r.w,0);for(const r of a){t-=r.w;if(t<0)return r;}return a[a.length-1];};
+  const seen={}, prime=el=>{const k=seen[el]=(seen[el]||0)+1;return el+['','′','″','‴'][k-1];};   // non-equivalent donors of one element: N, N′, N″
+  const used=new Set(Object.values(force).map(r=>r.key)), byChel={}, lbl={}, skin={}, parts=[];
+  for(const x of [...new Set(chel)]){
+    const pool=REAL.chel[realPattern(x)].filter(r=>!used.has(r.key)); if(!pool.length) return null;
+    const r=pick(pool); used.add(r.key); byChel[x]=r;
+    const done={}; lig(x).L.split('').forEach((ch,i)=>{if(done[ch])return;done[ch]=1;const t=prime(r.donors[i]);lbl[ch]=t;skin[ch]={text:t,tag:'',base:ch,donor:false};});
+    const n=chel.filter(y=>y===x).length; parts.push({r,n,order:0});
+  }
+  for(const l of [...new Set(mono)]){
+    let r=force[l];
+    if(!r){const pool=REAL.mono.filter(q=>!used.has(q.key)&&(q.max||6)>=countOf(mono,l)); if(!pool.length) return null; r=pickW(pool);}
+    used.add(r.key); lbl[l]=r.html; skin[l]={text:r.text,tag:'',base:l,donor:false};
+    parts.push({r,n:countOf(mono,l),order:r.charge<0?2:1});
+  }
+  const [metal,ox]=pick(REAL.metals[c.geom]);
+  const charge=ox+parts.reduce((t,p)=>t+p.r.charge*p.n,0);
+  parts.sort((a,b)=>a.order-b.order);
+  skin.__M={text:metal};                                          // drawings label the metal too
+  return {metal,ox,charge,html:realFormula(metal,parts,charge),parts,byChel,skin,lbl:l=>lbl[l]||l,names:Object.fromEntries([...new Set(mono)].map(l=>[l,{html:lbl[l],text:skin[l].text}]))};
+}
+
 /*ENGINE-END*/
 /* =====================================================================
    2. LIVE EXAM-STYLE DRAWING OF A ROTATABLE 3-D MOLECULE
@@ -1817,7 +1900,7 @@ function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
       const k=p.length-1, path=[cut(p[0],p[1]),...p.slice(1,k),cut(p[k],p[k-1])]; bridgePaths[it.a+'-'+it.b]=path;
       inked(()=>{ctx.beginPath();ctx.moveTo(...path[0]);path.slice(1).forEach(o=>ctx.lineTo(...o));ctx.stroke();});
     } else {
-      const isM=it.i<0, x=isM?cx:P[it.i].x, y=isM?cy:P[it.i].y, X=isM?'M':cfg.labels[it.i], sk=(!isM&&d.skin&&d.skin[X])||null;
+      const isM=it.i<0, x=isM?cx:P[it.i].x, y=isM?cy:P[it.i].y, X=isM?((d.skin&&d.skin.__M&&d.skin.__M.text)||'M'):cfg.labels[it.i], sk=(!isM&&d.skin&&d.skin[X])||null;
       const tf=fs*0.58, sm=sk?skinMeasure(ctx,sk,fs):{w0:0,w1:0,tw:0}, mw=sm.w0+sm.w1, tw=sm.tw;
       ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(x,y,Math.max(fs*0.56,(mw+tw)/2+fs*0.08),fs*0.56,0,0,Math.PI*2);ctx.fill();   // label knock-out, as in ChemDraw
       if(!X){ctx.save();ctx.setLineDash([3,3]);ctx.strokeStyle='#9a958c';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(x,y,fs*0.5,0,Math.PI*2);ctx.stroke();ctx.restore();
@@ -2635,8 +2718,8 @@ function buildComplicate(){
    4. QUIZ UI
    ===================================================================== */
 const Q={fams:new Set(['mb','tri','tet']),
-cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
-try{Q.best=+localStorage.getItem('isoSketchBest')||0;const m=localStorage.getItem('isoAnsMode');if(m==='mc'||m==='type')Q.mode=m;}catch(e){}
+lig:'real',cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
+try{Q.best=+localStorage.getItem('isoSketchBest')||0;if(localStorage.getItem('isoQuizLig')==='abstract')Q.lig='abstract';const m=localStorage.getItem('isoAnsMode');if(m==='mc'||m==='type')Q.mode=m;}catch(e){}
 const TYPE_TEXT={
   stereo:`How many <b>stereoisomers</b> (counting each enantiomer separately) are possible for`,
   geometric:`How many <b>geometrical isomers</b> (each enantiomeric pair counted once) are possible for`,
@@ -2659,6 +2742,14 @@ function gloss(c){
   if(tri.length) bits.push(`(ABA), (ABC) = tridentate ligands, donors in chain order (like dien); <sup>mer</sup> = rigid, binds only meridionally (like terpy); <sup>fac</sup> = binds only facially; <sup>cyc</sup> = cyclic or tripodal, caps a face (like tacn); unmarked chains are flexible`);
   return bits.join(' · ')+'. Ligands are idealised as points; chelate-ring conformations are ignored.';
 }
+/* the key to a real complex: what each chelate is and how it binds (monodentates speak for themselves) */
+function realGloss(R,c){
+  const DW=['','mono','bi','tri','tetra'];
+  const bits=R.parts.filter(p=>p.r.dent>1).map(p=>`<b>${p.r.html}</b> = ${p.r.name} (${DW[p.r.dent]}dentate, ${p.r.donors.join(', ')}${p.r.note?'; '+p.r.note:''})`);
+  if(bits.length) bits.push(`chelates span ${c.geom==='Td'?'an edge':'cis positions'}`);
+  if(Object.values(R.skin).some(x=>/[′″]/.test(x.text))) bits.push(`in the drawings N, N′, N″ are donor atoms of one element that are not equivalent`);
+  return bits.length?bits.join(' · ')+'.':'';
+}
 function setAnswerMode(m){
   Q.mode=m; try{localStorage.setItem('isoAnsMode',m);}catch(e){}
   $$('#ansMode .btn').forEach(b=>b.classList.toggle('on',b.dataset.am===m));
@@ -2674,30 +2765,40 @@ function nextQuestion(){
   // pick the ligand group first, so the many tri- and tetradentate formulas don't crowd out the rest
   const famsAvail=[...Q.fams].filter(f=>BANK.some(c=>fk(c)===f&&quizzable(c)&&Q.geoms.has(c.geom)));
   const fpick=famsAvail.length?famsAvail[Math.floor(Math.random()*famsAvail.length)]:'mb';
-  const suits=c=>t!=='total'||ambLetters(c).length>0;
-  let pool=BANK.filter(c=>fk(c)===fpick&&quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last&&suits(c));
-  if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom)&&suits(c));
-  if(!pool.length){t=types.find(x=>x!=='total')||'stereo';pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom));}
+  const real=Q.lig==='real', fits=c=>!real||realizable(c);           // real ligands: only formulas that have a real version
+  const suits=c=>t!=='total'||(ambLetters(c).length>0&&(!real||!(c.chel||[]).length));
+  let pool=BANK.filter(c=>fk(c)===fpick&&quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last&&suits(c)&&fits(c));
+  if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom)&&suits(c)&&fits(c));
+  if(!pool.length){t=types.find(x=>x!=='total')||'stereo';pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom)&&fits(c));}
+  if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom));   // nothing real in this selection: fall back to letters
   const c=pool[Math.floor(Math.random()*pool.length)];
-  const A=ANALYSIS[c.id];
-  let answer=t==='stereo'?A.stereo:t==='geometric'?A.geometric:A.pairs, cur={c,t,A,answer,explain:summaryHTML(A),entries:A.groups.map(grp=>({grp,skin:null,v:null})),fam:null,ambNote:''};
+  // a total question picks its ambidentate ligand first, so a real formula can name it (nitrite, thiocyanate, cyanide)
+  const L0=t==='total'?ambLetters(c):[], X0=L0.length?L0[Math.floor(Math.random()*L0.length)]:null;
+  const useReal=Q.lig==='real'&&realizable(c)&&(t!=='total'||!(c.chel||[]).length);
+  const pk0=t==='total'&&(useReal||Math.random()<0.5)?VETTED.link[Math.floor(Math.random()*VETTED.link.length)]:null;
+  const R=useReal?realize(c,Math.random,pk0?{[X0]:(d=>({key:pk0,html:d.html,text:d.text,charge:-1,donors:[d.id],w:1}))(AMBIDENTATE[pk0].donors[0])}:{}):null;
+  const A=R?analyzeCase({...c,id:'real:'+c.id+':'+Q.n},R.lbl):ANALYSIS[c.id];   // same counts; names and drawings use the real ligands
+  const fHTML=R?R.html:formulaHTML(c);
+  let answer=t==='stereo'?A.stereo:t==='geometric'?A.geometric:A.pairs, cur={c,t,A,R,fHTML,answer,explain:summaryHTML(A),entries:A.groups.map(grp=>({grp,skin:R?R.skin:null,v:null})),fam:null,ambNote:''};
   if(t==='total'){
     // one ligand becomes ambidentate: it can bond through either of two atoms, named like nitrite or left abstract
-    const L=ambLetters(c), X=L[Math.floor(Math.random()*L.length)], keys=Object.keys(AMBIDENTATE), pk=Math.random()<0.5?keys[Math.floor(Math.random()*keys.length)]:null;
-    const donors=pk?AMBIDENTATE[pk].donors:DEFAULT_DONORS, F=structuralFamily({geom:c.geom,mono:c.mono||'',chel:c.chel||[]},[{letter:X,donors}]);
+    const X=X0, pk=pk0;
+    const names=R?Object.fromEntries(Object.entries(R.names).filter(([l])=>l!==X)):{};
+    const donors=pk?AMBIDENTATE[pk].donors:DEFAULT_DONORS, F=structuralFamily({geom:c.geom,mono:c.mono||'',chel:c.chel||[]},[{letter:X,donors}],{names});
     const parts=F.variants.map(v=>v.A.stereo);
     answer=F.tally.stereo;
-    cur={c,t,A,answer,fam:F,X,
-      ambNote:pk?`<b>${X} = ${AMBIDENTATE[pk].name}</b>, an ambidentate ligand: it can bond to M through ${donors[0].html.replace(/<[^>]+>/g,'')} or through ${donors[1].html.replace(/<[^>]+>/g,'')} (${donors.map(d=>d.iupac).join('; ')}). A ligand bonded one way is a different structure from one bonded the other way.`
+    const Xn=pk?AMBIDENTATE[pk].name:X;
+    cur={c,t,A,R,fHTML,answer,fam:F,X,Xn,
+      ambNote:R?`<b>${donors[0].html} (${AMBIDENTATE[pk].name})</b> is an ambidentate ligand: it can bond to the metal through ${donors[0].id} or through ${donors[1].id} (${donors.map(d=>d.iupac).join('; ')}). A ligand bonded one way is a different structure from one bonded the other way.`:pk?`<b>${X} = ${AMBIDENTATE[pk].name}</b>, an ambidentate ligand: it can bond to M through ${donors[0].html.replace(/<[^>]+>/g,'')} or through ${donors[1].html.replace(/<[^>]+>/g,'')} (${donors.map(d=>d.iupac).join('; ')}). A ligand bonded one way is a different structure from one bonded the other way.`
         :`<b>${X} is ambidentate</b>: it can bond to M through either of two different atoms (call them ${X}<sup>x</sup> and ${X}<sup>y</sup>). A ligand bonded one way is a different structure from one bonded the other way.`,
-      explain:`${X} can bond ${donors.length} ways, and identical copies are indistinguishable, so there ${F.tally.forms===1?'is':'are'} <b>${F.tally.forms}</b> binding forms (structural isomers): ${F.variants.map(v=>v.desc).join('; ')}. Each is an ordinary stereo formula, with ${parts.join(' + ')} = <b>${answer}</b> stereoisomers. Without ambidentate bonding the formula has ${A.stereo}.`,
+      explain:`${R?'The '+Xn:X} can bond ${donors.length} ways, and identical copies are indistinguishable, so there ${F.tally.forms===1?'is':'are'} <b>${F.tally.forms}</b> binding forms (structural isomers): ${F.variants.map(v=>v.desc).join('; ')}. Each is an ordinary stereo formula, with ${parts.join(' + ')} = <b>${answer}</b> stereoisomers. Without ambidentate bonding the formula has ${A.stereo}.`,
       entries:F.variants.flatMap(v=>v.A.groups.map(grp=>({grp,skin:v.skin,v})))};
   }
   Q.cur=cur; Q.attempts=0; Q.resolved=false; Q.n++; Q.last=c.id; Q.tried=[];
   $('#qMeta').innerHTML=`Question ${Q.n} <span class="chip">${GEOMS[c.geom].name} · ${GEOMS[c.geom].sym}</span>`;
   $('#qText').innerHTML=`${TYPE_TEXT[t]} ${/^[aeiou]/i.test(GEOMS[c.geom].name)?'an':'a'} <i>${GEOMS[c.geom].name.toLowerCase()}</i> complex with the formula`;
-  $('#qFormula').innerHTML=formulaHTML(c);
-  $('#qGloss').innerHTML=(cur.ambNote?cur.ambNote+' · ':'')+gloss(c);
+  $('#qFormula').innerHTML=fHTML;
+  $('#qGloss').innerHTML=(cur.ambNote?cur.ambNote+' · ':'')+(R?realGloss(R,c):gloss(c));
   const min=t==='pairs'?0:1, cand=t==='total'?[A.stereo,cur.fam.tally.forms,cur.fam.tally.forms*A.stereo,answer+1,answer-1,answer+2,answer-2,answer*2,answer+3]:[A.geometric,A.stereo,A.pairs,answer+1,answer-1,answer*2,answer+2,A.geometric+A.stereo,answer+3,answer+4];
   const opts=[]; for(const x of cand) if(x!==answer&&x>=min&&!opts.includes(x)) opts.push(x);
   const pick=opts.slice(0,2).concat(opts.slice(2).sort(()=>Math.random()-.5)).slice(0,3);
@@ -2710,12 +2811,12 @@ function nextQuestion(){
 }
 function hintFor(val){
   const {A,t,answer,c}=Q.cur;
-  const caseHint=c.hint||`Fix the rarest ligand first and ask what can sit trans to it; then check each arrangement for a mirror plane.`;
+  const caseHint=(!Q.cur.R&&c.hint)||`Fix the rarest ligand first and ask what can sit trans to it; then check each arrangement for a mirror plane.`;
   if(t==='total'){const F=Q.cur.fam;
-    if(val===A.stereo) return `That is the count when ${Q.cur.X} always bonds through the same atom. Now let ${Q.cur.X} choose its atom: list the binding forms first.`;
+    if(val===A.stereo) return `That is the count when ${Q.cur.Xn} always bonds through the same atom. Now let the ${Q.cur.Xn} choose its atom: list the binding forms first.`;
     if(val===F.tally.forms) return `${val} is the number of binding forms (structural isomers). Each of them also has its own stereoisomers: count those and add them up.`;
-    if(val===F.tally.forms*A.stereo&&val!==answer) return `Not simply ${F.tally.forms} × ${A.stereo}: once the ${Q.cur.X} ligands are no longer identical they break symmetry differently, so each binding form has its own count. Work through them one at a time.`;
-    return val<answer?`There are more than that. List the binding forms (how many copies of ${Q.cur.X} bond each way), then count the stereoisomers of each.`:`Too many: check each binding form separately for arrangements that are the same molecule turned around.`;}
+    if(val===F.tally.forms*A.stereo&&val!==answer) return `Not simply ${F.tally.forms} × ${A.stereo}: once the ${Q.cur.Xn} ligands are no longer identical they break symmetry differently, so each binding form has its own count. Work through them one at a time.`;
+    return val<answer?`There are more than that. List the binding forms (how many copies of the ${Q.cur.Xn} bond each way), then count the stereoisomers of each.`:`Too many: check each binding form separately for arrangements that are the same molecule turned around.`;}
   if(t==='stereo'&&val===A.geometric&&A.pairs>0)
     return `So close! ${A.geometric} is the number of <b>geometrical isomers</b> (each enantiomeric pair counted once), but ${A.pairs===1?'one of them has':A.pairs+' of them have'} no mirror plane, inversion centre or S<sub>n</sub> axis, so ${A.pairs===1?'it exists':'each exists'} as two non-superimposable mirror images. Count both hands! ${c.hint?'<br><i>'+c.hint+'</i>':''}`;
   if(t==='geometric'&&val===A.stereo&&A.pairs>0)
@@ -2725,7 +2826,7 @@ function hintFor(val){
     :`Look again for arrangements that have no mirror plane, inversion centre or S<sub>n</sub> axis: each of those is one enantiomeric pair. ${caseHint}`;
   if(val===0) return `Every formula here has at least one arrangement. ${caseHint}`;
   if(val<answer) return `There are more than that. ${caseHint}`;
-  return `Too many: some arrangements you're picturing are the same molecule turned around. If a rotation superimposes two of them, they count once. ${c.hint?'<br><i>'+c.hint+'</i>':''}`;
+  return `Too many: some arrangements you're picturing are the same molecule turned around. If a rotation superimposes two of them, they count once. ${c.hint&&!Q.cur.R?'<br><i>'+c.hint+'</i>':''}`;
 }
 /* one answer attempt, from a choice button or from the typed box */
 function submit(val,btn){
@@ -2774,10 +2875,19 @@ function updateScore(){
   $('#sAccSub').textContent=Q.answered?`${Q.correct}/${Q.answered} first try`:'accuracy';
   if(typeof mTop==='function'&&isMobile())mTop();
 }
+/* a binding form's title, with the real metal when the question uses real ligands */
+function qTitle(v){
+  const R=Q.cur&&Q.cur.R; if(!R) return v.title;
+  if(!Q.cur.fam) return v.title.replace('[M','['+R.metal);
+  // a binding form of the ambidentate ligand: the question's formula with that ligand split by donor atom
+  const pk=Object.keys(AMBIDENTATE).find(k=>R.parts.some(p=>p.r.key===k)), d=AMBIDENTATE[pk].donors, at=R.parts.findIndex(p=>p.r.key===pk);
+  const forms=v.pick[0].map((n,m)=>({r:{key:pk+m,html:d[m].html,charge:-1},n})).filter(f=>f.n>0);
+  return realFormula(R.metal,[...R.parts.slice(0,at),...forms,...R.parts.slice(at+1)],R.charge);
+}
 function clearResults(){Q.minis.forEach(v=>v.destroy());Q.minis=[];$('#results').innerHTML='';}
 function showResults(){
   clearResults();
-  const {A,c,entries,fam}=Q.cur, mob=document.body.classList.contains('mobile');
+  const {A,c,entries,fam,R}=Q.cur, mob=document.body.classList.contains('mobile');
   const card=(e,gi)=>{
     const grp=e.grp, iso=grp[0], pair=grp.length===2;
     const minis=pair?`<div class="mini" data-mi="${gi}-0"></div><div class="mini-mirror" title="mirror"></div><div class="mini" data-mi="${gi}-1"></div>`:`<div class="mini" data-mi="${gi}-0"></div>`;
@@ -2790,13 +2900,13 @@ function showResults(){
   // a structural question draws every isomer of every binding form, one labelled row of cards per form
   let body='', last=null;
   entries.forEach((e,gi)=>{
-    if(fam&&e.v!==last){if(last)body+='</div>';last=e.v;body+=`<h4 class="rform">${e.v.title} <small>${e.v.desc?e.v.desc+' · ':''}${e.v.A.stereo} stereoisomer${e.v.A.stereo>1?'s':''}</small></h4><div class="rgrid">`;}
+    if(fam&&e.v!==last){if(last)body+='</div>';last=e.v;body+=`<h4 class="rform">${qTitle(e.v)} <small>${e.v.desc?e.v.desc+' · ':''}${e.v.A.stereo} stereoisomer${e.v.A.stereo>1?'s':''}</small></h4><div class="rgrid">`;}
     else if(!fam&&gi===0) body+='<div class="rgrid">';
     body+=card(e,gi);});
   body+='</div>';
   const n=fam?fam.tally.stereo:A.stereo;
-  $('#results').innerHTML=`<h3>All ${n} ${fam?'isomer':'stereoisomer'}${n>1?'s':''} of ${formulaHTML(c)} <span class="chip">${GEOMS[c.geom].name}</span></h3>
-    <p class="explain">${fam?Q.cur.explain:(c.insight||summaryHTML(A))}</p><p class="tapnote">${mob?'Tap a drawing to open it full size and turn it.':'Drag a drawing to turn it, or open it full size with ⤢.'}</p>${body}`;
+  $('#results').innerHTML=`<h3>All ${n} ${fam?'isomer':'stereoisomer'}${n>1?'s':''} of ${Q.cur.fHTML} <span class="chip">${GEOMS[c.geom].name}</span></h3>
+    <p class="explain">${fam?Q.cur.explain:((!R&&c.insight)||summaryHTML(A))}</p><p class="tapnote">${mob?'Tap a drawing to open it full size and turn it.':'Drag a drawing to turn it, or open it full size with ⤢.'}</p>${body}`;
   entries.forEach((e,gi)=>e.grp.forEach((iso,k)=>{
     const el=$(`[data-mi="${gi}-${k}"]`), v=new View(el,{mini:true});
     v.load(dispOf(iso,e.skin)); // the second of a pair is drawn as the exact mirror image of the first
@@ -2810,7 +2920,7 @@ let IN=null;
 function openInspector(gi){
   const ent=Q.cur.entries[gi], grp=ent.grp, pair=grp.length===2, iso=grp[0];
   $('#inspector').hidden=false; $('#inspector').classList.toggle('pair',pair);
-  $('#iTitle').innerHTML=`${ent.v?ent.v.title:formulaHTML(Q.cur.c)} <span>${pair?(iso.name?iso.name+' · ':'')+grp[0].chir+' / '+grp[1].chir:iso.label}</span>`;
+  $('#iTitle').innerHTML=`${ent.v?qTitle(ent.v):Q.cur.fHTML} <span>${pair?(iso.name?iso.name+' · ':'')+grp[0].chir+' / '+grp[1].chir:iso.label}</span>`;
   const v1=new View($('#iStage1')); v1.load(dispOf(iso,ent.skin));
   let v2=null; if(pair){v2=new View($('#iStage2')); v2.interactive=false; v2.mirrorOf=v1;}
   IN={v1,v2}; $('#iflag').innerHTML=pair?'Turn the left one; the right one is its mirror image and follows.':'';
@@ -2833,8 +2943,59 @@ function buildFilters(){
   f.innerHTML=`<span>ask about:</span>`+['Td','SP','Oh'].map(g=>`<button class="btn ${Q.geoms.has(g)?'on':''}" data-geo="${g}">${GEOMS[g].name}</button>`).join('')+
     `<span class="dot-sep">·</span>`+[['mb','mono- & bidentate'],['tri','tridentate'],['tet','tetradentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join('')+
     `<span class="dot-sep">·</span>`+[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs'],['total','+ structural: ambidentate ligand']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}" ${k==='total'?'title="Also ask for the total number of isomers when one ligand can bond through either of two atoms (off unless chosen)"':''}>${l}</button>`).join('')+
+    `<span class="dot-sep">·</span><span>ligands:</span>`+[['real','real (exam style)'],['abstract','abstract letters (MA₄B₂)']].map(([k,l])=>`<button class="btn ${Q.lig===k?'on':''}" data-lig="${k}">${l}</button>`).join('')+
     `<span class="keyhint">${Q.mode==='mc'?'keys 1–4 answer · Enter = next':'Enter = check, then Enter = next'}</span>`;
 }
+
+/* =====================================================================
+   4b. LEARN — the quiz plus lessons. A lesson is a module: {id, title, blurb, status:'ready'|'planned', render(el)}.
+   Add one with learnModule({...}); 'planned' ones are listed but cannot be opened. The view and an open lesson go in the
+   address (#learn, #learn/<id>), so a lesson can be linked.
+   ===================================================================== */
+const LEARN={view:'quiz',open:null,modules:[]};
+const learnModule=m=>{LEARN.modules.push({status:'ready',...m});};
+function setLearnView(v,id=null){
+  LEARN.view=v; LEARN.open=v==='lessons'?id:null;
+  $$('#learnNav [data-lview]').forEach(b=>{b.classList.toggle('on',b.dataset.lview===v);b.setAttribute('aria-selected',b.dataset.lview===v);});
+  $('#learnQuiz').hidden=v!=='quiz'; $('#learnLessons').hidden=v!=='lessons';
+  if(v==='lessons') renderLessons();
+  else if(!Q.cur) nextQuestion();
+  setHash(v==='lessons'?'learn'+(id?'/'+id:''):null);
+  if(typeof mTop==='function') mTop();
+}
+function renderLessons(){
+  const el=$('#learnLessons'), m=LEARN.modules.find(x=>x.id===LEARN.open&&x.status==='ready');
+  if(m){el.innerHTML=`<div><button class="btn" data-lback>‹ All lessons</button></div><div class="lmod sketch"><h3>${m.title}</h3><div class="lbody"></div></div>`;m.render($('#learnLessons .lbody'));return;}
+  el.innerHTML=`<h2>Lessons</h2><p class="lintro">Short pieces to go with the quiz. More are on the way.</p><div class="lgrid">`+
+    LEARN.modules.map(x=>x.status==='ready'?`<button class="lcard sketch" data-lopen="${x.id}"><span class="lt">${x.title}</span><p>${x.blurb}</p></button>`
+      :`<div class="lcard sketch planned"><span class="lt">${x.title} <span class="chip">planned</span></span><p>${x.blurb}</p></div>`).join('')+`</div>`;
+}
+function buildLearn(){
+  $('#learnNav').addEventListener('click',e=>{const b=e.target.closest('[data-lview]');if(b)setLearnView(b.dataset.lview);});
+  $('#learnLessons').addEventListener('click',e=>{
+    const o=e.target.closest('[data-lopen]'); if(o){setLearnView('lessons',o.dataset.lopen);$('#quizScroll').scrollTop=0;return;}
+    if(e.target.closest('[data-lback]')) setLearnView('lessons');});
+}
+/* ---- the lessons ---- */
+learnModule({id:'ligands',title:'Ligand glossary',blurb:'The real ligands the quiz uses: what each abbreviation stands for, how many atoms bond, and its charge.',
+  render(el){
+    const row=r=>`<tr><td><b>${r.html}</b></td><td>${r.name}</td><td>${r.dent}</td><td>${r.donors.join(', ')}</td><td>${r.charge===0?'0':String(r.charge).replace('-','−')}</td><td>${r.note||''}</td></tr>`;
+    const chel=Object.values(REAL.chel).flat();
+    el.innerHTML=`<p class="lnote">Each abstract letter pattern in the quiz is played by one of these. A ligand only stands in for a pattern with the same symmetry, so the isomer counts do not change.</p>
+      <div class="ltab-wrap"><table class="ltab"><thead><tr><th>ligand</th><th>name</th><th>atoms bonded</th><th>donor atoms</th><th>charge</th><th>how it binds</th></tr></thead>
+      <tbody>${REAL.mono.map(row).join('')}${chel.map(row).join('')}</tbody></table></div>
+      <p class="lnote">Metals used: ${Object.entries(REAL.metals).map(([g,l])=>`${GEOMS[g].name.toLowerCase()} ${l.map(([m,o])=>`${m}(${['','I','II','III','IV'][o]})`).join(', ')}`).join('; ')}.</p>`;}});
+learnModule({id:'letters',title:'Reading abstract formulas',blurb:'What MA₄B₂, M(AA)₂B₂ and M(ABA)C₃ mean, for switching the quiz to letters.',
+  render(el){
+    el.innerHTML=`<p>Exams often write a complex with letters instead of real ligands: M is the metal, and each letter a kind of donor.</p>
+      <ul><li><b>A, B, C</b> on their own are different <b>monodentate</b> ligands: MA₄B₂ has four of one and two of another.</li>
+      <li><b>(AA)</b> is a <b>symmetrical bidentate</b> ligand such as en; <b>(AB)</b> an unsymmetrical one such as glycinate, whose two ends differ.</li>
+      <li><b>(ABA)</b> is a <b>tridentate</b> chain, donors in order, such as dien. A superscript says how it may bind: <sup>mer</sup> only meridionally (terpy), <sup>fac</sup> only facially, <sup>cyc</sup> capping a face (tacn).</li>
+      <li>Four-letter groups are <b>tetradentate</b>: a chain such as trien, a <sup>tripod</sup> such as tren (first letter the central donor), or a ring <sup>cyc</sup> such as cyclam.</li></ul>
+      <p class="lnote">The quiz uses real ligands by default. To practise with letters, choose <b>abstract letters</b> under the question.</p>`;}});
+learnModule({id:'counting',status:'planned',title:'Counting structural isomers',blurb:'Why linkage, ionisation and κ¹/κ² isomers multiply the stereoisomers, with the counting tables (from the archived Complicate panel).'});
+learnModule({id:'symmetry',status:'planned',title:'Finding symmetry elements',blurb:'Spotting mirror planes, inversion centres and rotation axes in a drawing, and naming the point group.'});
+learnModule({id:'chirality',status:'planned',title:'When is a complex chiral?',blurb:'No σ, no i, no Sₙ: checking a drawing for chirality, and naming Δ and Λ.'});
 
 /* =====================================================================
    5. LAYOUT SWITCHING (desktop/tablet ↔ phone app) AND SHARED ACTIONS
@@ -2921,8 +3082,8 @@ function mTop(){
     title=top.t==='home'?'Explore':top.t==='case'?formulaHTML(ANALYSIS[top.id].c):(()=>{const i=isoById[top.id];return `${caseTitle(i.caseRef)} <small>${i.label}</small>`;})();
   } else if(M.tab==='compare'){title='Compare';right=`<button class="mtop-btn" id="cHelp" aria-label="How to compare">?</button>`;}
   else if(M.tab==='build'){title='Build from a drawing';}
-  else if(M.tab==='quiz'){title='Quiz';
-    right=`<span class="mscore" title="streak"><b>${Q.streak}</b>streak</span><span class="mscore" title="first-try accuracy"><b>${Q.answered?Math.round(100*Q.correct/Q.answered)+'%':'–'}</b>${Q.answered?Q.correct+'/'+Q.answered:'score'}</span>`;}
+  else if(M.tab==='quiz'){title='Learn';
+    if(LEARN.view==='quiz') right=`<span class="mscore" title="streak"><b>${Q.streak}</b>streak</span><span class="mscore" title="first-try accuracy"><b>${Q.answered?Math.round(100*Q.correct/Q.answered)+'%':'–'}</b>${Q.answered?Q.correct+'/'+Q.answered:'score'}</span>`;}
   else title='More';
   $('#mTitle').innerHTML=title; $('#mBack').hidden=!back; $('#mTopRight').innerHTML=right;
 }
@@ -3085,7 +3246,7 @@ function init(){
   $('#revealBtn').addEventListener('click',reveal);
   $('#results').addEventListener('click',e=>{const b=e.target.closest('.enlarge');if(b)openInspector(+b.dataset.gi);});
   $('#iClose').addEventListener('click',closeInspector);
-  buildComplicate();
+  buildComplicate(); buildLearn();
   $('#inspector').addEventListener('click',e=>{if(e.target.id==='inspector')closeInspector();});
   $('#itools').addEventListener('click',e=>{const b=e.target.closest('[data-iact]');if(!b||!IN)return;const a=b.dataset.iact,v=IN.v1;
     if(a==='shuffle'){shuffle(v);$('#iflag').innerHTML='Shuffled: same molecule, new angle.';}
@@ -3093,13 +3254,14 @@ function init(){
     else{const r=v.step(a[1]);if(r)$('#iflag').innerHTML=STEP_TEXT(r,a[1]);}});
   $('#filters').addEventListener('click',e=>{
     const b=e.target.closest('.btn'); if(!b) return;
+    if(b.dataset.lig){if(Q.lig!==b.dataset.lig){Q.lig=b.dataset.lig;try{localStorage.setItem('isoQuizLig',Q.lig);}catch(e){}buildFilters();nextQuestion();}return;}
     const set=b.dataset.geo?Q.geoms:b.dataset.fam?Q.fams:Q.types, key=b.dataset.geo||b.dataset.fam||b.dataset.type;
     if(set.has(key)){if(set.size>1)set.delete(key);}else set.add(key);
     buildFilters();
   });
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){closeSheets();closeInspector();}
-    const quizOn=isMobile()?M.tab==='quiz':!$('#quiz').hidden;
+    const quizOn=(isMobile()?M.tab==='quiz':!$('#quiz').hidden)&&LEARN.view==='quiz';
     if(!quizOn||!$('#builder').hidden||IN||e.target.tagName==='INPUT') return;
     if(Q.mode==='mc'&&/^[1-4]$/.test(e.key)){const b=$$('.choice')[+e.key-1];if(b)choose(b);}
     if(e.key==='Enter'&&Q.resolved){e.preventDefault();nextQuestion();}
@@ -3112,6 +3274,7 @@ function init(){
   // deep link: index.html#<formula id> opens that formula
   const h=startHash;
   if(h&&ANALYSIS[h]){if(isMobile()){mTab('explore');xPush({t:'case',id:h});}else openCase(h);}
+  else if(h==='learn'||h.startsWith('learn/')){if(isMobile())mTab('quiz');else setMode('quiz');setLearnView('lessons',h.split('/')[1]||null);}
   else if(h.startsWith('x?')) cxOpenFromHash(h);
   // '/' jumps to the search box
   document.addEventListener('keydown',e=>{if(e.key!=='/'||e.ctrlKey||e.metaKey||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
