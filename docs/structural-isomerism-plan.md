@@ -10,7 +10,7 @@ Status: **all four phases are built**; phase 4 is only the denticity half (see b
 | 3 Quiz question (total isomers), Builder hook | done |
 | 4 κ¹/κ² denticity within the sphere model | done |
 | 4b Ambidentate chelate ends | not planned |
-| 4c True coordination-number change (needs 5-coordinate shapes, which are fluxional by Berry pseudorotation) | designed separately: [five-coordinate-berry-plan.md](five-coordinate-berry-plan.md) |
+| 4c True coordination-number change (needs 5-coordinate shapes, which are fluxional by Berry pseudorotation) | not planned: five-coordinate shapes were built and then removed to keep the rigid-body scope, see [five-coordinate-berry-plan.md](five-coordinate-berry-plan.md) |
 
 ### Phase 4: denticity, what was built
 

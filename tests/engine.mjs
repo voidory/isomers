@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEngine} from './load-engine.mjs';
 
-const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','berrySets','berryMoves','berryOf','berryWhy','permParity','berryStep','berryPose','applyCfg']);
+const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE']);
 let fails=0;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   // arrays from the vm context have another prototype
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
@@ -147,94 +147,6 @@ test('denticity cannot be combined with ambidentate on one ligand, and uses the 
 test('denticity composes with linkage on another ligand',()=>{
   const F=kappa('AAAABB',{},['A','B'],['B'],[{letter:'A'}]);
   assert.ok(F.variants.length>F.groups.length); assert.ok(F.variants.every(v=>v.cells.every(x=>x.parent)));
-});
-
-/* ---- the trigonal bipyramid: static configurations ---- */
-const tbp=E.BANK.filter(c=>c.geom==='TBP');
-test('TBP has 39 formulas, all analysable',()=>{ assert.equal(tbp.length,39); assert.ok(tbp.every(c=>E.ANALYSIS[c.id].isomers.length>0)); });
-test('TBP static counts for monodentates: 1, 2, 3, 4, 6, 10, 20 (the permutation count 5!/6)',()=>{
-  const n=m=>E.analyzeCase({id:'x'+m,geom:'TBP',mono:m,chel:[]}).stereo;
-  same(['AAAAA','AAAAB','AAABB','AAABC','AABBC','AABCD','ABCDE'].map(n),[1,2,3,4,6,10,20]);
-});
-test('TBP chelates span axial-equatorial sites only, symmetrically',()=>{
-  same(E.GEOMS.TBP.edges,[[0,2],[0,3],[0,4],[1,2],[1,3],[1,4]]);
-  for(const g of ['Td','SP','Oh']) assert.ok(E.GEOMS[g].edges.length>0);
-});
-test('TBP isomers are named by axial and equatorial occupancy, uniquely',()=>{
-  for(const c of tbp){const A=E.ANALYSIS[c.id], seen=new Set();
-    for(const grp of A.groups){const l=grp[0].label; assert.ok(!/fac|mer|cis|trans/.test(l.replace(/<[^>]+>/g,'').replace(/trans pairs?/,'')),c.id+': '+l); assert.ok(!seen.has(l),c.id+': duplicate label '+l); seen.add(l);}}
-});
-test('every TBP formula matches the golden file (counts, names, point groups)',()=>{
-  const now=tbp.map(c=>{const A=E.ANALYSIS[c.id];return [c.id,A.stereo,A.geometric,A.pairs,A.isomers.map(i=>[i.label,i.sym.plain,i.chiral?1:0,i.trans,i.chir||''].join('|'))];}).sort((a,b)=>a[0]<b[0]?-1:1);
-  const f=path.join(here,'golden-tbp.json'); if(!fs.existsSync(f)||process.env.UPDATE_GOLDEN){fs.writeFileSync(f,JSON.stringify(now));console.log('     (wrote golden-tbp.json)');}
-  same(now,JSON.parse(fs.readFileSync(f,'utf8')));
-});
-
-test('the structural layer works on the trigonal bipyramid: linkage, ionisation and denticity',()=>{
-  let n=0;
-  for(const c of tbp){ for(const X of new Set(c.mono||'')){ const base={geom:'TBP',mono:c.mono||'',chel:c.chel||[]};
-    for(const F of [E.structuralFamily(base,[{letter:X}]), E.structuralFamily(base,[],{mobile:[...new Set(c.mono)],chelate:[X]})]){
-      if(F.tooMany) continue; n++;
-      assert.ok(F.variants.every(v=>v.cells.every(x=>x.parent)),'projection total: '+c.id);
-      assert.ok(F.groups.every(g=>Object.values(g.inner).reduce((t,k)=>t+k.k1+2*k.k2,0)===F.sites),'sphere full: '+c.id);}}}
-  assert.ok(n>20,n+' families');
-  const F=E.structuralFamily({geom:'TBP',mono:'AAAAB',chel:[]},[{letter:'A'}]); assert.equal(F.tally.forms,5);
-});
-
-/* ---- Berry pseudorotation ---- */
-const sizes=B=>B.sets.map(x=>x.isos.length).sort((a,b)=>b-a);
-test('Berry moves are derived from the shape: 4-cycles of sites, the double swap followed by a mirror',()=>{
-  const G=E.GEOMS.TBP, mv=E.berryMoves(G); assert.equal(mv.length,6);
-  assert.ok(mv.every(m=>E.permParity(m.perm)===1));                      // odd: a 4-cycle, not the (even) double swap
-  assert.ok(mv.every(m=>m.perm[m.pivot]===m.pivot&&m.perm.filter((x,i)=>x!==i).length===4));
-  // an inverse is present for every move (the two senses of a pivot)
-  for(const m of mv){const inv=[];m.perm.forEach((j,i)=>inv[j]=i); assert.ok(mv.some(o=>o.pivot===m.pivot&&JSON.stringify(o.perm)===JSON.stringify(inv)));}
-  // = the double swap (ax1 u)(ax2 v) then the mirror that swaps the axial pair
-  const [a0,a1]=G.axial; for(const p of G.equatorial){const [i,j]=G.equatorial.filter(x=>x!==p);
-    const found=[[i,j],[j,i]].some(([u,v])=>{const sw=G.sites.map((_,k)=>k);sw[a0]=u;sw[u]=a0;sw[a1]=v;sw[v]=a1;
-      const full=sw.map(x=>x===a0?a1:x===a1?a0:x); return mv.some(m=>m.pivot===p&&JSON.stringify(m.perm)===JSON.stringify(full));});
-    assert.ok(found,'pivot '+p);}
-  assert.equal(E.berryMoves(E.GEOMS.Oh).length,0);
-});
-test('Berry path: starts on the trigonal bipyramid, ends turned a quarter, midpoint is a square pyramid',()=>{
-  const G=E.GEOMS.TBP, ang=(a,b)=>Math.round(Math.acos(Math.max(-1,Math.min(1,a[0]*b[0]+a[1]*b[1]+a[2]*b[2])))*180/Math.PI);
-  const U=G.sites.map(s=>{const l=Math.hypot(...s);return s.map(x=>x/l);});
-  E.berryPose(G,2,0).forEach((v,i)=>assert.ok(v.every((x,k)=>Math.abs(x-U[i][k])<1e-9)));
-  const m=E.berryPose(G,2,0.5);   // both pairs 105° from the pivot, 150° apart within a pair, 86° between pairs: C4v
-  assert.equal(ang(m[0],m[2]),105); assert.equal(ang(m[3],m[2]),105); assert.equal(ang(m[0],m[1]),150); assert.equal(ang(m[3],m[4]),150);
-  assert.equal(ang(m[0],m[3]),86); assert.equal(ang(m[0],m[4]),86);
-  const e=E.berryPose(G,2,1); assert.equal(ang(e[3],e[4]),180); assert.equal(ang(e[0],e[1]),120);   // the old equatorial pair is now axial
-});
-test('Berry sets, monodentates: one set; with five different ligands the 20 configurations are one set that includes mirror images',()=>{
-  const B=m=>E.berryOf(E.analyzeCase({id:'b'+m,geom:'TBP',mono:m,chel:[]}));
-  same(['AAAAA','AAAAB','AAABB','AAABC','AABBC','AABCD','ABCDE'].map(m=>B(m).sets.length),[1,1,1,1,1,1,1]);
-  const R=B('ABCDE'); same(sizes(R),[20]); assert.ok(R.sets[0].racemises&&!R.sets[0].chiral); assert.equal(R.sets[0].racSteps,5);
-  // the reaction graph is the Desargues-Levi graph: 20 vertices, 30 edges, every vertex has three neighbours (Merx et al. 2004)
-  assert.ok([...R.adj.values()].every(s=>s.size===3)); assert.equal([...R.adj.values()].reduce((t,s)=>t+s.size,0)/2,30);
-  assert.ok(B('AABCD').sets[0].racemises&&B('AABBC').sets[0].racemises);
-  assert.equal(B('AABCD').blocked,0);
-});
-test('with no ring in the way, every chiral monodentate configuration racemises',()=>{
-  for(const m of ['AABBC','AABCD','ABCDE']){const B=E.berryOf(E.analyzeCase({id:'p'+m,geom:'TBP',mono:m,chel:[]})); assert.ok(B.sets.every(x=>!x.chiral));}
-});
-test('Berry sets partition the isomers, mirror sets are consistent, and chelate rings always block something',()=>{
-  let split=0;
-  for(const c of tbp){const A=E.ANALYSIS[c.id],B=E.berryOf(A);
-    assert.equal(B.sets.reduce((t,x)=>t+x.isos.length,0),A.isomers.length,c.id);
-    assert.equal(new Set(B.sets.flatMap(x=>x.isos.map(i=>i.id))).size,A.isomers.length,c.id);
-    for(const x of B.sets) if(x.chiral){assert.notEqual(x.mirror,x.index); assert.equal(B.sets[x.mirror].isos.length,x.isos.length,c.id); assert.equal(B.sets[x.mirror].mirror,x.index);}
-    if((c.chel||[]).length){assert.ok(B.blocked>0,c.id+' has no blocked move'); if(B.sets.length>1) split++;}}
-  assert.equal(split,15);        // 15 of the 32 chelate formulas keep several sets
-});
-test('tripodal tetradentate: its one configuration is rigid, every move blocked',()=>{
-  const c=tbp.find(c=>(c.chel||[]).some(x=>/:t$/.test(x))&&E.ANALYSIS[c.id].stereo===1), B=E.berryOf(E.ANALYSIS[c.id]);
-  assert.ok(B.allBlocked); assert.equal(B.sets.length,1);
-  assert.ok(E.berryWhy(E.ANALYSIS[c.id],B).length>=0);
-});
-test('every TBP formula matches the Berry golden file',()=>{
-  const now=tbp.map(c=>{const A=E.ANALYSIS[c.id],B=E.berryOf(A);return [c.id,B.sets.length,sizes(B),B.sets.filter(x=>x.chiral).length,B.sets.filter(x=>x.racemises).length,B.blocked,B.moves];}).sort((a,b)=>a[0]<b[0]?-1:1);
-  const f=path.join(here,'golden-berry.json'); if(!fs.existsSync(f)||process.env.UPDATE_GOLDEN){fs.writeFileSync(f,JSON.stringify(now));console.log('     (wrote golden-berry.json)');}
-  same(now,JSON.parse(fs.readFileSync(f,'utf8')));
 });
 
 console.log(fails?`\n${fails} failed`:'\nall passed'); process.exit(fails?1:0);

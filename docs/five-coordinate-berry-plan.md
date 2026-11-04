@@ -1,6 +1,8 @@
 # Five-coordinate shapes and Berry pseudorotation: architecture plan
 
-Status: **phases 0 to 2 are built** (edge rule and hooks, the static trigonal bipyramid, the Berry layer with its UI and Compare relation), with tests; phases 3 to 5 are not. The four owner decisions in section 7 are settled.
+Status: **shelved, and removed from the app.** Phases 0 to 3 were built (static trigonal bipyramid, Berry sets, animation) and then taken out again, because the app's scope is the **rigid-body assumption**: idealised polyhedra, configurations only, no conformers and no fluxionality. A five-coordinate shape is exactly where that assumption fails, since most of its configurations interconvert. Phase 0 (the edge-rule tolerance and per-shape naming hooks) stayed, as it is generic and harmless. The code is not lost: commits `cda0fb6` to `523424e` hold it, and reverting the removal commit brings it back. This document is kept as the record of what was found, in particular the correction in section 2.2: a Berry move is a 4-cycle of sites (an odd permutation), so five different ligands form ONE connected set that includes the mirror images, not two mirror sets, as first claimed.
+
+The text below describes the feature as it was built and is **not** the current behaviour of `index.html`.
 
 | Phase | State |
 |---|---|

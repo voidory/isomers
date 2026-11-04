@@ -82,7 +82,7 @@ main[hidden]{display:none!important}
 .case-body .tally{font-family:var(--hand);font-size:12.5px;margin:0 0 6px}
 .iso{display:flex;align-items:center;gap:5px;padding:3px 4px;border-radius:6px;font-size:15px}
 .iso:hover{background:#fff8d6}
-.iso .nm{flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.2;cursor:pointer}
+.iso .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
 .iso .ld{border:1.5px solid var(--ink);background:var(--card);border-radius:6px 2px 6px 3px;font-family:var(--hand);font-size:12px;width:22px;height:21px;padding:0;line-height:1}
 .iso .ld:hover{background:var(--hl)}
 .iso.in1 .ld[data-to="1"]{background:#ffd9d6}
@@ -132,7 +132,6 @@ main[hidden]{display:none!important}
 .bload{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
 @media (max-width:760px){.bmain{grid-template-columns:1fr}.bstage{height:300px}}
 .vp-flag.show{display:block}
-.vp-flag.two{min-height:2.7em;line-height:1.3}      /* a Berry message keeps two lines, so the picture does not resize when it changes */
 .vp-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
 .vp-info{font-size:14px;margin-top:6px;color:var(--ink2);min-height:58px}
 .vp-info b{color:var(--ink);font-weight:normal;font-family:var(--hand)}
@@ -250,12 +249,6 @@ table.fmat{border-collapse:collapse;font-size:14px}
 .fmat td.n0{color:var(--ink3)}
 .fmat td.n2{background:#fff6cc;font-weight:bold}
 .fmat tr.tot td{border-top:2px solid var(--ink);font-family:var(--hand)}
-.bblock{margin-top:10px;padding-top:6px;border-top:1.5px dashed var(--grid2);display:flex;flex-direction:column;gap:5px}
-.bblock .bh{font-family:var(--hand);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink2)}
-.bblock .bnum{font-family:var(--hand);font-size:20px}
-.bwhy{font-size:13.5px;line-height:1.4;margin:0;color:var(--ink2)}
-.bset{border:1.5px solid var(--ink3);border-radius:8px 3px 8px 3px;padding:3px 6px;background:var(--card)}
-.bset summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:14px}
 .fsec{display:flex;flex-direction:column;gap:5px;border-top:1.5px dashed var(--grid2);padding-top:6px}
 .fsec-h{font-family:var(--hand);font-size:16px}.fsec-h small{font-size:12.5px;color:var(--ink2);margin-left:6px}
 .fnote{font-size:12.5px;color:var(--ink2)}
@@ -613,7 +606,6 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
             <button class="btn" data-act="shuffle" data-v="1" title="Show the same molecule from a random exam-style angle">Shuffle</button>
             <button class="btn" data-act="reset" data-v="1">Reset</button>
             <button class="btn" data-act="mirror" data-v="1" title="Draw its reflection beside it">Mirror plane</button>
-            <button class="btn" data-act="berry" data-v="1" hidden>Berry move</button>
             <button class="btn" data-act="send" data-v="1">Mirror image → V2</button>
           </div>
           <div class="vp-info" id="info1"></div>
@@ -629,7 +621,6 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
             <button class="btn" data-act="shuffle" data-v="2" title="Show the same molecule from a random exam-style angle">Shuffle</button>
             <button class="btn" data-act="reset" data-v="2">Reset</button>
             <button class="btn" data-act="mirror" data-v="2" title="Draw its reflection beside it">Mirror plane</button>
-            <button class="btn" data-act="berry" data-v="2" hidden>Berry move</button>
             <button class="btn" data-act="send" data-v="2">Mirror image → V1</button>
           </div>
           <div class="vp-info" id="info2"></div>
@@ -705,7 +696,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
       <div id="xMol" hidden>
         <div class="xstage" id="xStage"></div>
         <div class="xsheet" id="xSheet" data-state="peek">
-          <div class="fab-row" id="xFab"><button class="fab" data-x="rv" aria-label="Turn about the axis nearest the vertical">↻<small>vert</small></button><button class="fab" data-x="rh" aria-label="Turn about the axis nearest the horizontal">↻<small>horiz</small></button><button class="fab" data-x="rz" aria-label="Turn within the page">⟲<small>page</small></button><button class="fab" data-x="shuffle" aria-label="Show from another exam-style angle">⤮<small>shuffle</small></button><button class="fab" data-x="mirror" aria-label="Draw its mirror image beside it">⧉<small>mirror</small></button><button class="fab" data-x="reset" aria-label="Back to the start view">⌂<small>reset</small></button><button class="fab" data-x="berry" aria-label="Berry pseudorotation: one move" hidden>⇄<small>berry</small></button></div>
+          <div class="fab-row" id="xFab"><button class="fab" data-x="rv" aria-label="Turn about the axis nearest the vertical">↻<small>vert</small></button><button class="fab" data-x="rh" aria-label="Turn about the axis nearest the horizontal">↻<small>horiz</small></button><button class="fab" data-x="rz" aria-label="Turn within the page">⟲<small>page</small></button><button class="fab" data-x="shuffle" aria-label="Show from another exam-style angle">⤮<small>shuffle</small></button><button class="fab" data-x="mirror" aria-label="Draw its mirror image beside it">⧉<small>mirror</small></button><button class="fab" data-x="reset" aria-label="Back to the start view">⌂<small>reset</small></button></div>
           <div class="xhandle" id="xHandle" role="button" aria-label="Show more details"><span></span></div>
           <div id="xInfo"></div>
         </div>
@@ -757,7 +748,6 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
   <div class="sheet-head"><span class="grab"></span><b>More</b><span style="flex:1"></span><button class="btn" data-close>✕</button></div>
   <div class="more-grid">
     <button class="btn" data-more="mirror">Mirror plane</button>
-    <button class="btn" data-more="berry" hidden>Berry move</button>
     <button class="btn" data-more="send">Mirror image → other viewport</button>
     <label><input type="checkbox" id="mLive"> mirror between viewports</label>
     <label><input type="checkbox" id="mLink"> link rotation</label>
@@ -861,10 +851,6 @@ const GEOMS = {
        planar:null, order:[0,1,3,2], camDir:[0.35,0.32,1], mirrorD:3.5 },
   SP:{ id:'SP', name:'Square planar', sym:'D<sub>4h</sub>',
        sites:[[s,0,0],[-s,0,0],[0,s,0],[0,-s,0]], planar:[0,0,1], order:[2,0,3,1], camDir:[0.28,0.34,1], mirrorD:3.6 },
-  // axial pair along y, three equatorial sites 120° apart; one equatorial site lies in the x = 0 mirror plane, so x→−x is a σv
-  TBP:{ id:'TBP', name:'Trigonal bipyramidal', sym:'D<sub>3h</sub>', fluxional:true,
-       sites:[[0,s,0],[0,-s,0],[0,0,s],[s*0.8660254038,0,-s/2],[-s*0.8660254038,0,-s/2]], axial:[0,1], equatorial:[2,3,4],
-       planar:null, order:[0,2,3,4,1], camDir:[0.55,0.3,1], mirrorD:3.8 },
   Oh:{ id:'Oh', name:'Octahedral', sym:'O<sub>h</sub>',
        sites:[[s,0,0],[-s,0,0],[0,s,0],[0,-s,0],[0,0,s],[0,0,-s]], planar:null, order:[2,3,4,0,1,5], camDir:[0.66,0.42,1], mirrorD:3.9 },
 };
@@ -879,14 +865,7 @@ const TEMPLATES={
   Oh:{2:{a:90,l:1,s:'plain'},3:{a:270,l:1,s:'plain'},0:{a:-20,l:.92,s:'wedge'},4:{a:200,l:.92,s:'wedge'},1:{a:160,l:.92,s:'hash'},5:{a:20,l:.92,s:'hash'}},
   Td:{0:{a:90,l:1,s:'plain'},1:{a:199.47,l:1,s:'plain'},3:{a:-53,l:.95,s:'wedge'},2:{a:-17,l:.95,s:'hash'}},
   SP:{0:{a:0,l:1,s:'plain'},1:{a:180,l:1,s:'plain'},2:{a:90,l:1,s:'plain'},3:{a:270,l:1,s:'plain'}},
-  TBP:{0:{a:90,l:1,s:'plain'},1:{a:270,l:1,s:'plain'},2:{a:205,l:.95,s:'wedge'},3:{a:0,l:1,s:'plain'},4:{a:157,l:.95,s:'hash'}},
 };
-/* The trigonal bipyramid has one trans pair (the axial ligands); its equatorial sites have no trans partner. Isomers are
-   named by what sits axial and what sits equatorial, not by the octahedron's cis/trans/fac/mer. */
-{ const T=GEOMS.TBP, pack=a=>{const out=[];a.forEach(t=>{const last=out[out.length-1];if(last&&last[0]===t)last[1]++;else out.push([t,1]);});return out.map(([t,n])=>n>1?`${t}<sub>${n}</sub>`:t).join(', ');};
-  T.transPairs=(cfg,lbl)=>[0,1].map(i=>lbl(cfg.labels[i])).sort().join('–');
-  T.nameIso=(c,cfg,lbl)=>{const L=cfg.labels, text=i=>lbl(L[i]);
-    return `axial ${pack(T.axial.map(text).sort())}; equatorial ${pack(T.equatorial.map(text).sort())}`;}; }
 function permutations(n){
   const out=[], cur=[], used=Array(n).fill(false);
   (function rec(){ if(cur.length===n){out.push(cur.slice());return;}
@@ -1301,9 +1280,7 @@ function analyzeCase(c,lbl=ID){
     const roman=iso.chir==='I'||iso.chir==='II';
     iso.label = iso.chir ? (roman ? `${iso.name||'enantiomer'} (${iso.chir})` : (iso.name?`${iso.chir}-${iso.name}`:iso.chir)) : (iso.name|| (isomers.length===1?'only isomer':'isomer'));
   });
-  const A={c,G,groups,isomers,stereo:isomers.length,geometric:groups.length,pairs:groups.filter(g=>g.length===2).length};
-  isomers.forEach(iso=>Object.defineProperty(iso,'A',{value:A,enumerable:false}));   // a way back from an isomer to its whole analysis (hidden from JSON and comparisons)
-  return A;
+  return {c,G,groups,isomers,stereo:isomers.length,geometric:groups.length,pairs:groups.filter(g=>g.length===2).length};
 }
 
 /* ---------- the dataset ---------- */
@@ -1460,13 +1437,12 @@ const MULTI_TYPES={
       4:['ABBA:x','ABCD:x','ABBA:p','ABCD:p','ABBA:f','ABCD:f','BAAA:t','CAAB:t','DABC:t',
          'AAAA:r','ABAB:r','AAAB:r','AABB:r','ABCD:r','AAAA:rp','ABAB:rp','AAAB:rp','AABB:rp','ABCD:rp']},
   Td:{2:['AA','AB'],3:['ABA:x','ABC:x','AAA:c','AAB:c','ABC:c'],4:['ABBA:x','ABCD:x','BAAA:t','CAAB:t','DABC:t']},
-  TBP:{2:['AA','AB'],3:['ABA:x','ABC:x','ABA:m','ABC:m'],4:['ABBA:x','ABCD:x','BAAA:t','CAAB:t','DABC:t']},   // no macrocycles, no planar-only chains: neither fits a trigonal bipyramid
   SP:{2:['AA','AB'],3:['ABA:x','ABC:x'],4:['ABBA:x','ABCD:x','AAAA:r','ABAB:r','AAAB:r','AABB:r','ABCD:r']},
 };
 function intPartitions(n,max=n){if(n===0)return [[]];const out=[];for(let k=Math.min(n,max);k>=1;k--)for(const p of intPartitions(n-k,k))out.push([k,...p]);return out;}
 function generateAll(){
   const out=new Map(), LET='ABCDEFGH';
-  for(const g of ['Oh','Td','SP','TBP']){
+  for(const g of ['Oh','Td','SP']){
     const T=MULTI_TYPES[g];
     for(const part of intPartitions(GEOMS[g].n,4)){
       const multi=part.filter(d=>d>1), k=part.length-multi.length;
@@ -1552,14 +1528,8 @@ function formulaHTML(c,lbl=ID){
   const mc=letterCounts(c.mono||''); Object.keys(mc).sort().forEach(k=>{const t=lbl(k),poly=!/<sup>/.test(t)&&t.replace(/<[^>]+>/g,'').length>1;f+=(poly?`(${t})`:t)+(mc[k]>1?`<sub>${mc[k]}</sub>`:'');});   // NO₂ twice is (NO₂)₂, not NO₂₂
   return `[${f}]`;
 }
-/* five-coordinate shapes: the static count is of idealised configurations, many of which interconvert (Berry pseudorotation) */
-const isFluxional=c=>!!GEOMS[c.geom].fluxional;
 function summaryHTML(A){
   const n=A.geometric,k=A.pairs,cat=catOf(A);
-  if(isFluxional(A.c)){
-    if(cat==='one') return `Only one configuration is possible, and it is superimposable on its mirror image.`;
-    if(cat==='enan') return `Only one arrangement is possible, but it has no mirror plane, inversion centre or S<sub>n</sub> axis (point group ${A.groups[0][0].sym.html}), so it exists as a pair of enantiomers: <b>2</b> configurations.`;
-    return `<b>${A.stereo}</b> configurations: ${n} different arrangements${k?`, ${k===n?'all':k} of them chiral (each an enantiomeric pair)`:', none of them chiral'}. These are idealised, fixed positions; five-coordinate complexes are usually fluxional, so several of them are normally one observable species.`;}
   if(cat==='one') return `Only one arrangement is possible, and it is superimposable on its mirror image, so there are no stereoisomers.`;
   if(cat==='enan') return `Only one arrangement is possible, but it has no mirror plane, inversion centre or S<sub>n</sub> axis (point group ${A.groups[0][0].sym.html}), so it exists as a pair of enantiomers: <b>2</b> stereoisomers.`;
   const pgs=[...new Set(A.groups.filter(g=>g.length===2).map(g=>g[0].sym.html))].join(', ');
@@ -1601,9 +1571,6 @@ const ligChips=c=>ligKinds(c).map(k=>`<span class="chip lig">${k}</span>`).join(
 /* counts, with the geometrical count defined explicitly */
 function countsHTML(A,compact){
   const s=A.stereo,g=A.geometric,p=A.pairs;
-  if(isFluxional(A.c)){
-    if(compact) return `${s} configuration${s>1?'s':''}${p?` · ${p} enantiomeric pair${p>1?'s':''}`:''}`;
-    return `<span><b>${s}</b> configuration${s>1?'s':''}</span><span><b>${p}</b> enantiomeric pair${p===1?'':'s'}</span>`;}
   if(compact) return catOf(A)==='one'?'1 arrangement · no stereoisomers':`${s} stereoisomers · ${g===1?'1 arrangement':g+' geometrical'}${p?` · ${p} enantiomeric pair${p>1?'s':''}`:''}`;
   return `<span><b>${g}</b> ${g===1?'arrangement':'geometrical isomers'}${g>1&&p?' (each enantiomeric pair counted once)':''}</span><span><b>${p}</b> enantiomeric pair${p===1?'':'s'}</span><span><b>${s}</b> stereoisomer${s===1?'':'s'} in total</span>`;
 }
@@ -1642,7 +1609,7 @@ function neighbourHTML(c){
   const A=ANALYSIS[c.id], lab={'-1':'one fewer ligand type','0':'same number of ligand types','1':'one more ligand type'};
   return `<div class="nbr"><div class="nbr-h">One substitution away</div>`+nb.map(o=>{const B=ANALYSIS[o.c.id];
     const chg=A.stereo===B.stereo?`still ${B.stereo}`:`${A.stereo} → ${B.stereo}`;
-    return `<button class="nbr-row" data-case-go="${o.c.id}"><span class="xf">${formulaHTML(o.c)}</span><small>${o.desc} (${lab[o.dir]}) · ${chg} ${isFluxional(o.c)?'configuration':'stereoisomer'}${B.stereo===1?'':'s'}, ${B.pairs?B.pairs+' enantiomeric pair'+(B.pairs>1?'s':''):(B.stereo>1?'all achiral':'achiral')}</small></button>`;}).join('')+'</div>';
+    return `<button class="nbr-row" data-case-go="${o.c.id}"><span class="xf">${formulaHTML(o.c)}</span><small>${o.desc} (${lab[o.dir]}) · ${chg} stereoisomer${B.stereo===1?'':'s'}, ${B.pairs?B.pairs+' enantiomeric pair'+(B.pairs>1?'s':''):(B.stereo>1?'all achiral':'achiral')}</small></button>`;}).join('')+'</div>';
 }
 
 /* =====================================================================
@@ -1759,83 +1726,6 @@ function structuralFamily(base,amb=[],opts={}){
     parent:groups.length===1?groups[0].parent:null,rows:groups.length===1?groups[0].rows:null,tally,newChiral};
 }
 
-/* =====================================================================
-   1c. BERRY PSEUDOROTATION — which five-coordinate configurations interconvert
-   A Berry move keeps one equatorial ligand (the pivot). The two axial ligands swing down to become equatorial and the other two
-   equatorial ligands swing up to become axial, passing through a square pyramid with the pivot at its apex. The moves are not
-   hand-typed: the path is computed from the shape's coordinates (berryPose), the finished structure is turned about the pivot
-   axis to sit back on the shape's own sites, and each ligand's new site is read off. That gives a 4-cycle of sites
-   (ax1 e1 ax2 e2) — an ODD permutation, equal to the "double swap" (ax1 e2)(ax2 e1) followed by a mirror reflection (the double swap
-   alone would be the mirror image of what really happens). So a move is a rigid motion and never changes the handedness of the
-   structure while it lasts, yet a chain of moves can reach the mirror image: for five different ligands the 20 configurations form
-   ONE connected set (the Desargues–Levi graph, 30 edges). A move is rejected if it would put a chelate ring across two equatorial
-   sites: that arrangement is not a configuration at all. The two senses of a pivot are inverse moves.
-   ===================================================================== */
-function berryFrame(G,p){const U=G.sites.map(s=>V.norm(s)),z=U[p],y=U[G.axial[0]];return {U,x:V.cross(y,z),y,z};}
-/* position of every site's ligand a fraction t (0..1) along the pseudorotation about pivot site p */
-function berryPose(G,p,t){
-  const {U,x,y,z}=berryFrame(G,p), b=(120-30*t)*Math.PI/180, g=(90+30*t)*Math.PI/180, at=(u,v,w)=>V.add(V.add(V.scale(x,u),V.scale(y,v)),V.scale(z,w));
-  return U.map((u,i)=>{
-    if(i===p) return u;
-    if(G.axial.includes(i)) return at(0,Math.sign(V.dot(u,y))*Math.sin(g),Math.cos(g));     // axial pair: 90° -> 120° from the pivot
-    return at(Math.sign(V.dot(u,x))*Math.sin(b),0,Math.cos(b));});                        // equatorial pair: 120° -> 90°
-}
-/* turn a point a quarter turn (sense = ±1) about the pivot axis */
-const berryTurn=(G,p,sense,v)=>{const z=berryFrame(G,p).z;return V.add(V.scale(V.cross(z,v),sense),V.scale(z,V.dot(z,v)));};
-function berryPerm(G,p,sense){
-  const {U}=berryFrame(G,p);
-  return berryPose(G,p,1).map(e=>{const r=berryTurn(G,p,sense,e);let best=0;U.forEach((u,j)=>{if(V.dot(u,r)>V.dot(U[best],r))best=j;});return best;});
-}
-function berryMoves(G){
-  if(!G.axial) return [];
-  const out=[]; for(const p of G.equatorial) for(const sense of [1,-1]) out.push({pivot:p,sense,perm:berryPerm(G,p,sense)});
-  return out;
-}
-const permParity=q=>{const seen=[];let t=0;q.forEach((_,i)=>{if(seen[i])return;let j=i,l=0;while(!seen[j]){seen[j]=1;j=q[j];l++;}t+=l-1;});return t%2;};
-function berrySets(A){
-  const G=A.G; if(!G.axial) return null;
-  const moves=berryMoves(G), edgeOK=new Set(G.edges.map(e=>e.join('-')));
-  const byKey=new Map(A.isomers.map(i=>[i.key,i])), parent=new Map(A.isomers.map(i=>[i.key,i.key])), adj=new Map(A.isomers.map(i=>[i.key,new Set()]));
-  const find=k=>{while(parent.get(k)!==k){parent.set(k,parent.get(parent.get(k)));k=parent.get(k);}return k;};
-  let blocked=0, tried=0;
-  for(const iso of A.isomers) for(const m of moves){
-    tried++; const c2=applyCfg(m.perm,iso.cfg);
-    if(!c2.edges.every(e=>edgeOK.has(e[0]+'-'+e[1]))){blocked++;continue;}      // a ring may not end up across two equatorial sites
-    const k=canon(c2,G.rots); if(!byKey.has(k)) throw new Error('a Berry move left the isomers of '+A.c.id);
-    parent.set(find(iso.key),find(k)); adj.get(iso.key).add(k); adj.get(k).add(iso.key);}
-  const byRoot=new Map(); A.isomers.forEach(i=>{const r=find(i.key);if(!byRoot.has(r))byRoot.set(r,[]);byRoot.get(r).push(i);});
-  const sets=[...byRoot.entries()].map(([root,isos],index)=>({index,root,isos}));
-  const idx=new Map(sets.map(s=>[s.root,s.index]));
-  /* fewest moves from one configuration to another (breadth-first over the pseudorotation graph) */
-  const dist=(a,b)=>{if(a===b)return 0;const seen=new Set([a]);let front=[a],d=0;
-    while(front.length){d++;const nxt=[];for(const k of front)for(const n of adj.get(k)){if(seen.has(n))continue;if(n===b)return d;seen.add(n);nxt.push(n);}front=nxt;}return Infinity;};
-  sets.forEach(s=>{
-    s.racemises=s.isos.some(i=>i.chiral&&find(i.mirrorKey)===s.root);
-    s.chiral=!s.racemises&&s.isos.some(i=>i.chiral);
-    s.mirror=s.chiral?idx.get(find(s.isos.find(i=>i.chiral).mirrorKey)):null;
-    s.racSteps=s.racemises?Math.min(...s.isos.filter(i=>i.chiral).map(i=>dist(i.key,i.mirrorKey))):null;});   // moves to reach the mirror image
-  return {sets,moves:tried,blocked,allBlocked:tried>0&&blocked===tried,setOf:iso=>sets[idx.get(find(iso.key))],dist,adj};
-}
-const berryOf=A=>A.berry!==undefined?A.berry:(A.berry=berrySets(A));
-/* the new configuration a Berry move reaches from a displayed one, or null when a ring blocks it */
-function berryStep(G,cfg,pivot,sense=1){
-  const m=berryMoves(G).find(x=>x.pivot===pivot&&x.sense===sense), edgeOK=new Set(G.edges.map(e=>e.join('-')));
-  const c2=applyCfg(m.perm,cfg); return c2.edges.every(e=>edgeOK.has(e[0]+'-'+e[1]))?{cfg:c2,perm:m.perm}:null;
-}
-/* why the grouping came out as it did, in words */
-function berryWhy(A,B){
-  const out=[];
-  if(A.isomers.length===1) return ['There is only one configuration, so there is nothing to interconvert.'];
-  if(B.allBlocked) out.push('Every pseudorotation is blocked: each would put a chelate ring across two equatorial sites. These configurations are rigid.');
-  else if(B.blocked) out.push('Chelate rings block some pseudorotations: a ring may not end up across two equatorial sites.');
-  if(A.pairs){
-    const r=B.sets.filter(s=>s.racemises);
-    if(r.length){const n=Math.min(...r.map(s=>s.racSteps));
-      out.push(`Pseudorotation can turn a chiral configuration into its mirror image here (the shortest route takes ${n} move${n>1?'s':''}), so these racemise.`+(n>1?' Each single move keeps its handedness while it lasts, but a chain of them with different pivots arrives at the mirror image.':''));}
-    if(B.sets.some(s=>s.chiral)) out.push('For '+(r.length?'the other sets':'these configurations')+' no chain of allowed moves reaches the mirror image'+(B.blocked?', because the chelate rings block the moves that would be needed':'')+': each chiral set is the mirror image of another set.');}
-  return out;
-}
-
 /*ENGINE-END*/
 /* =====================================================================
    2. LIVE EXAM-STYLE DRAWING OF A ROTATABLE 3-D MOLECULE
@@ -1862,7 +1752,6 @@ const LAYOUTS={
   Oh:[{name:'standard octahedron',toward:[1,0.553,1],up:[0,1,0]}],
   Td:[{name:'one up, one lower-left',toward:[0.94,0.279,-0.197],up:[0,1,0]},
       {name:'V shape',toward:[0.94,0.279,-0.197],up:[0,0.577,0.816]}],
-  TBP:[{name:'axial vertical',toward:[0.55,0.3,1],up:[0,1,0]}],
   SP:[{name:'flat cross',toward:[0,0,1],up:[0,1,0]},
       {name:'square in perspective',toward:[0.45,-1,0.6],up:[0,0,1]}],
 };
@@ -1881,10 +1770,7 @@ for(const G of Object.values(GEOMS)){
 const nearestSnap=(G,q)=>G.snaps.reduce((b,c)=>Math.abs(c.dot(q))>Math.abs(b.dot(q))?c:b,G.snaps[0]);
 const mirrorIsoOf=iso=>iso.chiral?iso.partner:iso;
 /* exact mirror image of a displayed molecule, as a mirror standing at the page's vertical edge would show it */
-function mirrorDisp(d,axis='x'){const G=GEOMS[d.iso.geom];
-  let unit=null;
-  if(d.unit){unit=[];d.unit.forEach((u,i)=>{const r=M3.mulV(G.sigma.m,G.unit[i]);let j=0;G.unit.forEach((w,k)=>{if(V.dot(w,r)>V.dot(G.unit[j],r))j=k;});unit[j]=M3.mulV(G.sigma.m,u);});}
-  return {iso:mirrorIsoOf(d.iso),cfg:applyCfg(G.sigma.perm,d.cfg),q:mirrorQ(d.q,G,axis),skin:d.skin||null,unit};}
+function mirrorDisp(d,axis='x'){const G=GEOMS[d.iso.geom];return {iso:mirrorIsoOf(d.iso),cfg:applyCfg(G.sigma.perm,d.cfg),q:mirrorQ(d.q,G,axis),skin:d.skin||null};}
 /* skin (optional): how the engine's one-letter labels are drawn, {letter:{text,donor,hue}}; null = the letter itself */
 function dispOf(iso,skin=null){
   if(iso.second) return mirrorDisp(dispOf(iso.partner,skin));
@@ -1904,7 +1790,7 @@ function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
   const d=view.disp, G=GEOMS[d.iso.geom], cfg=d.cfg, q=d.q;
   const fs=Math.max(10,L*0.25), lw=Math.max(1.1,L*0.024), clrL=fs*0.58, clrM=fs*0.62;
   const proj=v=>{_v.set(v[0],v[1],v[2]).applyQuaternion(q);return {x:cx+(flip?-_v.x:_v.x)*L,y:cy-_v.y*L,z:_v.z};};
-  const U=d.unit||G.unit, P=U.map(proj), items=[];      // d.unit: site positions while a Berry pseudorotation is under way
+  const P=G.unit.map(proj), items=[];
   // skinned labels can be wider than one letter (NO₂, ONO): half their width, so the bond stops at the label's edge
   const halfW=P.map((p,i)=>{const sk=d.skin&&d.skin[cfg.labels[i]];if(!sk)return 0;const m=skinMeasure(ctx,sk,fs);return (m.w0+m.w1+m.tw)/2;});
   // rotation axis shown while a step-rotation animates
@@ -1920,14 +1806,14 @@ function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
   });
   items.push({kind:'label',i:-1,depth:0});
   cfg.edges.forEach(([a,b,t])=>{
-    const pa=U[a],pb=U[b],n=V.norm(V.add(pa,pb)),e=V.sub(pb,pa);
+    const pa=G.unit[a],pb=G.unit[b],n=V.norm(V.add(pa,pb)),e=V.sub(pb,pa);
     const c1=V.add(V.add(pa,V.scale(n,0.42)),V.scale(e,0.14)), c2=V.sub(V.add(pb,V.scale(n,0.42)),V.scale(e,0.14));
     const pts=t==='6'?[P[a],proj(V.add(V.add(pa,V.scale(n,0.4)),V.scale(e,0.03))),proj(V.add(V.scale(V.add(pa,pb),.5),V.scale(n,0.66))),proj(V.sub(V.add(pb,V.scale(n,0.4)),V.scale(e,0.03))),P[b]]
                      :[P[a],proj(c1),proj(c2),P[b]];
     const mid=pts.slice(1,-1);
     items.push({kind:'bridge',a,b,pts,depth:mid.reduce((t,o)=>t+o.z,0)/mid.length});
   });
-  if(cfg.h) Object.keys(cfg.h).forEach(k=>{const i=+k,ph=proj(V.add(U[i],V.scale(nhVec(G,cfg,i),0.4)));
+  if(cfg.h) Object.keys(cfg.h).forEach(k=>{const i=+k,ph=proj(V.add(G.unit[i],V.scale(nhVec(G,cfg,i),0.4)));
     items.push({kind:'nh',i,ph,depth:(P[i].z+ph.z)/2},{kind:'hlab',i,ph,depth:ph.z});});
   // lines back-to-front, then every label on top (as in ChemDraw, no line ever covers text)
   const isLab=k=>k==='label'||k==='hlab';
@@ -2003,7 +1889,7 @@ class View{
   constructor(el,{mini=false,builder=false}={}){
     this.el=el;this.mini=mini;this.builder=builder;
     this.cv=document.createElement('canvas');el.appendChild(this.cv);this.ctx=this.cv.getContext('2d');
-    this.disp=null;this.iso=null;this.mirrorOn=false;this.anim=null;this.fx=null;this.onBerry=null;this.lastPivot=-1;this.dirty=true;this.styles={};this.hl=null;this.pick=null;
+    this.disp=null;this.iso=null;this.mirrorOn=false;this.anim=null;this.dirty=true;this.styles={};this.hl=null;this.pick=null;
     this.interactive=!builder;this.drag=null;this.hits=null;this.onPick=null;this.onStep=null;
     this.zoom=1;this.ptrs=new Map();this.mirrorOf=null;this.onActivate=null;this.onTap=null;this.lastTap=0;this.ptype='mouse';
     this.ro=new ResizeObserver(()=>{const r=el.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
@@ -2018,7 +1904,7 @@ class View{
     if(!mini&&!builder) c.addEventListener('wheel',e=>{if(!this.disp)return;e.preventDefault();this.zoom=Math.min(2.4,Math.max(0.55,this.zoom*Math.exp(-e.deltaY*0.0015)));this.dirty=true;},{passive:false});
     views.add(this);
   }
-  load(disp){this.disp={iso:disp.iso,cfg:disp.cfg,q:disp.q.clone(),skin:disp.skin||null};this.iso=disp.iso;this.hl=disp.hl||null;this.anim=null;this.fx=null;this.pick=null;this.styles={};this.dirty=true;}
+  load(disp){this.disp={iso:disp.iso,cfg:disp.cfg,q:disp.q.clone(),skin:disp.skin||null};this.iso=disp.iso;this.hl=disp.hl||null;this.anim=null;this.styles={};this.dirty=true;}
   get G(){return GEOMS[this.iso.geom];}
   partner(){return this===V1?V2:this===V2?V1:null;}
   down(e){
@@ -2029,7 +1915,7 @@ class View{
     try{this.cv.setPointerCapture(e.pointerId);}catch(_){}
     if(!this.ptrs.size){this.hadTwo=false;this.moved=0;this.rollMode=e.shiftKey||e.button===2;}
     this.ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); this.ptype=e.pointerType;
-    this.anim=null;this.hl=null;if(this.fx)this.fx.q1=null;      // grabbing the molecule during a Berry move hands the camera back to you
+    this.anim=null;this.hl=null;
     const o=app.link&&this.partner(); if(o){o.anim=null;o.hl=null;}
     this.gesture(); this.onActivate&&this.onActivate();
   }
@@ -2096,30 +1982,7 @@ class View{
     this.rotateTo(this.disp.q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(...ax).normalize(),ang)),{dur:0.8,axis:ax});
     return {order:best.a.order,deg:Math.round(360/best.a.order)};
   }
-  /* Berry pseudorotation about the equatorial site `pivot`: the sites themselves move (berryPose), then the picture is re-seated on the shape */
-  berry(pivot,sense=1){
-    if(!this.disp||this.fx||this.G.id!=='TBP') return null;
-    const st=berryStep(this.G,this.disp.cfg,pivot,sense); if(!st) return null;
-    // the finished structure is the shape turned a quarter about the pivot axis, so the drawing has to be turned back by that much
-    // to sit on the shape's sites; the camera turns on the way to a tidy exam-style view of the new configuration, not afterwards
-    const back=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(...berryFrame(this.G,pivot).z),-sense*Math.PI/2);
-    const q0=this.disp.q.clone(), qNew=q0.clone().multiply(back), qs=drawOpts.snap?nearestSnap(this.G,qNew):qNew;
-    this.fx={pivot,sense,t:0,dur:2.6,st,from:this.iso,back,q0,q1:qs.clone().multiply(back.clone().invert())};
-    this.pick=pivot; this.hl=null; this.dirty=true; return this.fx;
-  }
-  finishBerry(){
-    const F=this.fx; if(!F) return; const G=this.G, d=this.disp;
-    if(F.q1) d.q.copy(F.q1);                     // (unless you grabbed the molecule meanwhile)
-    d.q.multiply(F.back); d.cfg=F.st.cfg; d.unit=null;
-    const key=canon(d.cfg,G.rots), iso=this.iso.A.isomers.find(i=>i.key===key);
-    d.iso=iso; this.iso=iso; this.fx=null; this.pick=null; this.styles={}; this.dirty=true; this.lastPivot=F.pivot;
-    if(drawOpts.snap&&!F.q1) this.snap();
-    this.onBerry&&this.onBerry(F);
-  }
   tick(dt){
-    const F=this.fx;
-    if(F){F.t+=dt/F.dur; const t=Math.min(1,F.t), k=t*t*(3-2*t);
-      if(F.t>=1) this.finishBerry(); else{this.disp.unit=berryPose(this.G,F.pivot,k);if(F.q1)this.disp.q.slerpQuaternions(F.q0,F.q1,k);this.dirty=true;}}
     const A=this.anim;if(!A)return;
     A.t+=dt/A.dur;const k=A.t>=1?1:(1-Math.cos(Math.PI*A.t))/2;
     this.disp.q.slerpQuaternions(A.q0,A.q1,k);this.dirty=true;
@@ -2145,7 +2008,7 @@ class View{
 let lastT=performance.now();
 function frame(now){
   const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;
-  for(const v of views){if(v.el.isConnected&&(v.anim||v.fx))v.tick(dt);}
+  for(const v of views){if(v.el.isConnected&&v.anim)v.tick(dt);}
   for(const v of views){const m=v.mirrorOf;if(m&&m.disp&&(m.dirty||!v.disp||v.zoom!==m.zoom)){v.disp=mirrorDisp(m.disp,v.mirrorAxis||'x');v.iso=v.disp.iso;v.hl=null;v.zoom=m.zoom;v.dirty=true;}}
   for(const v of views){if(v.dirty&&v.el.isConnected&&v.cv.width>1){v.draw();v.dirty=false;}}
   requestAnimationFrame(frame);
@@ -2155,7 +2018,6 @@ function frame(now){
    3. EXPLORE: FORMULA FINDER UI
    ===================================================================== */
 const ICONS={
-  TBP:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M20 3 L8 24 L20 29 L33 22 Z"/><path d="M20 3 L20 37 M8 24 L33 22 M20 37 L8 24 M20 37 L33 22 M20 29 L20 37" stroke-width="1.5"/><path d="M20 3 L26 25" stroke-dasharray="3 3" stroke-width="1.5"/><circle cx="20" cy="22" r="3" fill="#a7b4bf"/></svg>`,
   Td:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M20 4 L5 31 L33 34 Z"/><path d="M20 4 L27 23"/><path d="M5 31 L27 23 L33 34" stroke-dasharray="3 3"/></svg>`,
   SP:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M5 22 L15 11 L35 15 L25 27 Z"/><path d="M5 22 L35 15 M15 11 L25 27" stroke-width="1.4"/><circle cx="20" cy="18.5" r="3" fill="#a7b4bf"/></svg>`,
   Oh:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M20 3 L6 20 L20 37 L34 20 Z"/><path d="M20 3 L15 25 L20 37 M6 20 L15 25 L34 20"/><path d="M20 3 L25 15 L20 37 M6 20 L25 15 L34 20" stroke-dasharray="3 3" stroke-width="1.6"/></svg>`,
@@ -2163,7 +2025,7 @@ const ICONS={
 
 /* ---------- the finder: one searchable, filterable list of every formula
    (the sidebar on a desktop, the Explore home on a phone). Both read the same FIND state. ---------- */
-const GEO_ORDER=['Td','SP','TBP','Oh'];
+const GEO_ORDER=['Td','SP','Oh'];
 const DENT_FACET=[[1,'monodentate only'],[2,'bidentate'],[3,'tridentate'],[4,'tetradentate']];
 const CAT_SHORT={one:'no isomers',geo:'geometrical only',enan:'enantiomers only',both:'geometrical + enantiomers'};
 const FIND={q:'',geo:new Set(),dent:new Set(),cat:new Set(),open:null,facets:false,shapeOpen:new Set(),famOpen:new Set()};   // shapes and 'shape:family' groups expanded in the browse list (all start closed)
@@ -2277,7 +2139,7 @@ function caseBodyHTML(c){
     return `<div class="pairbox"><div class="pairlab"><span>enantiomeric pair</span><button data-pair="${grp[0].id}">compare ⇄</button></div>${row(grp[0])}${row(grp[1])}</div>`;
   }).join('');
   return `<div class="ligchips">${ligChips(c)}</div><p class="insight">${c.insight||summaryHTML(A)}</p>
-    <p class="tally">${countsHTML(A)}</p>${rows}${berryHTML(c,false)}${neighbourHTML(c)}${complicateHTML(c)}`;
+    <p class="tally">${countsHTML(A)}</p>${rows}${neighbourHTML(c)}${complicateHTML(c)}`;
 }
 function rowHTML(e,mobile,searching){
   const c=e.c,A=e.A,geo=searching?`<span class="chip fgeo" title="${GEOMS[c.geom].name}">${GEOMS[c.geom].name}</span>`:'';
@@ -2290,7 +2152,7 @@ function rowHTML(e,mobile,searching){
 function resultsHTML(mobile){
   const {list,exact,parsed}=findMatches(), q=FIND.q.trim(), total=BANK.length;
   if(!list.length){
-    const hint=parsed?`No formula in the bank has that combination of ligands${[4,5,6].includes(parsed.dent)?'':` (it has ${parsed.dent} donor atoms; these shapes need 4, 5 or 6)`}.`
+    const hint=parsed?`No formula in the bank has that combination of ligands${[4,6].includes(parsed.dent)?'':` (it has ${parsed.dent} donor atoms; these shapes need 4 or 6)`}.`
       :'Nothing matches. Try a formula such as <b>MA2B2</b>, <b>M(AA)2B2</b> or <b>[Co(en)2Cl2]</b>, or a word such as <b>fac</b>, <b>chiral</b> or <b>macrocycle</b>.';
     return {html:famLinkHTML(parsed)+`<p class="fempty">${hint}${FIND.geo.size||FIND.dent.size||FIND.cat.size?' <button class="linkbtn" data-freset>Clear the filters</button>':''}</p>`,stat:`0 of ${total} formulas`};
   }
@@ -2311,7 +2173,7 @@ function resultsHTML(mobile){
         const fr=rows.filter(e=>e.fam===fm.id); if(!fr.length) return;
         const k=g+':'+fm.id, fo=FIND.famOpen.has(k), fp=fr.filter(e=>e.A.pairs).length;
         html+=`<button class="ffam-head" data-fam="${k}" aria-expanded="${fo}"><span class="fgeo-arrow" aria-hidden="true">▶</span><span class="ffam-name">${fm.name}</span><small>${fr.length}${fp?` · ${fp} chiral`:''}</small></button>`;
-        if(fo) html+=`<div class="ffam-body">${fm.note&&(g==='Oh'||(fm.id[0]==='q'&&g!=='TBP'))?`<p class="ffam-note">${fm.note}</p>`:''}${fr.map(e=>rowHTML(e,mobile,false)).join('')}</div>`;
+        if(fo) html+=`<div class="ffam-body">${fm.note&&(g==='Oh'||fm.id[0]==='q')?`<p class="ffam-note">${fm.note}</p>`:''}${fr.map(e=>rowHTML(e,mobile,false)).join('')}</div>`;
       });
       html+=`</div>`;
     });
@@ -2404,12 +2266,6 @@ function viewInfo(v){
     :`<div class="line"><span class="chip achiral">achiral</span> contains ${iso.sym.improper.join(', ')}, so it is its own mirror image.</div>`;
   return `<div class="line"><b>symmetry elements</b> ${iso.sym.elements}</div>${ch}${tp}`;
 }
-/* the Berry button only exists for five-coordinate molecules; it says why when every move is blocked */
-function berryButton(b,v){
-  const tbp=!!(v&&v.iso&&v.G.id==='TBP'); b.hidden=!tbp; if(!tbp) return;
-  const ok=v.disp&&v.G.equatorial.some(p=>berryStep(v.G,v.disp.cfg,p,1));
-  b.disabled=!ok||!!v.fx; b.title=ok?BERRY_TIP:'Every pseudorotation of this configuration is blocked by a chelate ring: it is rigid.';
-}
 function refreshUI(){
   [[V1,1],[V2,2]].forEach(([v,n])=>{
     const iso=v.iso;
@@ -2417,7 +2273,6 @@ function refreshUI(){
     $('#pg'+n).innerHTML=iso?iso.sym.html:'';
     $('#info'+n).innerHTML=viewInfo(v);
     $$(`[data-act="mirror"][data-v="${n}"]`).forEach(b=>b.classList.toggle('on',v.mirrorOn));
-    $$(`[data-act="berry"][data-v="${n}"]`).forEach(b=>berryButton(b,v));
   });
   const live=app.live;
   $$('.vp-tools [data-v="2"]').forEach(b=>b.disabled=live);
@@ -2431,21 +2286,14 @@ function refreshUI(){
       else if(formulaHTML(a.caseRef)===formulaHTML(b.caseRef)){stamp='<span class="stamp diff">different geometry</span>';why='Same formula, different coordination polyhedron: polytopal (allogon) isomers, not stereoisomers of one another.';}
       else {stamp='<span class="stamp diff">not isomers</span>';why='Different ligand sets, so these are simply different compounds.';}
     } else if(a.key===b.key){stamp='<span class="stamp same">identical</span>';why=live?'This complex is achiral: its mirror image is the same molecule.':'Same stereoisomer, even if the drawings look different. Some rotation superimposes them. Try it!';}
-    else if(a.mirrorKey===b.key){stamp='<span class="stamp enan">enantiomers</span>';why='Non-superimposable mirror images: identical in every scalar property except the sign of optical rotation, and their behaviour toward other chiral things.'+fluxNote(a,b,true);}
-    else {stamp='<span class="stamp dia">diastereomers</span>';why='Stereoisomers that are not mirror images, so they differ in physical and chemical properties.'+fluxNote(a,b,false);}
+    else if(a.mirrorKey===b.key){stamp='<span class="stamp enan">enantiomers</span>';why='Non-superimposable mirror images: identical in every scalar property except the sign of optical rotation, and their behaviour toward other chiral things.';}
+    else {stamp='<span class="stamp dia">diastereomers</span>';why='Stereoisomers that are not mirror images, so they differ in physical and chemical properties.';}
   }
   $('#rel').innerHTML=`${stamp}<span class="why">${why}</span>`;
   setFlag(2,live?'live mirror image of Viewport 1 (turn Viewport 1 and watch)':($('#flag2').dataset.live?'':null));
   refreshMobile();
 }
-/* five-coordinate pair: do they interconvert by Berry pseudorotation? */
-function fluxNote(a,b,mirror){
-  const A=ANALYSIS[a.caseId]; if(!A||!isFluxional(a.caseRef)) return '';
-  const B=berryOf(A), same=B.setOf(a)===B.setOf(b);
-  if(same) return mirror?' <b>Here pseudorotation can interconvert them</b>, so this pair racemises.':' <b>But they interconvert by Berry pseudorotation</b>, so in practice they are one fluxional species.';
-  return ' Pseudorotation does not connect them'+(B.allBlocked||B.blocked?' (chelate rings block the moves)':'')+', so they stay separate.';
-}
-function setFlag(n,html,two=false){if(html===null)return;if(html&&isMobile()&&!/^live mirror/.test(html))toast(html);const f=$('#flag'+n);f.innerHTML=html;f.dataset.live=app.live&&n===2?'1':'';f.classList.toggle('show',!!html);f.classList.toggle('two',!!html&&two);}
+function setFlag(n,html){if(html===null)return;if(html&&isMobile()&&!/^live mirror/.test(html))toast(html);const f=$('#flag'+n);f.innerHTML=html;f.dataset.live=app.live&&n===2?'1':'';f.classList.toggle('show',!!html);}
 function hideAlignMsg(){$('#alignMsg').classList.remove('show');}
 function sendMirror(from){
   const src=from===1?V1:V2;
@@ -2569,7 +2417,7 @@ function renderBuilder(){
   else{
     const I=res.iso;
     st.innerHTML=`<b>${formulaHTML(res.A.c)}</b>: your drawing is <b>${I.label}</b> <span class="chip pg">${I.sym.html}</span> <span class="chip ${I.chiral?'chiral':'achiral'}">${I.chiral?'chiral':'achiral'}</span>,
-      one of ${res.A.stereo} ${isFluxional(res.A.c)?'configuration':'stereoisomer'}${res.A.stereo>1?'s':''} (${res.A.geometric} geometric${res.A.pairs?`, ${res.A.pairs} enantiomeric pair${res.A.pairs>1?'s':''}`:''}).${monoLetters(res.A.c).length?` <button class="btn" data-bcomplicate title="Let a ligand bond through more than one atom, or swap with a copy outside the sphere">Complicate this ⇢</button>`:''}`;
+      one of ${res.A.stereo} stereoisomer${res.A.stereo>1?'s':''} (${res.A.geometric} geometric${res.A.pairs?`, ${res.A.pairs} enantiomeric pair${res.A.pairs>1?'s':''}`:''}).${monoLetters(res.A.c).length?` <button class="btn" data-bcomplicate title="Let a ligand bond through more than one atom, or swap with a copy outside the sphere">Complicate this ⇢</button>`:''}`;
   }
 }
 function isRing4(v){ // the component through v is a 4-cycle (every position has two links)
@@ -2603,7 +2451,7 @@ function openBuilder(){
 }
 function closeBuilder(){$('#builder').hidden=true;B.thumbs.forEach(t=>t.destroy());B.thumbs=[];}
 function buildBuilder(){
-  $('#bGeom').innerHTML=['Oh','Td','SP','TBP'].map(g=>`<button class="btn" data-g="${g}">${GEOMS[g].name}</button>`).join('');
+  $('#bGeom').innerHTML=['Oh','Td','SP'].map(g=>`<button class="btn" data-g="${g}">${GEOMS[g].name}</button>`).join('');
   $('#bTools').innerHTML=['A','B','C','D','E','F'].map(l=>`<button class="btn letter" data-tool="${l}" style="--lc:${COLORS[l]}">${l}</button>`).join('')+
     `<button class="btn" data-tool="link" title="Click two adjacent positions to join them with a chelate ring">⌒ chelate link</button><button class="btn" data-tool="erase">eraser</button>`;
   $('#bGeom').addEventListener('click',e=>{const b=e.target.closest('.btn');if(!b)return;resetBuilder(b.dataset.g);renderBuilder();});
@@ -2636,19 +2484,6 @@ const monoLetters=c=>[...new Set(c.mono||'')];
 const countOf=(m,l)=>[...m].filter(x=>x===l).length;
 const spareLetter=b=>{const used=new Set((b.mono||'')+(b.chel||[]).map(x=>lig(x).L).join(''));return 'ABCDEFGH'.split('').find(l=>!used.has(l))||null;};
 const poolLetters=()=>{const ls=monoLetters(FAM.base),S=FAM.pool?spareLetter(FAM.base):null;return S?[...ls,S]:ls;};
-/* five-coordinate shapes: static configurations grouped into the sets that interconvert by Berry pseudorotation */
-function berryHTML(c,mobile){
-  if(!isFluxional(c)) return '';
-  const A=ANALYSIS[c.id], B=berryOf(A), n=B.sets.length, row=iso=>mobile
-    ?`<button class="xrow iso" data-go="iso:${iso.id}"><span class="xr-main"><span>${iso.label}</span><span class="xchips"><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span></span></span>${chev}</button>`
-    :`<div class="iso" data-iso="${iso.id}"><span class="nm" title="load into Viewport 1">${iso.label}</span><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span><button class="ld" data-to="1" title="Load into Viewport 1">1</button><button class="ld" data-to="2" title="Load into Viewport 2">2</button></div>`;
-  const tag=s=>s.racemises?'<span class="chip chiral">includes mirror images</span>':s.chiral?`<span class="chip chiral">chiral set · mirror image of set ${s.mirror+1}</span>`:'<span class="chip achiral">achiral</span>';
-  return `<div class="bblock"><div class="bh">Berry pseudorotation</div>
-    <div><span class="bnum">${A.stereo}</span> configuration${A.stereo>1?'s':''} <span class="bnum">→ ${n}</span> fluxional set${n>1?'s':''}</div>
-    ${berryWhy(A,B).map(t=>`<p class="bwhy">${t}</p>`).join('')}
-    ${n>1||A.stereo>1?B.sets.map(s=>`<details class="bset"><summary><b>Set ${s.index+1}</b> · ${s.isos.length} configuration${s.isos.length>1?'s':''} ${tag(s)}</summary>${s.isos.map(row).join('')}</details>`).join(''):''}
-    <p class="bwhy">Sets are the configurations that pseudorotation can join; each set is one observable species. This counts what the connectivity allows and does not model barriers.</p></div>`;
-}
 function complicateHTML(c){
   if(!monoLetters(c).length) return '';
   return `<div class="nbr"><div class="nbr-h">Complicate it</div><button class="nbr-row" data-complicate="${c.id}"><span class="xf">Add a structural complication</span><small>Let a ligand bond through more than one atom (linkage isomers), or swap places with a copy outside the sphere (ionisation and hydrate isomers), and see the new isomers appear on top of these stereoisomers.</small></button></div>`;
@@ -2698,11 +2533,11 @@ function matrixHTML(F,g){
   return `<div class="fmat-wrap"><table class="fmat"><thead><tr><th>isomer of ${F.groups.length>1?'this inner sphere':'the base formula'}</th>${T.map(v=>`<th>${v.desc||'—'}${mark(v)}</th>`).join('')}<th>all forms</th></tr></thead><tbody>`+
     g.rows.map(r=>{const tot=r.cells.reduce((t,x)=>t+x.length,0);
       return `<tr><td class="rowh">${r.parent.label} <span class="chip ${r.parent.chiral?'chiral':'achiral'}">${r.parent.chiral?'chiral':'achiral'}</span></td>${r.cells.map(x=>`<td class="${x.length?x.length>1?'n2':'':'n0'}">${x.length||'–'}</td>`).join('')}<td><b>${tot}</b></td></tr>`;}).join('')+
-    `<tr class="tot"><td class="rowh">${isFluxional(F.base)?'configurations':'stereoisomers'}</td>${T.map(v=>`<td>${v.A.stereo}</td>`).join('')}<td><b>${T.reduce((t,v)=>t+v.A.stereo,0)}</b></td></tr></tbody></table></div>`;
+    `<tr class="tot"><td class="rowh">stereoisomers</td>${T.map(v=>`<td>${v.A.stereo}</td>`).join('')}<td><b>${T.reduce((t,v)=>t+v.A.stereo,0)}</b></td></tr></tbody></table></div>`;
 }
 function renderFamily(){
   const b=FAM.base, A0=analysisFor(b.geom,b.mono,b.chel), pl=poolLetters(), kap=[...FAM.kappa].filter(l=>pl.includes(l)), sel=[...FAM.letters].filter(l=>pl.includes(l)&&!kap.includes(l)), S=FAM.pool?spareLetter(b):null;
-  const W=isFluxional(b)?'configuration':'stereoisomer', slot=isMobile()?'slot':'Viewport', ltr=l=>`${l}${countOf(b.mono,l)>1?`<sub>${countOf(b.mono,l)}</sub>`:''}`;
+  const slot=isMobile()?'slot':'Viewport', ltr=l=>`${l}${countOf(b.mono,l)>1?`<sub>${countOf(b.mono,l)}</sub>`:''}`;
   $('#fTitle').innerHTML=`${formulaHTML({chel:b.chel,mono:b.mono})} <span>${GEOMS[b.geom].name.toLowerCase()}, with complications</span>`;
   const canPreset=sel.length===1&&FAM.donors===2;
   let h=`<p class="fvocab"><b>Structural</b> isomers differ in what is bonded to the metal; <b>stereo</b> isomers have the same bonds and differ in arrangement. Each complication below adds the first kind on top of the second. It is an abstract model: it counts what connectivity allows, and says nothing about which form is stable.</p>
@@ -2724,12 +2559,12 @@ function renderFamily(){
     <div class="fctl"><span class="lab">may bond κ¹ or κ²:</span>${pl.map(l=>`<button class="btn ${kap.includes(l)?'on':''}" data-famkappa="${l}" aria-pressed="${kap.includes(l)}">${ltr(l)}</button>`).join('')}</div>
     <small class="fnote">A κ² ligand takes two sites and a κ¹ ligand one, and the sphere keeps its ${GEOMS[b.geom].n} sites, so another ligand has to give way: the ones allowed to swap in section 2 do that.${kap.length&&!FAM.pool?' <b>Switch section 2 on first</b>: nothing can make room yet.':''}</small></div>`;
   const spec={amb:sel.map(letter=>({letter,donors:famDonors()})),opts:FAM.pool?{outside:Object.fromEntries(Object.entries(FAM.out).filter(e=>e[1]>0)),mobile:[...FAM.swap],chelate:kap}:{chelate:kap}};
-  if(!spec.amb.length&&!FAM.pool&&!kap.length){FAM.cur=null;$('#fBody').innerHTML=h+`<p class="fwhy">Switch a complication on. ${A0.stereo} ${W}${A0.stereo>1?'s':''} for now.</p>`;setHash(famHash());return;}
+  if(!spec.amb.length&&!FAM.pool&&!kap.length){FAM.cur=null;$('#fBody').innerHTML=h+`<p class="fwhy">Switch a complication on. ${A0.stereo} stereoisomer${A0.stereo>1?'s':''} for now.</p>`;setHash(famHash());return;}
   let F; try{F=structuralFamily(b,spec.amb,spec.opts);}catch(e){FAM.cur=null;$('#fBody').innerHTML=h+`<p class="fwhy">${e.message.replace(/^./,x=>x.toUpperCase())}. Adjust the spare copies or what may swap.</p>`;setHash(famHash());return;}
   FAM.cur=F; setHash(famHash());
   if(F.tooMany){$('#fBody').innerHTML=h+`<p class="fwhy">That makes ${F.tooMany} forms, more than the ${F.cap} this panel will analyse. Switch something off, or use two donor atoms.</p>`;return;}
   const T=F.tally, withAmb=spec.amb.length>0, withKap=kap.length>0;
-  h+=`<div class="ftally"><span class="big">${A0.stereo} → ${T.stereo}</span><span>${W}s in total</span>${FAM.pool||withKap?`<span><b>${T.spheres}</b> inner-sphere composition${T.spheres>1?'s':''}</span>`:''}${withAmb?`<span><b>${T.forms}</b> binding form${T.forms>1?'s':''}</span>`:''}<span><b>${T.pairs}</b> enantiomeric pair${T.pairs===1?'':'s'}</span></div>`;
+  h+=`<div class="ftally"><span class="big">${A0.stereo} → ${T.stereo}</span><span>stereoisomers in total</span>${FAM.pool||withKap?`<span><b>${T.spheres}</b> inner-sphere composition${T.spheres>1?'s':''}</span>`:''}${withAmb?`<span><b>${T.forms}</b> binding form${T.forms>1?'s':''}</span>`:''}<span><b>${T.pairs}</b> enantiomeric pair${T.pairs===1?'':'s'}</span></div>`;
   let why=withAmb?`Each binding form is an ordinary stereo formula, analysed like any other. The table counts how many stereoisomers each isomer splits into: it is not simply a multiple, because ligands that are no longer identical break symmetry differently in different arrangements.`:'';
   if(FAM.pool&&Object.values(FAM.out).some(n=>n>0)) why+=` Each inner-sphere composition is a different compound: <b>ionisation</b> isomers where an anion swaps with one outside, <b>hydrate</b> isomers where water does. Its stereoisomers are counted as usual. Charge and conductivity are not modelled.`;
   if(withKap) why+=` <b>Denticity</b> isomers: the same ligands, but a ligand bonded through two atoms (a chelate, κ²) uses two sites where κ¹ uses one, so the rest of the sphere differs. Each composition is analysed as the ordinary chelate formula it is.`;
@@ -2748,7 +2583,7 @@ function renderFamily(){
   const tw=isMobile()?'slot':'Viewport';
   h+=F.variants.map((v,vi)=>{
     const row=iso=>`<div class="iso"><span class="nm" data-fl="${vi}:${iso.idx}:1" title="load into ${tw} 1">${iso.label}</span><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span><button class="ld" data-fl="${vi}:${iso.idx}:1" title="Load into ${tw} 1">1</button><button class="ld" data-fl="${vi}:${iso.idx}:2" title="Load into ${tw} 2">2</button></div>`;
-    return `<div class="fform"><div class="fform-h"><span class="xf">${v.title}</span><small>${v.desc?v.desc+' · ':''}${v.A.stereo} ${W}${v.A.stereo>1?'s':''}${FAM.mark&&JSON.stringify(v.pick)===FAM.mark?' · <b>your formula</b>':''}</small></div>`+
+    return `<div class="fform"><div class="fform-h"><span class="xf">${v.title}</span><small>${v.desc?v.desc+' · ':''}${v.A.stereo} stereoisomer${v.A.stereo>1?'s':''}${FAM.mark&&JSON.stringify(v.pick)===FAM.mark?' · <b>your formula</b>':''}</small></div>`+
       v.A.groups.map(g=>g.length===1?row(g[0]):`<div class="pairbox"><div class="pairlab"><span>enantiomeric pair</span><button data-flpair="${vi}:${g[0].idx}">compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+`</div>`;}).join('');
   $('#fBody').innerHTML=h;
 }
@@ -2756,7 +2591,7 @@ function renderFamily(){
 const FAMLINKS=[];
 function famLinkHTML(pf){
   if(!pf||!pf.amb||!pf.amb.length) return '';
-  const geoms=pf.dent===6?['Oh']:pf.dent===5?['TBP']:pf.dent===4?['SP','Td']:[]; let out='';
+  const geoms=pf.dent===6?['Oh']:pf.dent===4?['SP','Td']:[]; let out='';
   for(const a of pf.amb) for(const geom of geoms){
     let F; try{F=structuralFamily({geom,mono:a.mono,chel:a.chel},[{letter:a.letter,donors:AMBIDENTATE[a.key].donors}]);}catch(e){continue;}
     if(F.tooMany||!F.tally.stereo) continue;
@@ -3013,32 +2848,6 @@ function setActive(n){if(app.active===n)return;app.active=n;refreshM();}
 function refreshMobile(){refreshM();}
 function openSheet(id){closeSheets();$('#'+id).classList.add('open');$('#backdrop').classList.add('show');}
 function closeSheets(){$$('.msheet.open').forEach(e=>e.classList.remove('open'));$('#backdrop').classList.remove('show');}
-/* ---- Berry pseudorotation, animated ---- */
-const BERRY_TIP='One Berry pseudorotation: the ligand in a chosen equatorial position stays put, the two axial ligands swing down to equatorial, and the other two equatorial ligands swing up to axial, passing through a square pyramid.';
-const skinText=(v,X)=>{const sk=v.disp&&v.disp.skin&&v.disp.skin[X];return sk?sk.text:X;};
-/* start the next legal pseudorotation (pivots are tried in turn); returns the message to show */
-function startBerry(v){
-  if(!v.iso||v.G.id!=='TBP') return null;
-  if(v.fx) return null;
-  if(v.anim){v.disp.q.copy(v.anim.q1);v.anim=null;}
-  const G=v.G, eq=G.equatorial, k=eq.indexOf(v.lastPivot), seq=eq.slice(k+1).concat(eq.slice(0,k+1));
-  const pv=seq.find(p=>berryStep(G,v.disp.cfg,p,1));
-  if(pv===undefined) return 'Every pseudorotation of this configuration is blocked: each would put a chelate ring across two equatorial sites. It is rigid.';
-  v.berry(pv,1);
-  return `Berry pseudorotation: the ringed <b>${skinText(v,v.disp.cfg.labels[pv])}</b> stays put; the axial pair swings down while the other equatorial pair swings up, through a square pyramid.`;
-}
-function berryOutcome(v,F){
-  const now=v.iso, was=F.from;
-  if(now.key===was.key) return 'Done: the <b>same configuration</b> again, because the ligands that traded places are identical.';
-  if(was.chiral&&now.key===was.mirrorKey) return `Done: now the <b>mirror image</b> of the start (${now.label}). This move racemised it.`;
-  return `Done: now <b>${now.label}</b>, a different configuration.`;
-}
-function berryDone(v,F){
-  const msg=berryOutcome(v,F);
-  if(v===M.VX){const top=M.stack[M.stack.length-1]; M.stack[M.stack.length-1]={...top,id:v.iso.id}; xRender(null); toast(msg,5000); return;}
-  const n=v===V1?1:v===V2?2:0;
-  refreshUI(); if(n) setFlag(n,msg,true);
-}
 function viewAction(n,act){
   const v=n===1?V1:V2; if(!v.iso) return;
   if(act==='mirror'){v.mirrorOn=!v.mirrorOn;v.dirty=true;}
@@ -3046,7 +2855,6 @@ function viewAction(n,act){
   if(act==='shuffle'){shuffle(v);setFlag(n,'Shuffled: the same molecule, seen from another exam-style angle.');}
   if(act==='reset'){v.hl=null;v.zoom=1;v.rotateTo(v.G.baseQ,{dur:0.6});setFlag(n,'');}
   if(act==='send') sendMirror(n);
-  if(act==='berry'){const m=startBerry(v); if(m) setFlag(n,m,true);}
   hideAlignMsg(); refreshUI();
 }
 function setMode(mode){
@@ -3073,7 +2881,7 @@ function applyLayout(){
   placeElements(mob);
   const inp=$('#ansInput'); inp.readOnly=mob; inp.setAttribute('inputmode',mob?'none':'numeric');
   if(app.live){V2.mirrorAxis=mirrorAxisNow();V1.dirty=true;}
-  if(mob){ if(!M.VX){M.VX=new View($('#xStage'));M.VX.onBerry=F=>berryDone(M.VX,F);} mTab(M.tab,true); if(!seen('tour')) openTour(); }
+  if(mob){ if(!M.VX){M.VX=new View($('#xStage'));} mTab(M.tab,true); if(!seen('tour')) openTour(); }
   else closeSheets();
 }
 
@@ -3123,7 +2931,6 @@ function xRender(dir){
     const iso=isoById[top.id];
     if(dir!==null||!M.VX.disp||M.VX.iso!==iso){M.VX.load(dispOf(iso));M.VX.mirrorOn=!!(chiralView()&&iso.chiral);$$('#xFab [data-x="mirror"]').forEach(b=>b.classList.toggle('on',M.VX.mirrorOn));setSheet('peek');}
     $('#xInfo').innerHTML=xInfoHTML(iso);
-    $$('#xFab [data-x="berry"]').forEach(b=>berryButton(b,M.VX));
     $('#xHome').hidden=true;
   } else if(top.t==='home'){
     mol.hidden=true; list.hidden=true; $('#xHome').hidden=false; setHash(null);
@@ -3141,7 +2948,7 @@ function xListHTML(top){
   const row=iso=>`<button class="xrow iso" data-go="iso:${iso.id}"><span class="xr-main"><span>${iso.label}</span><span class="xchips"><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span></span></span>${chev}</button>`;
   return `<p class="xins">${A.c.insight||summaryHTML(A)}</p>
     <div class="xchips">${ligChips(A.c)}</div><div class="xtally">${countsHTML(A)}</div>`+
-    A.groups.map(g=>g.length===1?row(g[0]):`<div class="xpair"><div class="xpair-h"><span>enantiomeric pair</span><button class="btn" data-cmp="${g[0].id}">Compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+berryHTML(A.c,true)+neighbourHTML(A.c)+complicateHTML(A.c);
+    A.groups.map(g=>g.length===1?row(g[0]):`<div class="xpair"><div class="xpair-h"><span>enantiomeric pair</span><button class="btn" data-cmp="${g[0].id}">Compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+neighbourHTML(A.c)+complicateHTML(A.c);
 }
 function xInfoHTML(iso){
   const ch=iso.chiral?`<span class="chip chiral">chiral</span> No σ, i or S<sub>n</sub>; only ${iso.sym.proper}. Its mirror image is ${iso.partner.label}.`
@@ -3180,7 +2987,6 @@ function refreshM(){
   $$('#cFab .fab').forEach(b=>b.disabled=locked&&b.dataset.mact);
   $$('#moreSheet [data-more]').forEach(b=>b.disabled=locked&&b.dataset.more!=='help');
   $('#cAlign').disabled=app.live;
-  {const av=app.active===1?V1:V2; $$('#moreSheet [data-more="berry"]').forEach(b=>berryButton(b,av));}
   const vals={Live:app.live,Link:app.link,Snap:drawOpts.snap,Color:drawOpts.color};
   Object.keys(vals).forEach(k=>{['m','s'].forEach(p=>{const el=$('#'+p+k);if(el)el.checked=vals[k];});const d=$('#'+k.toLowerCase()+'Chk');if(d)d.checked=vals[k];});
   $$('#sAns button').forEach(b=>b.classList.toggle('on',b.dataset.am===Q.mode));
@@ -3218,7 +3024,6 @@ function mInit(){
     if(a==='mirror'){v.mirrorOn=!v.mirrorOn;v.dirty=true;b.classList.toggle('on',v.mirrorOn);}
     else if(a==='shuffle'){shuffle(v);toast('Same molecule, another exam-style angle.');}
     else if(a==='reset'){v.zoom=1;v.hl=null;v.rotateTo(v.G.baseQ,{dur:0.6});}
-    else if(a==='berry'){const m=startBerry(v);if(m)toast(m,4500);}
     else{const r=v.step(a[1]);if(r)toast(STEP_TEXT(r,a[1]));}});
   sheetDrag();
   $('#cFab').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.mact)viewAction(app.active,b.dataset.mact);if(b.dataset.open==='more')openSheet('moreSheet');});
@@ -3246,7 +3051,6 @@ function init(){
   buildSidebar(); buildLegend(); buildFilters(); buildBuilder(); updateScore();
   V1=new View($('#stage1')); V2=new View($('#stage2'));
   V1.onActivate=()=>setActive(1); V2.onActivate=()=>setActive(2);
-  V1.onBerry=F=>berryDone(V1,F); V2.onBerry=F=>berryDone(V2,F);
   const start=ANALYSIS['oh-maa3'];
   loadInto(1,dispOf(start.isomers[0])); loadInto(2,dispOf(start.isomers[1]));
   setAnswerMode(Q.mode);
