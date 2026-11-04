@@ -1,6 +1,14 @@
 # Structural isomerism: architecture plan
 
-Status: proposal. Nothing in `index.html` has changed. Numbers below were produced by a throwaway prototype run against the unmodified engine (loaded headlessly in Node), not worked out by hand.
+Status: **phases 0 and 1 are built** (abstract ambidentate mode, with tests); phases 2 to 4 are not. Numbers below were first produced by a throwaway prototype against the unmodified engine, and are now asserted by `node tests/engine.mjs`.
+
+| Phase | State |
+|---|---|
+| 0 Test harness, `rsLabel` hardening, naming hook, skin plumbing | done |
+| 1 Abstract ambidentate letters: solver, lowering, family panel, tagged labels, Compare stamp | done |
+| 2 Ionisation / hydrate, named presets (NO₂, SCN), typed-formula recognition, deep links | not started |
+| 3 Quiz types, Builder status line | not started |
+| 4 κ¹/κ² modes, ambidentate chelate ends | not started |
 
 ## 1. The idea in one paragraph
 
@@ -54,22 +62,18 @@ New code lives in one new section of `index.html`, between the engine (section 1
                                mode assignment)   skin)          cached)           tally)
 ```
 
-### 4.1 Species catalogue (data only)
+### 4.1 Binding modes: abstract first, names as presets
 
-A species has *binding modes*. A mode says what it donates through and how it will be drawn.
+The core is **abstract**: a monodentate letter X becomes ambidentate with d donor atoms (x, y, z), drawn X<sup>x</sup>, X<sup>y</sup>. This is what `structuralFamily` implements (phase 1) and it is chemistry-free by design. Named ligands are a thin layer on top, still to come (phase 2): a preset is just a list of modes with display text.
 
 ```js
-const SPECIES = {
-  NO2: {name:'nitrite', charge:-1, modes:[
-         {id:'N', iupac:'nitrito-κN', trad:'nitro',   text:'NO₂', donor:0},
-         {id:'O', iupac:'nitrito-κO', trad:'nitrito', text:'ONO', donor:0}]},
-  SCN: {name:'thiocyanate', charge:-1, modes:[{id:'S',text:'SCN',donor:0},{id:'N',text:'NCS',donor:0}]},
-  H2O: {charge:0, modes:[{id:'O',text:'H₂O',donor:0}]},  Cl:{...}, NH3:{...},
+const SPECIES = {   // phase 2: presets over the abstract modes
+  NO2: {name:'nitrite', charge:-1, modes:[{id:'N', iupac:'nitrito-κN', text:'NO₂'}, {id:'O', iupac:'nitrito-κO', text:'ONO'}]},
+  SCN: {name:'thiocyanate', charge:-1, modes:[{id:'S',text:'SCN'},{id:'N',text:'NCS'}]},
 };
 ```
 
-- Also include `NCS`/`SCN`, `NO2`/`ONO`, `NC`/`CN` as aliases. `parseFormula` (line 1862) already tokenises these as separate monodentates, so typing `[Co(NH3)4(NO2)(ONO)]` *already* lands on the correct child formula. The layer just needs to recognise them as one species, which is what lets the finder offer "see the linkage family".
-- An **abstract** mode must exist too: "make B ambidentate" with donors shown as B<sub>x</sub> / B<sub>y</sub>. This is the version that matches the request literally (complicate any geometry/formula), and chemistry names are presets on top of it.
+`parseFormula` (`NAMED_MONO`) already tokenises `NO2`, `ONO`, `SCN`, `NCS` as separate monodentates, so typing `[Co(NH3)4(NO2)(ONO)]` already lands on the correct child formula. Phase 2 only needs to recognise them as one species, which lets the finder offer "see the linkage family". Long labels will need width-aware bond clearance in `drawMolecule`; the one-character tags of phase 1 fit inside the existing clearance.
 
 ### 4.2 Pool and solver
 
@@ -115,7 +119,7 @@ Engine labels stay single characters. A `skin` maps each letter to display text,
 - Show the donor atom: bond terminates at it, and it is set bold/underlined. Chemists write `O₂N–M` on the left and `M–NO₂` on the right; anchoring the donor glyph at the bond tip does this automatically. Fallback if that proves fiddly: centred text with the donor atom accented.
 - `mirrorDisp` and `loadInto` must copy `skin`.
 
-## 5. Small changes to existing code
+## 5. Small changes to existing code (done in phases 0 and 1)
 
 All backward compatible, and each checkable against the 248 existing labels staying byte-identical.
 
@@ -123,11 +127,12 @@ All backward compatible, and each checkable against the 248 existing labels stay
 2. Name builders (`monoParts`, `nameIso`, `transPairs`, the `toward` helper in `analyzeCase`) take an optional `lbl(letter)` hook so variant names read "NO₂ trans, ONO cis" instead of "B trans, C cis". Default is identity. This is better than regex post-processing, because names contain letters inside ordinary words.
 3. R/S on tetrahedral variants: the app's convention is hypothetical priorities A > B > C > D. Under a skin the letters are arbitrary, so keep the existing caveat or fall back to the I/II labels. Do not imply real CIP.
 4. `drawMolecule` and `View.load`: skin support as in 4.5.
-5. Add `/*ENGINE-BEGIN*/ … /*ENGINE-END*/` markers around sections 1 and the new layer so a test can slice them out.
+5. Add `/*ENGINE-BEGIN*/ … /*ENGINE-END*/` markers around section 1 and the structural layer so a test can slice them out. `isoById` and `analysisFor` moved inside them.
+6. Added in phase 1: `formulaHTML`/`ligHTML` take the same `lbl` hook; variant cases carry a `titleHTML` and a `family` id; Compare says "structural isomers" for two binding forms of one family instead of "not isomers".
 
 ## 6. UI
 
-- **Entry point:** a "Complicate this formula" block in the Explore case body, beside the existing "One substitution away" list (which is already a one-step version of this idea; `MODE_SWAPS` and the N–H modes are earlier "complications" in the same spirit). On a phone it is one more screen type on the `M.stack`, not a new tab: the tab bar is already five wide. On desktop, a modal like the Builder and Inspector.
+- **Entry point (built):** a "Complicate it" block in the Explore case body, beside the existing "One substitution away" list (which is already a one-step version of this idea; `MODE_SWAPS` and the N–H modes are earlier "complications" in the same spirit). On a phone it is one more screen type on the `M.stack`, not a new tab: the tab bar is already five wide. On desktop, a modal like the Builder and Inspector.
 - **Panel contents:** (1) base formula with each ligand a tappable chip: "make ambidentate", "may leave the sphere", "reset"; (2) the tally as a before → after line ("2 → 6 stereoisomers"); (3) the **matrix**, with rows being the base formula's geometrical isomers and columns the binding assignments, each cell a count and a tap-through that loads the isomer into Viewport 1/2 with its skin; (4) a short generated sentence per geometry saying *why* (for example "mixed S/N binding gives four different donor environments, so a tetrahedron becomes chiral").
 - **Presets:** [Co(NH₃)₄(NO₂)₂]⁺, [Co(en)₂(NCS)₂]⁺, [Cr(H₂O)₆]Cl₃ and friends, so the panel is useful before anyone types anything.
 - **Deep links:** `#x:<geom>:<pool>` alongside the existing `#<case id>`.
