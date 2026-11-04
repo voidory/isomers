@@ -6,8 +6,8 @@ Status: **phases 0 to 2 are built** (edge rule and hooks, the static trigonal bi
 |---|---|
 | 0 Edge-rule tolerance, descriptor hooks, id-based bank test | done |
 | 1 Static TBP: shape, drawing, naming, generator, finder, Builder (kept out of the quiz) | done |
-| 2 Berry layer: sets, chirality rule, ring blocking, panel block, Compare relation | done |
-| 3 Berry animation | not started |
+| 2 Berry layer: sets, ring blocking, panel block, Compare relation | done (set structure corrected in phase 3, see 2.2) |
+| 3 Berry animation | done |
 | 4 Square pyramid shape | not started |
 | 5 Variable-coordination-number families (separate decision) | not started |
 
@@ -122,10 +122,11 @@ berrySets(A)             // → { sets:[{isos, chiral, racemises}], blocked, rul
 
 The viewport rotates a rigid molecule; Berry needs the sites themselves to move.
 
-- **Path.** Put the pivot on the C₂ axis (+z). The initially equatorial pair sits at (±sin β, 0, cos β); the initially axial pair at (0, ±sin γ, cos γ). Run β: 120° → 100° → 90° and γ: 90° → 100° → 120°. At the midpoint both pairs are 160° apart and 100° from the pivot (the other angle is 88°): a square pyramid. At the end the roles have swapped. I checked these angles by arithmetic; the animation itself is not prototyped.
-- **Rendering.** `drawMolecule` takes site positions from `G.unit`. Add an optional `disp.unit` override (same shape as the skin override already added), used for bonds, wedges, hashes and chelate bridges. Labels, halos and clearance code stay untouched.
-- **Controller.** A `View.berry(pivot)` that interpolates, then on completion replaces `disp.cfg` with the permuted configuration, re-seats the orientation so the picture is continuous, and clears the override. A "Berry" button appears in the viewport tools for TBP isomers only; disabled, with the reason, when rings block every pivot.
-- **Risk.** Chelate bridges are drawn from the site positions, so mid-path they need to stay readable; this is the part to prototype first.
+- **Path** (`berryPose`). The pivot sits on the C₂ axis. The initially equatorial pair is at (±sin β, 0, cos β) and the initially axial pair at (0, ±sin γ, cos γ), with β going 120° → 90° and γ going 90° → 120° together (smoothstep easing). At the midpoint β = γ = 105°: both pairs are 105° from the pivot, 150° apart within a pair, 86° between pairs, a C₄ᵥ square pyramid with the pivot at its apex (checked in `tests/engine.mjs`). The earlier sketch quoted 100°/160°/88°, which would need an unevenly timed path; the symmetric linear one is simpler and reads the same.
+- **Rendering.** `drawMolecule` takes site positions from an optional `disp.unit` override (default `G.unit`), used for bonds, wedges, hashes, chelate bridges and N–H. Labels, halos and clearance code are untouched. `mirrorDisp` carries the override across the mirror, so a live mirror viewport follows the motion.
+- **Controller** (`View.berry`, `finishBerry`). The finished structure is the shape turned a quarter about the pivot axis, so the picture is turned back by that quarter on completion and the labels are re-seated with the move's permutation (`berryStep`). The camera turns to a tidy exam-style view of the new configuration *during* the move, not afterwards; without that, two-ring structures ended seen edge-on. Checked in the browser over 40 moves with snapping on and off: the hand-over from the moving pose to the re-seated drawing moves nothing by more than a rounding error. Grabbing the molecule mid-move hands the camera back to you.
+- **UI.** A "Berry move" button in each viewport's tools (and a ⇄ button on the phone) for five-coordinate molecules only. Each press runs the next legal pivot in turn; the pivot ligand is ringed. It is disabled, with the reason, when rings block every pivot. A message says what happened afterwards: the same configuration (identical ligands traded places), the mirror image (this move racemised it), or a different configuration.
+- **Chelate rings** stayed readable: bridges follow the moving sites, and a ring's ends stay about 90° apart (86° at the midpoint). The crowded moment is the middle of a two-ring formula, where the rings are briefly edge-on.
 
 ### 4.5 The square pyramid (later): a shape, and the transition frame
 
@@ -149,7 +150,7 @@ The structural layer holds the number of sites fixed because each shape has a fi
 - **Static counts:** 1, 2, 3, 4, 6, 10, 20 for the monodentate formulas, as above.
 - **Berry invariants:** every move maps isomers to isomers or is rejected; the sets partition the isomers; the set of a chiral isomer's mirror image is the mirror set; for monodentate formulas the number of sets is 1, and for five different ligands the reaction graph is 3-regular with 30 edges; every move is a 4-cycle (odd), equal to the double swap followed by the axial mirror (checked, not assumed).
 - **Ring rule:** every chelate formula either has a set count and blocked count equal to the prototype's, or the test fails.
-- **Animation:** the path's endpoints are the TBP before and after, to numerical tolerance; the midpoint is a C₄ᵥ pyramid.
+- **Animation:** the path's endpoints are the TBP before and after, to numerical tolerance; the midpoint is a C₄ᵥ pyramid (in `tests/engine.mjs`). The hand-over and the live mirror were checked in a browser, not in the test file.
 
 ## 6. Phasing
 

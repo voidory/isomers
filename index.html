@@ -132,6 +132,7 @@ main[hidden]{display:none!important}
 .bload{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
 @media (max-width:760px){.bmain{grid-template-columns:1fr}.bstage{height:300px}}
 .vp-flag.show{display:block}
+.vp-flag.two{min-height:2.7em;line-height:1.3}      /* a Berry message keeps two lines, so the picture does not resize when it changes */
 .vp-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
 .vp-info{font-size:14px;margin-top:6px;color:var(--ink2);min-height:58px}
 .vp-info b{color:var(--ink);font-weight:normal;font-family:var(--hand)}
@@ -612,6 +613,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
             <button class="btn" data-act="shuffle" data-v="1" title="Show the same molecule from a random exam-style angle">Shuffle</button>
             <button class="btn" data-act="reset" data-v="1">Reset</button>
             <button class="btn" data-act="mirror" data-v="1" title="Draw its reflection beside it">Mirror plane</button>
+            <button class="btn" data-act="berry" data-v="1" hidden>Berry move</button>
             <button class="btn" data-act="send" data-v="1">Mirror image → V2</button>
           </div>
           <div class="vp-info" id="info1"></div>
@@ -627,6 +629,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
             <button class="btn" data-act="shuffle" data-v="2" title="Show the same molecule from a random exam-style angle">Shuffle</button>
             <button class="btn" data-act="reset" data-v="2">Reset</button>
             <button class="btn" data-act="mirror" data-v="2" title="Draw its reflection beside it">Mirror plane</button>
+            <button class="btn" data-act="berry" data-v="2" hidden>Berry move</button>
             <button class="btn" data-act="send" data-v="2">Mirror image → V1</button>
           </div>
           <div class="vp-info" id="info2"></div>
@@ -702,7 +705,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
       <div id="xMol" hidden>
         <div class="xstage" id="xStage"></div>
         <div class="xsheet" id="xSheet" data-state="peek">
-          <div class="fab-row" id="xFab"><button class="fab" data-x="rv" aria-label="Turn about the axis nearest the vertical">↻<small>vert</small></button><button class="fab" data-x="rh" aria-label="Turn about the axis nearest the horizontal">↻<small>horiz</small></button><button class="fab" data-x="rz" aria-label="Turn within the page">⟲<small>page</small></button><button class="fab" data-x="shuffle" aria-label="Show from another exam-style angle">⤮<small>shuffle</small></button><button class="fab" data-x="mirror" aria-label="Draw its mirror image beside it">⧉<small>mirror</small></button><button class="fab" data-x="reset" aria-label="Back to the start view">⌂<small>reset</small></button></div>
+          <div class="fab-row" id="xFab"><button class="fab" data-x="rv" aria-label="Turn about the axis nearest the vertical">↻<small>vert</small></button><button class="fab" data-x="rh" aria-label="Turn about the axis nearest the horizontal">↻<small>horiz</small></button><button class="fab" data-x="rz" aria-label="Turn within the page">⟲<small>page</small></button><button class="fab" data-x="shuffle" aria-label="Show from another exam-style angle">⤮<small>shuffle</small></button><button class="fab" data-x="mirror" aria-label="Draw its mirror image beside it">⧉<small>mirror</small></button><button class="fab" data-x="reset" aria-label="Back to the start view">⌂<small>reset</small></button><button class="fab" data-x="berry" aria-label="Berry pseudorotation: one move" hidden>⇄<small>berry</small></button></div>
           <div class="xhandle" id="xHandle" role="button" aria-label="Show more details"><span></span></div>
           <div id="xInfo"></div>
         </div>
@@ -754,6 +757,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
   <div class="sheet-head"><span class="grab"></span><b>More</b><span style="flex:1"></span><button class="btn" data-close>✕</button></div>
   <div class="more-grid">
     <button class="btn" data-more="mirror">Mirror plane</button>
+    <button class="btn" data-more="berry" hidden>Berry move</button>
     <button class="btn" data-more="send">Mirror image → other viewport</button>
     <label><input type="checkbox" id="mLive"> mirror between viewports</label>
     <label><input type="checkbox" id="mLink"> link rotation</label>
@@ -1297,7 +1301,9 @@ function analyzeCase(c,lbl=ID){
     const roman=iso.chir==='I'||iso.chir==='II';
     iso.label = iso.chir ? (roman ? `${iso.name||'enantiomer'} (${iso.chir})` : (iso.name?`${iso.chir}-${iso.name}`:iso.chir)) : (iso.name|| (isomers.length===1?'only isomer':'isomer'));
   });
-  return {c,G,groups,isomers,stereo:isomers.length,geometric:groups.length,pairs:groups.filter(g=>g.length===2).length};
+  const A={c,G,groups,isomers,stereo:isomers.length,geometric:groups.length,pairs:groups.filter(g=>g.length===2).length};
+  isomers.forEach(iso=>Object.defineProperty(iso,'A',{value:A,enumerable:false}));   // a way back from an isomer to its whole analysis (hidden from JSON and comparisons)
+  return A;
 }
 
 /* ---------- the dataset ---------- */
@@ -1875,7 +1881,10 @@ for(const G of Object.values(GEOMS)){
 const nearestSnap=(G,q)=>G.snaps.reduce((b,c)=>Math.abs(c.dot(q))>Math.abs(b.dot(q))?c:b,G.snaps[0]);
 const mirrorIsoOf=iso=>iso.chiral?iso.partner:iso;
 /* exact mirror image of a displayed molecule, as a mirror standing at the page's vertical edge would show it */
-function mirrorDisp(d,axis='x'){const G=GEOMS[d.iso.geom];return {iso:mirrorIsoOf(d.iso),cfg:applyCfg(G.sigma.perm,d.cfg),q:mirrorQ(d.q,G,axis),skin:d.skin||null};}
+function mirrorDisp(d,axis='x'){const G=GEOMS[d.iso.geom];
+  let unit=null;
+  if(d.unit){unit=[];d.unit.forEach((u,i)=>{const r=M3.mulV(G.sigma.m,G.unit[i]);let j=0;G.unit.forEach((w,k)=>{if(V.dot(w,r)>V.dot(G.unit[j],r))j=k;});unit[j]=M3.mulV(G.sigma.m,u);});}
+  return {iso:mirrorIsoOf(d.iso),cfg:applyCfg(G.sigma.perm,d.cfg),q:mirrorQ(d.q,G,axis),skin:d.skin||null,unit};}
 /* skin (optional): how the engine's one-letter labels are drawn, {letter:{text,donor,hue}}; null = the letter itself */
 function dispOf(iso,skin=null){
   if(iso.second) return mirrorDisp(dispOf(iso.partner,skin));
@@ -1895,7 +1904,7 @@ function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
   const d=view.disp, G=GEOMS[d.iso.geom], cfg=d.cfg, q=d.q;
   const fs=Math.max(10,L*0.25), lw=Math.max(1.1,L*0.024), clrL=fs*0.58, clrM=fs*0.62;
   const proj=v=>{_v.set(v[0],v[1],v[2]).applyQuaternion(q);return {x:cx+(flip?-_v.x:_v.x)*L,y:cy-_v.y*L,z:_v.z};};
-  const P=G.unit.map(proj), items=[];
+  const U=d.unit||G.unit, P=U.map(proj), items=[];      // d.unit: site positions while a Berry pseudorotation is under way
   // skinned labels can be wider than one letter (NO₂, ONO): half their width, so the bond stops at the label's edge
   const halfW=P.map((p,i)=>{const sk=d.skin&&d.skin[cfg.labels[i]];if(!sk)return 0;const m=skinMeasure(ctx,sk,fs);return (m.w0+m.w1+m.tw)/2;});
   // rotation axis shown while a step-rotation animates
@@ -1911,14 +1920,14 @@ function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
   });
   items.push({kind:'label',i:-1,depth:0});
   cfg.edges.forEach(([a,b,t])=>{
-    const pa=G.unit[a],pb=G.unit[b],n=V.norm(V.add(pa,pb)),e=V.sub(pb,pa);
+    const pa=U[a],pb=U[b],n=V.norm(V.add(pa,pb)),e=V.sub(pb,pa);
     const c1=V.add(V.add(pa,V.scale(n,0.42)),V.scale(e,0.14)), c2=V.sub(V.add(pb,V.scale(n,0.42)),V.scale(e,0.14));
     const pts=t==='6'?[P[a],proj(V.add(V.add(pa,V.scale(n,0.4)),V.scale(e,0.03))),proj(V.add(V.scale(V.add(pa,pb),.5),V.scale(n,0.66))),proj(V.sub(V.add(pb,V.scale(n,0.4)),V.scale(e,0.03))),P[b]]
                      :[P[a],proj(c1),proj(c2),P[b]];
     const mid=pts.slice(1,-1);
     items.push({kind:'bridge',a,b,pts,depth:mid.reduce((t,o)=>t+o.z,0)/mid.length});
   });
-  if(cfg.h) Object.keys(cfg.h).forEach(k=>{const i=+k,ph=proj(V.add(G.unit[i],V.scale(nhVec(G,cfg,i),0.4)));
+  if(cfg.h) Object.keys(cfg.h).forEach(k=>{const i=+k,ph=proj(V.add(U[i],V.scale(nhVec(G,cfg,i),0.4)));
     items.push({kind:'nh',i,ph,depth:(P[i].z+ph.z)/2},{kind:'hlab',i,ph,depth:ph.z});});
   // lines back-to-front, then every label on top (as in ChemDraw, no line ever covers text)
   const isLab=k=>k==='label'||k==='hlab';
@@ -1994,7 +2003,7 @@ class View{
   constructor(el,{mini=false,builder=false}={}){
     this.el=el;this.mini=mini;this.builder=builder;
     this.cv=document.createElement('canvas');el.appendChild(this.cv);this.ctx=this.cv.getContext('2d');
-    this.disp=null;this.iso=null;this.mirrorOn=false;this.anim=null;this.dirty=true;this.styles={};this.hl=null;this.pick=null;
+    this.disp=null;this.iso=null;this.mirrorOn=false;this.anim=null;this.fx=null;this.onBerry=null;this.lastPivot=-1;this.dirty=true;this.styles={};this.hl=null;this.pick=null;
     this.interactive=!builder;this.drag=null;this.hits=null;this.onPick=null;this.onStep=null;
     this.zoom=1;this.ptrs=new Map();this.mirrorOf=null;this.onActivate=null;this.onTap=null;this.lastTap=0;this.ptype='mouse';
     this.ro=new ResizeObserver(()=>{const r=el.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
@@ -2009,7 +2018,7 @@ class View{
     if(!mini&&!builder) c.addEventListener('wheel',e=>{if(!this.disp)return;e.preventDefault();this.zoom=Math.min(2.4,Math.max(0.55,this.zoom*Math.exp(-e.deltaY*0.0015)));this.dirty=true;},{passive:false});
     views.add(this);
   }
-  load(disp){this.disp={iso:disp.iso,cfg:disp.cfg,q:disp.q.clone(),skin:disp.skin||null};this.iso=disp.iso;this.hl=disp.hl||null;this.anim=null;this.styles={};this.dirty=true;}
+  load(disp){this.disp={iso:disp.iso,cfg:disp.cfg,q:disp.q.clone(),skin:disp.skin||null};this.iso=disp.iso;this.hl=disp.hl||null;this.anim=null;this.fx=null;this.pick=null;this.styles={};this.dirty=true;}
   get G(){return GEOMS[this.iso.geom];}
   partner(){return this===V1?V2:this===V2?V1:null;}
   down(e){
@@ -2020,7 +2029,7 @@ class View{
     try{this.cv.setPointerCapture(e.pointerId);}catch(_){}
     if(!this.ptrs.size){this.hadTwo=false;this.moved=0;this.rollMode=e.shiftKey||e.button===2;}
     this.ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); this.ptype=e.pointerType;
-    this.anim=null;this.hl=null;
+    this.anim=null;this.hl=null;if(this.fx)this.fx.q1=null;      // grabbing the molecule during a Berry move hands the camera back to you
     const o=app.link&&this.partner(); if(o){o.anim=null;o.hl=null;}
     this.gesture(); this.onActivate&&this.onActivate();
   }
@@ -2087,7 +2096,30 @@ class View{
     this.rotateTo(this.disp.q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(...ax).normalize(),ang)),{dur:0.8,axis:ax});
     return {order:best.a.order,deg:Math.round(360/best.a.order)};
   }
+  /* Berry pseudorotation about the equatorial site `pivot`: the sites themselves move (berryPose), then the picture is re-seated on the shape */
+  berry(pivot,sense=1){
+    if(!this.disp||this.fx||this.G.id!=='TBP') return null;
+    const st=berryStep(this.G,this.disp.cfg,pivot,sense); if(!st) return null;
+    // the finished structure is the shape turned a quarter about the pivot axis, so the drawing has to be turned back by that much
+    // to sit on the shape's sites; the camera turns on the way to a tidy exam-style view of the new configuration, not afterwards
+    const back=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(...berryFrame(this.G,pivot).z),-sense*Math.PI/2);
+    const q0=this.disp.q.clone(), qNew=q0.clone().multiply(back), qs=drawOpts.snap?nearestSnap(this.G,qNew):qNew;
+    this.fx={pivot,sense,t:0,dur:2.6,st,from:this.iso,back,q0,q1:qs.clone().multiply(back.clone().invert())};
+    this.pick=pivot; this.hl=null; this.dirty=true; return this.fx;
+  }
+  finishBerry(){
+    const F=this.fx; if(!F) return; const G=this.G, d=this.disp;
+    if(F.q1) d.q.copy(F.q1);                     // (unless you grabbed the molecule meanwhile)
+    d.q.multiply(F.back); d.cfg=F.st.cfg; d.unit=null;
+    const key=canon(d.cfg,G.rots), iso=this.iso.A.isomers.find(i=>i.key===key);
+    d.iso=iso; this.iso=iso; this.fx=null; this.pick=null; this.styles={}; this.dirty=true; this.lastPivot=F.pivot;
+    if(drawOpts.snap&&!F.q1) this.snap();
+    this.onBerry&&this.onBerry(F);
+  }
   tick(dt){
+    const F=this.fx;
+    if(F){F.t+=dt/F.dur; const t=Math.min(1,F.t), k=t*t*(3-2*t);
+      if(F.t>=1) this.finishBerry(); else{this.disp.unit=berryPose(this.G,F.pivot,k);if(F.q1)this.disp.q.slerpQuaternions(F.q0,F.q1,k);this.dirty=true;}}
     const A=this.anim;if(!A)return;
     A.t+=dt/A.dur;const k=A.t>=1?1:(1-Math.cos(Math.PI*A.t))/2;
     this.disp.q.slerpQuaternions(A.q0,A.q1,k);this.dirty=true;
@@ -2113,7 +2145,7 @@ class View{
 let lastT=performance.now();
 function frame(now){
   const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;
-  for(const v of views){if(v.el.isConnected&&v.anim)v.tick(dt);}
+  for(const v of views){if(v.el.isConnected&&(v.anim||v.fx))v.tick(dt);}
   for(const v of views){const m=v.mirrorOf;if(m&&m.disp&&(m.dirty||!v.disp||v.zoom!==m.zoom)){v.disp=mirrorDisp(m.disp,v.mirrorAxis||'x');v.iso=v.disp.iso;v.hl=null;v.zoom=m.zoom;v.dirty=true;}}
   for(const v of views){if(v.dirty&&v.el.isConnected&&v.cv.width>1){v.draw();v.dirty=false;}}
   requestAnimationFrame(frame);
@@ -2372,6 +2404,12 @@ function viewInfo(v){
     :`<div class="line"><span class="chip achiral">achiral</span> contains ${iso.sym.improper.join(', ')}, so it is its own mirror image.</div>`;
   return `<div class="line"><b>symmetry elements</b> ${iso.sym.elements}</div>${ch}${tp}`;
 }
+/* the Berry button only exists for five-coordinate molecules; it says why when every move is blocked */
+function berryButton(b,v){
+  const tbp=!!(v&&v.iso&&v.G.id==='TBP'); b.hidden=!tbp; if(!tbp) return;
+  const ok=v.disp&&v.G.equatorial.some(p=>berryStep(v.G,v.disp.cfg,p,1));
+  b.disabled=!ok||!!v.fx; b.title=ok?BERRY_TIP:'Every pseudorotation of this configuration is blocked by a chelate ring: it is rigid.';
+}
 function refreshUI(){
   [[V1,1],[V2,2]].forEach(([v,n])=>{
     const iso=v.iso;
@@ -2379,6 +2417,7 @@ function refreshUI(){
     $('#pg'+n).innerHTML=iso?iso.sym.html:'';
     $('#info'+n).innerHTML=viewInfo(v);
     $$(`[data-act="mirror"][data-v="${n}"]`).forEach(b=>b.classList.toggle('on',v.mirrorOn));
+    $$(`[data-act="berry"][data-v="${n}"]`).forEach(b=>berryButton(b,v));
   });
   const live=app.live;
   $$('.vp-tools [data-v="2"]').forEach(b=>b.disabled=live);
@@ -2406,7 +2445,7 @@ function fluxNote(a,b,mirror){
   if(same) return mirror?' <b>Here pseudorotation can interconvert them</b>, so this pair racemises.':' <b>But they interconvert by Berry pseudorotation</b>, so in practice they are one fluxional species.';
   return ' Pseudorotation does not connect them'+(B.allBlocked||B.blocked?' (chelate rings block the moves)':'')+', so they stay separate.';
 }
-function setFlag(n,html){if(html===null)return;if(html&&isMobile()&&!/^live mirror/.test(html))toast(html);const f=$('#flag'+n);f.innerHTML=html;f.dataset.live=app.live&&n===2?'1':'';f.classList.toggle('show',!!html);}
+function setFlag(n,html,two=false){if(html===null)return;if(html&&isMobile()&&!/^live mirror/.test(html))toast(html);const f=$('#flag'+n);f.innerHTML=html;f.dataset.live=app.live&&n===2?'1':'';f.classList.toggle('show',!!html);f.classList.toggle('two',!!html&&two);}
 function hideAlignMsg(){$('#alignMsg').classList.remove('show');}
 function sendMirror(from){
   const src=from===1?V1:V2;
@@ -2974,6 +3013,32 @@ function setActive(n){if(app.active===n)return;app.active=n;refreshM();}
 function refreshMobile(){refreshM();}
 function openSheet(id){closeSheets();$('#'+id).classList.add('open');$('#backdrop').classList.add('show');}
 function closeSheets(){$$('.msheet.open').forEach(e=>e.classList.remove('open'));$('#backdrop').classList.remove('show');}
+/* ---- Berry pseudorotation, animated ---- */
+const BERRY_TIP='One Berry pseudorotation: the ligand in a chosen equatorial position stays put, the two axial ligands swing down to equatorial, and the other two equatorial ligands swing up to axial, passing through a square pyramid.';
+const skinText=(v,X)=>{const sk=v.disp&&v.disp.skin&&v.disp.skin[X];return sk?sk.text:X;};
+/* start the next legal pseudorotation (pivots are tried in turn); returns the message to show */
+function startBerry(v){
+  if(!v.iso||v.G.id!=='TBP') return null;
+  if(v.fx) return null;
+  if(v.anim){v.disp.q.copy(v.anim.q1);v.anim=null;}
+  const G=v.G, eq=G.equatorial, k=eq.indexOf(v.lastPivot), seq=eq.slice(k+1).concat(eq.slice(0,k+1));
+  const pv=seq.find(p=>berryStep(G,v.disp.cfg,p,1));
+  if(pv===undefined) return 'Every pseudorotation of this configuration is blocked: each would put a chelate ring across two equatorial sites. It is rigid.';
+  v.berry(pv,1);
+  return `Berry pseudorotation: the ringed <b>${skinText(v,v.disp.cfg.labels[pv])}</b> stays put; the axial pair swings down while the other equatorial pair swings up, through a square pyramid.`;
+}
+function berryOutcome(v,F){
+  const now=v.iso, was=F.from;
+  if(now.key===was.key) return 'Done: the <b>same configuration</b> again, because the ligands that traded places are identical.';
+  if(was.chiral&&now.key===was.mirrorKey) return `Done: now the <b>mirror image</b> of the start (${now.label}). This move racemised it.`;
+  return `Done: now <b>${now.label}</b>, a different configuration.`;
+}
+function berryDone(v,F){
+  const msg=berryOutcome(v,F);
+  if(v===M.VX){const top=M.stack[M.stack.length-1]; M.stack[M.stack.length-1]={...top,id:v.iso.id}; xRender(null); toast(msg,5000); return;}
+  const n=v===V1?1:v===V2?2:0;
+  refreshUI(); if(n) setFlag(n,msg,true);
+}
 function viewAction(n,act){
   const v=n===1?V1:V2; if(!v.iso) return;
   if(act==='mirror'){v.mirrorOn=!v.mirrorOn;v.dirty=true;}
@@ -2981,6 +3046,7 @@ function viewAction(n,act){
   if(act==='shuffle'){shuffle(v);setFlag(n,'Shuffled: the same molecule, seen from another exam-style angle.');}
   if(act==='reset'){v.hl=null;v.zoom=1;v.rotateTo(v.G.baseQ,{dur:0.6});setFlag(n,'');}
   if(act==='send') sendMirror(n);
+  if(act==='berry'){const m=startBerry(v); if(m) setFlag(n,m,true);}
   hideAlignMsg(); refreshUI();
 }
 function setMode(mode){
@@ -3007,7 +3073,7 @@ function applyLayout(){
   placeElements(mob);
   const inp=$('#ansInput'); inp.readOnly=mob; inp.setAttribute('inputmode',mob?'none':'numeric');
   if(app.live){V2.mirrorAxis=mirrorAxisNow();V1.dirty=true;}
-  if(mob){ if(!M.VX){M.VX=new View($('#xStage'));} mTab(M.tab,true); if(!seen('tour')) openTour(); }
+  if(mob){ if(!M.VX){M.VX=new View($('#xStage'));M.VX.onBerry=F=>berryDone(M.VX,F);} mTab(M.tab,true); if(!seen('tour')) openTour(); }
   else closeSheets();
 }
 
@@ -3057,6 +3123,7 @@ function xRender(dir){
     const iso=isoById[top.id];
     if(dir!==null||!M.VX.disp||M.VX.iso!==iso){M.VX.load(dispOf(iso));M.VX.mirrorOn=!!(chiralView()&&iso.chiral);$$('#xFab [data-x="mirror"]').forEach(b=>b.classList.toggle('on',M.VX.mirrorOn));setSheet('peek');}
     $('#xInfo').innerHTML=xInfoHTML(iso);
+    $$('#xFab [data-x="berry"]').forEach(b=>berryButton(b,M.VX));
     $('#xHome').hidden=true;
   } else if(top.t==='home'){
     mol.hidden=true; list.hidden=true; $('#xHome').hidden=false; setHash(null);
@@ -3113,6 +3180,7 @@ function refreshM(){
   $$('#cFab .fab').forEach(b=>b.disabled=locked&&b.dataset.mact);
   $$('#moreSheet [data-more]').forEach(b=>b.disabled=locked&&b.dataset.more!=='help');
   $('#cAlign').disabled=app.live;
+  {const av=app.active===1?V1:V2; $$('#moreSheet [data-more="berry"]').forEach(b=>berryButton(b,av));}
   const vals={Live:app.live,Link:app.link,Snap:drawOpts.snap,Color:drawOpts.color};
   Object.keys(vals).forEach(k=>{['m','s'].forEach(p=>{const el=$('#'+p+k);if(el)el.checked=vals[k];});const d=$('#'+k.toLowerCase()+'Chk');if(d)d.checked=vals[k];});
   $$('#sAns button').forEach(b=>b.classList.toggle('on',b.dataset.am===Q.mode));
@@ -3150,6 +3218,7 @@ function mInit(){
     if(a==='mirror'){v.mirrorOn=!v.mirrorOn;v.dirty=true;b.classList.toggle('on',v.mirrorOn);}
     else if(a==='shuffle'){shuffle(v);toast('Same molecule, another exam-style angle.');}
     else if(a==='reset'){v.zoom=1;v.hl=null;v.rotateTo(v.G.baseQ,{dur:0.6});}
+    else if(a==='berry'){const m=startBerry(v);if(m)toast(m,4500);}
     else{const r=v.step(a[1]);if(r)toast(STEP_TEXT(r,a[1]));}});
   sheetDrag();
   $('#cFab').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.mact)viewAction(app.active,b.dataset.mact);if(b.dataset.open==='more')openSheet('moreSheet');});
@@ -3177,6 +3246,7 @@ function init(){
   buildSidebar(); buildLegend(); buildFilters(); buildBuilder(); updateScore();
   V1=new View($('#stage1')); V2=new View($('#stage2'));
   V1.onActivate=()=>setActive(1); V2.onActivate=()=>setActive(2);
+  V1.onBerry=F=>berryDone(V1,F); V2.onBerry=F=>berryDone(V2,F);
   const start=ANALYSIS['oh-maa3'];
   loadInto(1,dispOf(start.isomers[0])); loadInto(2,dispOf(start.isomers[1]));
   setAnswerMode(Q.mode);
