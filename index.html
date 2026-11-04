@@ -2287,8 +2287,9 @@ function buildBuilder(){
 /* =====================================================================
    4. QUIZ UI
    ===================================================================== */
-const Q={fams:new Set(['mb','tri','tet']),cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
-try{Q.best=+localStorage.getItem('isoSketchBest')||0;const m=localStorage.getItem('isoAnsMode');if(m==='mc'||m==='type')Q.mode=m;}catch(e){}
+const Q={nh:false,fams:new Set(['mb','tri','tet']),   // nh: include the trien/cyclam cases that count N–H stereocentres (off unless chosen)
+cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
+try{Q.best=+localStorage.getItem('isoSketchBest')||0;Q.nh=localStorage.getItem('isoQuizNH')==='1';const m=localStorage.getItem('isoAnsMode');if(m==='mc'||m==='type')Q.mode=m;}catch(e){}
 const TYPE_TEXT={
   stereo:`How many <b>stereoisomers</b> (counting each enantiomer separately) are possible for`,
   geometric:`How many <b>geometrical isomers</b> (each enantiomeric pair counted once) are possible for`,
@@ -2317,7 +2318,7 @@ function setAnswerMode(m){
 }
 function nextQuestion(){
   clearResults(); hidePop();
-  const quizzable=c=>caseLetters(c).size>1;   // [MA6]-type formulas are too trivial to ask about
+  const quizzable=c=>caseLetters(c).size>1&&(Q.nh||famOf(c)!=='qn');   // [MA6]-type formulas are too trivial to ask about; N–H counting only when chosen
   const fk=c=>{const f=famOf(c);return f==='m'||f==='b'?'mb':f[0]==='t'?'tri':'tet';};
   // pick the ligand group first, so the many tri- and tetradentate formulas don't crowd out the rest
   const famsAvail=[...Q.fams].filter(f=>BANK.some(c=>fk(c)===f&&quizzable(c)&&Q.geoms.has(c.geom)));
@@ -2454,6 +2455,7 @@ function buildFilters(){
   const f=$('#filters');
   f.innerHTML=`<span>ask about:</span>`+['Td','SP','Oh'].map(g=>`<button class="btn ${Q.geoms.has(g)?'on':''}" data-geo="${g}">${GEOMS[g].name}</button>`).join('')+
     `<span class="dot-sep">·</span>`+[['mb','mono- & bidentate'],['tri','tridentate'],['tet','tetradentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join('')+
+    `<button class="btn ${Q.nh?'on':''}" data-nh title="Include [M(trien)…] and [M(cyclam)…] with each secondary N–H counted as a stereocentre (beyond most syllabuses)" ${Q.fams.has('tet')?'':'disabled'}>+ N–H counted (trien, cyclam)</button>`+
     `<span class="dot-sep">·</span>`+[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}">${l}</button>`).join('')+
     `<span class="keyhint">${Q.mode==='mc'?'keys 1–4 answer · Enter = next':'Enter = check, then Enter = next'}</span>`;
 }
@@ -2713,6 +2715,8 @@ function init(){
     else{const r=v.step(a[1]);if(r)$('#iflag').innerHTML=STEP_TEXT(r,a[1]);}});
   $('#filters').addEventListener('click',e=>{
     const b=e.target.closest('.btn'); if(!b) return;
+    if('nh' in b.dataset){Q.nh=!Q.nh;try{localStorage.setItem('isoQuizNH',Q.nh?'1':'0');}catch(e){}buildFilters();
+      if(!Q.nh&&Q.cur&&famOf(Q.cur.c)==='qn'&&!Q.resolved)nextQuestion();return;}   // drop a question that is no longer allowed
     const set=b.dataset.geo?Q.geoms:b.dataset.fam?Q.fams:Q.types, key=b.dataset.geo||b.dataset.fam||b.dataset.type;
     if(set.has(key)){if(set.size>1)set.delete(key);}else set.add(key);
     buildFilters();
