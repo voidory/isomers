@@ -38,6 +38,7 @@ sub,sup{font-size:.72em;line-height:0}
 .btn.on{background:var(--ink);color:var(--paper)}
 /* the sketch arrow that stands in for → and ⇢: a mask, so it is always the colour of the text beside it */
 .nw{white-space:nowrap}
+.tw{display:inline-block;flex:none;width:1.3em;height:.7em;background:currentColor;-webkit-mask:var(--arr) center/contain no-repeat;mask:var(--arr) center/contain no-repeat;transition:transform .2s}
 .arr{display:inline-block;width:1.9em;height:.9em;margin:0 .08em;vertical-align:-.16em;background:currentColor;-webkit-mask:var(--arr) center/contain no-repeat;mask:var(--arr) center/contain no-repeat;transition:transform .12s}
 small .arr,.nbr-row .arr,.chip .arr{width:1.55em}
 @media (hover:hover){.btn:hover:not(:disabled) .arr,.nbr-row:hover .arr{transform:translateX(3px)}}
@@ -80,7 +81,7 @@ main[hidden]{display:none!important}
 .case-btn:hover{background:var(--hl)}
 .case-btn .f{font-size:17px}
 .case-btn .cnt{margin-left:auto;font-size:12px;color:var(--ink2);text-align:right;line-height:1.1}
-.case-btn .arrow{transition:transform .2s;font-size:13px}
+.case-btn .arrow{font-size:13px}
 .case.open .case-btn .arrow{transform:rotate(90deg)}
 .case-body{display:none;margin:6px 2px 4px 10px;padding:6px 0 4px 10px;border-left:2px dashed var(--ink3)}
 .case.open .case-body{display:block}
@@ -339,7 +340,8 @@ body.mobile .nbr-h{font-size:13px}
 .fgeo-head svg{width:32px;height:32px;flex:none}
 .fgeo-name{display:flex;flex-direction:column;line-height:1.15}
 .fgeo-name small{font-family:var(--body);font-size:13px;color:var(--ink2)}
-.fgeo-arrow{font-size:12px;transition:transform .2s}
+.fgeo-arrow{font-size:13px}
+.fgeo-head .fgeo-arrow{font-size:16px}
 .fgeo-head[aria-expanded="true"] .fgeo-arrow{transform:rotate(90deg)}
 .fgeo-body{padding:0 0 4px 4px;display:flex;flex-direction:column}
 .side .fgeo-head{scroll-margin-top:84px}
@@ -2054,7 +2056,7 @@ function rowHTML(e,mobile,searching){
   const cnt=countsHTML(A,true);
   if(mobile) return `<button class="xrow" data-go="case:${c.id}"><span class="xr-main"><span class="xf">${formulaHTML(c)}</span><small>${cnt}</small>${geo?`<span class="xchips">${geo}</span>`:''}</span>${chev}</button>`;
   const open=FIND.open===c.id;
-  return `<div class="case ${open?'open':''}" data-case="${c.id}"><button class="case-btn" aria-expanded="${open}"><span class="arrow">▶</span><span class="cmain"><span class="f">${formulaHTML(c)}</span>${geo}</span><span class="cnt">${cnt.replace(/ · /g,'<br>')}</span></button>
+  return `<div class="case ${open?'open':''}" data-case="${c.id}"><button class="case-btn" aria-expanded="${open}"><i class="arrow tw" aria-hidden="true"></i><span class="cmain"><span class="f">${formulaHTML(c)}</span>${geo}</span><span class="cnt">${cnt.replace(/ · /g,'<br>')}</span></button>
     <div class="case-body">${open?caseBodyHTML(c):''}</div></div>`;
 }
 function resultsHTML(mobile){
@@ -2074,13 +2076,13 @@ function resultsHTML(mobile){
     GEO_ORDER.forEach(g=>{
       const rows=list.filter(e=>e.c.geom===g); if(!rows.length) return;
       const open=FIND.shapeOpen.has(g), pairs=rows.filter(e=>e.A.pairs).length;
-      html+=`<button class="fgeo-head" data-shape="${g}" aria-expanded="${open}"><span class="fgeo-arrow" aria-hidden="true">▶</span>${ICONS[g]}<span class="fgeo-name">${GEOMS[g].name}<small>${rows.length} formula${rows.length>1?'s':''} · ${pairs} with enantiomers</small></span></button>`;
+      html+=`<button class="fgeo-head" data-shape="${g}" aria-expanded="${open}"><i class="fgeo-arrow tw" aria-hidden="true"></i>${ICONS[g]}<span class="fgeo-name">${GEOMS[g].name}<small>${rows.length} formula${rows.length>1?'s':''} · ${pairs} with enantiomers</small></span></button>`;
       if(!open) return;
       html+=`<div class="fgeo-body">`;
       FAMS.forEach(fm=>{
         const fr=rows.filter(e=>e.fam===fm.id); if(!fr.length) return;
         const k=g+':'+fm.id, fo=FIND.famOpen.has(k), fp=fr.filter(e=>e.A.pairs).length;
-        html+=`<button class="ffam-head" data-fam="${k}" aria-expanded="${fo}"><span class="fgeo-arrow" aria-hidden="true">▶</span><span class="ffam-name">${fm.name}</span><small>${fr.length}${fp?` · ${fp} chiral`:''}</small></button>`;
+        html+=`<button class="ffam-head" data-fam="${k}" aria-expanded="${fo}"><i class="fgeo-arrow tw" aria-hidden="true"></i><span class="ffam-name">${fm.name}</span><small>${fr.length}${fp?` · ${fp} chiral`:''}</small></button>`;
         if(fo) html+=`<div class="ffam-body">${fm.note&&(g==='Oh'||fm.id[0]==='q')?`<p class="ffam-note">${fm.note}</p>`:''}${fr.map(e=>rowHTML(e,mobile,false)).join('')}</div>`;
       });
       html+=`</div>`;
