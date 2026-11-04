@@ -11,3 +11,5 @@ Coordination-compound isomers drawn the way an exam paper draws them, which you 
 - **Quiz** yourself on counting stereoisomers.
 
 The whole app is the single file `index.html`. It needs no server and works offline once loaded.
+
+Tests (no dependencies): `node tests/engine.mjs` checks the chemistry engine against a snapshot of every formula's counts and names.

@@ -785,6 +785,7 @@ const THREE={Vector3:Vec3,Quaternion:Quat};
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
+/*ENGINE-BEGIN*/
 /* =====================================================================
    1. CHEMISTRY ENGINE — sites, symmetry groups, isomer enumeration
    ===================================================================== */
@@ -1044,22 +1045,23 @@ function classify(elems){
 
 /* ---------- descriptors ---------- */
 function letterCounts(str){const c={};for(const ch of str)c[ch]=(c[ch]||0)+1;return c;}
-function transPairs(G,cfg){
+const ID=x=>x;   // names take an optional lbl(letter) -> text hook, so a variant can name its ligands (NO₂, ONO) instead of B, C
+function transPairs(G,cfg,lbl=ID){
   if(G.id==='Td') return '';
   const seen=new Set(), out=[];
   // trien/cyclam donors: secondary amine NH (an N–H stereocentre) or terminal NH₂
-  const lab=i=>cfg.h&&cfg.labels[i]==='N'?(i in cfg.h?'NH':'NH₂'):cfg.labels[i];
+  const lab=i=>cfg.h&&cfg.labels[i]==='N'?(i in cfg.h?'NH':'NH₂'):lbl(cfg.labels[i]);
   for(let i=0;i<G.n;i++){if(seen.has(i))continue;const j=G.transOf[i];seen.add(i);seen.add(j);out.push([lab(i),lab(j)].sort().join('–'));}
   return out.sort().join(', ');
 }
-function monoParts(G,L,sites,counts){
+function monoParts(G,L,sites,counts,lbl=ID){
   const isT=(i,j)=>G.transOf[i]===j, pos=X=>sites.filter(i=>L[i]===X);
   const anyT=arr=>arr.some((a,i)=>arr.some((b,j)=>j>i&&isT(a,b)));
   const letters=Object.keys(counts).sort();
   const doubles=letters.filter(x=>counts[x]===2), triples=letters.filter(x=>counts[x]===3), singles=letters.filter(x=>counts[x]===1);
   if(G.id==='SP'){
     if(doubles.length) return [anyT(pos(doubles[0]))?'trans':'cis'];
-    if(singles.length===4){const a=pos(singles[0])[0];return [`${singles[0]} trans to ${L[G.transOf[a]]}`];}
+    if(singles.length===4){const a=pos(singles[0])[0];return [`${lbl(singles[0])} trans to ${lbl(L[G.transOf[a]])}`];}
     if(singles.length===2&&sites.length===4) return [anyT(singles.map(x=>pos(x)[0]))?'trans':'cis'];
     return [];
   }
@@ -1067,9 +1069,9 @@ function monoParts(G,L,sites,counts){
   if(triples.length) parts.push(anyT(pos(triples[0]))?'mer':'fac');
   if(doubles.length===3){
     const tr=doubles.filter(x=>anyT(pos(x)));
-    parts.push(tr.length===3?'all-trans':tr.length===0?'all-cis':`${tr[0]}<sub>2</sub> trans, others cis`);
+    parts.push(tr.length===3?'all-trans':tr.length===0?'all-cis':`${lbl(tr[0])}<sub>2</sub> trans, others cis`);
   } else if(doubles.length===1&&!triples.length&&!singles.length){ parts.push(anyT(pos(doubles[0]))?'trans':'cis'); }
-  else doubles.forEach(x=>parts.push(`${x}<sub>2</sub> ${anyT(pos(x))?'trans':'cis'}`));
+  else doubles.forEach(x=>parts.push(`${lbl(x)}<sub>2</sub> ${anyT(pos(x))?'trans':'cis'}`));
   if(singles.length===2&&!doubles.length&&!triples.length) parts.push(anyT(singles.map(x=>pos(x)[0]))?'trans':'cis');
   return parts;
 }
@@ -1085,7 +1087,7 @@ function ligUnits(cfg){  // connected groups of ≥3 linked positions = tri- and
     units.push({sites:comp,deg,nE,ends,mid});});
   return units;
 }
-function nameIso(c,G,cfg){
+function nameIso(c,G,cfg,lbl=ID){
   if(G.id==='Td') return '';
   const units=ligUnits(cfg);
   if(units.length){
@@ -1106,7 +1108,7 @@ function nameIso(c,G,cfg){
   const L=cfg.labels, inEdge=new Set(cfg.edges.flat());
   const monoSites=[...Array(G.n).keys()].filter(i=>!inEdge.has(i));
   const chel=(c.chel||[]).filter(x=>ligDent(x)===2), isT=(i,j)=>G.transOf[i]===j, counts=letterCounts(c.mono||'');
-  if(!chel.length) return monoParts(G,L,monoSites,counts).join(', ');
+  if(!chel.length) return monoParts(G,L,monoSites,counts,lbl).join(', ');
   const unsym=chel.filter(x=>x[0]!==x[1]);
   const donors=X=>L.map((l,i)=>(l===X&&inEdge.has(i))?i:-1).filter(i=>i>=0);
   const parts=[];
@@ -1114,7 +1116,7 @@ function nameIso(c,G,cfg){
     if(d.length===2) parts.push(isT(d[0],d[1])?'trans':'cis');
     if(d.length===3) parts.push(d.some((a,i)=>d.some((b,j)=>j>i&&isT(a,b)))?'mer':'fac');}
   if(chel.length===2&&monoSites.length===2&&G.id==='Oh') parts.push(isT(monoSites[0],monoSites[1])?'trans':'cis');
-  if(chel.length===1) parts.push(...monoParts(G,L,monoSites,counts));
+  if(chel.length===1) parts.push(...monoParts(G,L,monoSites,counts,lbl));
   return parts.join(', ');
 }
 /* IUPAC skew-line convention: Δ = right-handed helix defined by two chelate edges */
@@ -1136,7 +1138,8 @@ function helicity(G,cfg){
 /* R/S for tetrahedral MABCD, taking A > B > C > D as (hypothetical) CIP priorities */
 function rsLabel(G,cfg){
   const at=X=>G.sites[cfg.labels.indexOf(X)];
-  const a=at('A'),b=at('B'),c=at('C'),d=at('D');
+  const [la,lb,lc,ld]=[...new Set(cfg.labels)].sort();   // the four distinct labels, whatever letters they are
+  const a=at(la),b=at(lb),c=at(lc),d=at(ld);
   return V.dot(V.cross(V.sub(b,a),V.sub(c,a)),d)>0?'R':'S';
 }
 
@@ -1170,7 +1173,7 @@ const BOSNICH={'R,S,R,S':'I','R,R,R,S':'II','R,S,S,S':'II','R,R,S,S':'III','R,S,
 function bosnich(G,cfg){return Object.keys(cfg.h).length===4?(BOSNICH[nhDesc(G,cfg)]||''):'';}
 
 /* ---------- full analysis of one formula ---------- */
-function analyzeCase(c){
+function analyzeCase(c,lbl=ID){
   const G=GEOMS[c.geom], mono=c.mono||'', chel=c.chel||[];
   if(mono.length+chel.reduce((t,x)=>t+ligDent(x),0)!==G.n) throw new Error('bad case '+c.id);
   const raw=enumerateRaw(G,mono,chel), orbits=new Map(), NH=chel.some(x=>/n$/.test(lig(x).mode));
@@ -1202,9 +1205,9 @@ function analyzeCase(c){
   for(const grp of groups){
     for(const iso of grp){
       iso.caseId=c.id; iso.geom=c.geom; iso.caseRef=c;
-      iso.name=nameIso(c,G,iso.cfg);
+      iso.name=nameIso(c,G,iso.cfg,lbl);
       if(NH){iso.nhd='('+nhDesc(G,iso.cfg)+')';const b=bosnich(G,iso.cfg);if(b)iso.name=(iso.name.startsWith('cis')?'cis-':'trans-')+b+iso.name.replace(/^(trans|cis)/,'');}
-      iso.trans=transPairs(G,iso.cfg);
+      iso.trans=transPairs(G,iso.cfg,lbl);
       const stab=G.group.filter(g=>keyOf(applyCfg(g.perm,iso.cfg))===keyOf(iso.cfg));
       iso.sym=classify(stab);
     }
@@ -1225,7 +1228,7 @@ function analyzeCase(c){
   groups.flat().forEach(iso=>{if(iso.nhd&&!iso.nhUsed)iso.name=(iso.name?iso.name+' ':'')+iso.nhd;});
   // de-duplicate names using trans-pair listing
   const toward=cfg=>{if(!cfg.h)return '';const cnt={};
-    for(const k in cfg.h){const t=cfg.h[k];if(t==='f')continue;const v=t.split(',').map(Number),j=G.sites.findIndex(p=>V.dot(V.norm(p),v)>0.99);if(j>=0)cnt[cfg.labels[j]]=(cnt[cfg.labels[j]]||0)+1;}
+    for(const k in cfg.h){const t=cfg.h[k];if(t==='f')continue;const v=t.split(',').map(Number),j=G.sites.findIndex(p=>V.dot(V.norm(p),v)>0.99);if(j>=0)cnt[lbl(cfg.labels[j])]=(cnt[lbl(cfg.labels[j])]||0)+1;}
     const ks=Object.keys(cnt).sort();if(!ks.length)return '';
     return ks.length===1?`N–H toward ${ks[0]}`:'N–H toward '+ks.map(x=>cnt[x]+'× '+x).join(', ');};
   const byName={}; groups.forEach(g=>(byName[g[0].name]=byName[g[0].name]||[]).push(g));
@@ -1462,6 +1465,20 @@ const ANALYSIS={}, BANK=[];
   NH_CASES.forEach(c=>{ANALYSIS[c.id]=analyzeCase(c);BANK.push(c);});
 })();
 
+/* any formula, analysed once and cached: the bank's own entry if it has one, else a 'custom:' case (used by the Builder and the structural layer) */
+const isoById={}; Object.values(ANALYSIS).forEach(A=>A.isomers.forEach(i=>isoById[i.id]=i));
+const caseByKey={};
+const formulaKey=(geom,mono,chel)=>geom+'|'+mono.split('').sort().join('')+'|'+chel.map(normItem).sort().join(',');
+BANK.forEach(c=>{caseByKey[formulaKey(c.geom,c.mono||'',c.chel||[])]=c.id;});
+function analysisFor(geom,mono,chel){
+  const k=formulaKey(geom,mono,chel);
+  if(!caseByKey[k]){
+    const c={id:'custom:'+k,geom,mono:mono.split('').sort().join(''),chel:chel.map(normItem).sort()};
+    ANALYSIS[c.id]=analyzeCase(c); ANALYSIS[c.id].isomers.forEach(i=>isoById[i.id]=i); caseByKey[k]=c.id;
+  }
+  return ANALYSIS[caseByKey[k]];
+}
+
 
 const MODE_TAG={3:{m:'mer',f:'fac',c:'cyc'},4:{p:'planar',f:'folded',t:'tripod',r:'cyc',rp:'cyc, planar',xn:'trien, N–H',rn:'cyclam, N–H'}};
 const NAMED_LIG={xn:'trien',rn:'cyclam'};   // tetradentates modelled as the real ligand: written by name, donors drawn as N
@@ -1557,6 +1574,7 @@ function neighbourHTML(c){
     return `<button class="nbr-row" data-case-go="${o.c.id}"><span class="xf">${formulaHTML(o.c)}</span><small>${o.desc} (${lab[o.dir]}) · ${chg} stereoisomer${B.stereo===1?'':'s'}, ${B.pairs?B.pairs+' enantiomeric pair'+(B.pairs>1?'s':''):(B.stereo>1?'all achiral':'achiral')}</small></button>`;}).join('')+'</div>';
 }
 
+/*ENGINE-END*/
 /* =====================================================================
    2. LIVE EXAM-STYLE DRAWING OF A ROTATABLE 3-D MOLECULE
    The molecule lives in 3-D (Three.js quaternions); every frame it is projected
@@ -1600,10 +1618,11 @@ for(const G of Object.values(GEOMS)){
 const nearestSnap=(G,q)=>G.snaps.reduce((b,c)=>Math.abs(c.dot(q))>Math.abs(b.dot(q))?c:b,G.snaps[0]);
 const mirrorIsoOf=iso=>iso.chiral?iso.partner:iso;
 /* exact mirror image of a displayed molecule, as a mirror standing at the page's vertical edge would show it */
-function mirrorDisp(d,axis='x'){const G=GEOMS[d.iso.geom];return {iso:mirrorIsoOf(d.iso),cfg:applyCfg(G.sigma.perm,d.cfg),q:mirrorQ(d.q,G,axis)};}
-function dispOf(iso){
-  if(iso.second) return mirrorDisp(dispOf(iso.partner));
-  return {iso,cfg:iso.cfg,q:GEOMS[iso.geom].baseQ.clone()};
+function mirrorDisp(d,axis='x'){const G=GEOMS[d.iso.geom];return {iso:mirrorIsoOf(d.iso),cfg:applyCfg(G.sigma.perm,d.cfg),q:mirrorQ(d.q,G,axis),skin:d.skin||null};}
+/* skin (optional): how the engine's one-letter labels are drawn, {letter:{text,donor,hue}}; null = the letter itself */
+function dispOf(iso,skin=null){
+  if(iso.second) return mirrorDisp(dispOf(iso.partner,skin));
+  return {iso,cfg:iso.cfg,q:GEOMS[iso.geom].baseQ.clone(),skin};
 }
 
 const _v=new THREE.Vector3();
@@ -1674,11 +1693,11 @@ function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
       const x=it.ph.x,y=it.ph.y;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,fs*0.36,0,Math.PI*2);ctx.fill();
       ctx.fillStyle=INKC;ctx.font=`${fs*0.7}px ${DRAW_FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('H',x,y+fs*0.03);
     } else {
-      const isM=it.i<0, x=isM?cx:P[it.i].x, y=isM?cy:P[it.i].y, X=isM?'M':cfg.labels[it.i];
+      const isM=it.i<0, x=isM?cx:P[it.i].x, y=isM?cy:P[it.i].y, X=isM?'M':cfg.labels[it.i], sk=(!isM&&d.skin&&d.skin[X])||null;
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,fs*0.56,0,Math.PI*2);ctx.fill();   // label knock-out, as in ChemDraw
       if(!X){ctx.save();ctx.setLineDash([3,3]);ctx.strokeStyle='#9a958c';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(x,y,fs*0.5,0,Math.PI*2);ctx.stroke();ctx.restore();
         ctx.fillStyle='#9a958c';ctx.font=`${fs*0.8}px ${DRAW_FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('?',x,y+fs*0.03);}
-      else{ctx.fillStyle=(!isM&&drawOpts.color)?COLORS[X]:INKC;ctx.font=`${fs}px ${DRAW_FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(X,x,y+fs*0.04);}
+      else{ctx.fillStyle=(!isM&&drawOpts.color)?COLORS[X]:INKC;ctx.font=`${fs}px ${DRAW_FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(sk?sk.text:X,x,y+fs*0.04);}
       if(!isM&&view.pick===it.i){ctx.strokeStyle='#2f7fd1';ctx.lineWidth=lw*1.6;ctx.beginPath();ctx.arc(x,y,fs*0.78,0,Math.PI*2);ctx.stroke();}
     }
   }
@@ -1714,7 +1733,7 @@ class View{
     if(!mini&&!builder) c.addEventListener('wheel',e=>{if(!this.disp)return;e.preventDefault();this.zoom=Math.min(2.4,Math.max(0.55,this.zoom*Math.exp(-e.deltaY*0.0015)));this.dirty=true;},{passive:false});
     views.add(this);
   }
-  load(disp){this.disp={iso:disp.iso,cfg:disp.cfg,q:disp.q.clone()};this.iso=disp.iso;this.hl=disp.hl||null;this.anim=null;this.styles={};this.dirty=true;}
+  load(disp){this.disp={iso:disp.iso,cfg:disp.cfg,q:disp.q.clone(),skin:disp.skin||null};this.iso=disp.iso;this.hl=disp.hl||null;this.anim=null;this.styles={};this.dirty=true;}
   get G(){return GEOMS[this.iso.geom];}
   partner(){return this===V1?V2:this===V2?V1:null;}
   down(e){
@@ -1832,7 +1851,6 @@ const ICONS={
   SP:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M5 22 L15 11 L35 15 L25 27 Z"/><path d="M5 22 L35 15 M15 11 L25 27" stroke-width="1.4"/><circle cx="20" cy="18.5" r="3" fill="#a7b4bf"/></svg>`,
   Oh:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M20 3 L6 20 L20 37 L34 20 Z"/><path d="M20 3 L15 25 L20 37 M6 20 L15 25 L34 20"/><path d="M20 3 L25 15 L20 37 M6 20 L25 15 L34 20" stroke-dasharray="3 3" stroke-width="1.6"/></svg>`,
 };
-const isoById={}; Object.values(ANALYSIS).forEach(A=>A.isomers.forEach(i=>isoById[i.id]=i));
 
 /* ---------- the finder: one searchable, filterable list of every formula
    (the sidebar on a desktop, the Explore home on a phone). Both read the same FIND state. ---------- */
@@ -2171,17 +2189,6 @@ function buildLegend(){
 /* =====================================================================
    3b. BUILDER — recreate a drawing from an exam paper
    ===================================================================== */
-const caseByKey={};
-const formulaKey=(geom,mono,chel)=>geom+'|'+mono.split('').sort().join('')+'|'+chel.map(normItem).sort().join(',');
-BANK.forEach(c=>{caseByKey[formulaKey(c.geom,c.mono||'',c.chel||[])]=c.id;});
-function analysisFor(geom,mono,chel){
-  const k=formulaKey(geom,mono,chel);
-  if(!caseByKey[k]){
-    const c={id:'custom:'+k,geom,mono:mono.split('').sort().join(''),chel:chel.map(normItem).sort()};
-    ANALYSIS[c.id]=analyzeCase(c); ANALYSIS[c.id].isomers.forEach(i=>isoById[i.id]=i); caseByKey[k]=c.id;
-  }
-  return ANALYSIS[caseByKey[k]];
-}
 const B={geom:'Oh',layout:0,labels:[],edges:[],tool:'A',pending:null,view:null,thumbs:[]};
 function builderCfg(){return {labels:B.labels.slice(),edges:B.edges.map(e=>e.slice())};}
 function builderDisp(){const G=GEOMS[B.geom];return {iso:{geom:B.geom},cfg:builderCfg(),q:G.layouts[B.layout].q.clone()};}
@@ -2646,7 +2653,7 @@ function mInit(){
     const ng=e.target.closest('[data-case-go]'); if(ng){xPush({t:'case',id:ng.dataset.caseGo});return;}
     const g=e.target.closest('[data-go]'); if(g){const [tt,id]=g.dataset.go.split(/:(.+)/);xPush({t:tt,id});}
   });
-  $('#xInfo').addEventListener('click',e=>{const b=e.target.closest('[data-xact]');if(!b)return;const iso=M.VX.iso,d={iso,cfg:M.VX.disp.cfg,q:M.VX.disp.q.clone()};
+  $('#xInfo').addEventListener('click',e=>{const b=e.target.closest('[data-xact]');if(!b)return;const iso=M.VX.iso,d={iso,cfg:M.VX.disp.cfg,q:M.VX.disp.q.clone(),skin:M.VX.disp.skin};
     if(b.dataset.xact==='withmirror'){setLive(false);mTab('compare');loadInto(1,d);loadInto(2,mirrorDisp(d,mirrorAxisNow()));toast('Slot 2 is the mirror image of slot 1. Try <b>Superimpose</b>.');}
     else{const n=b.dataset.xact==='slot1'?1:2;if(n===2)setLive(false);mTab('compare');app.active=n;loadInto(n,d);toast(`Put in slot ${n}.`);}});
   $('#xFab').addEventListener('click',e=>{const b=e.target.closest('[data-x]');if(!b)return;const v=M.VX,a=b.dataset.x;
