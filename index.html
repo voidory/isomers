@@ -82,7 +82,7 @@ main[hidden]{display:none!important}
 .case-body .tally{font-family:var(--hand);font-size:12.5px;margin:0 0 6px}
 .iso{display:flex;align-items:center;gap:5px;padding:3px 4px;border-radius:6px;font-size:15px}
 .iso:hover{background:#fff8d6}
-.iso .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.iso .nm{flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.2;cursor:pointer}
 .iso .ld{border:1.5px solid var(--ink);background:var(--card);border-radius:6px 2px 6px 3px;font-family:var(--hand);font-size:12px;width:22px;height:21px;padding:0;line-height:1}
 .iso .ld:hover{background:var(--hl)}
 .iso.in1 .ld[data-to="1"]{background:#ffd9d6}
@@ -851,6 +851,10 @@ const GEOMS = {
        planar:null, order:[0,1,3,2], camDir:[0.35,0.32,1], mirrorD:3.5 },
   SP:{ id:'SP', name:'Square planar', sym:'D<sub>4h</sub>',
        sites:[[s,0,0],[-s,0,0],[0,s,0],[0,-s,0]], planar:[0,0,1], order:[2,0,3,1], camDir:[0.28,0.34,1], mirrorD:3.6 },
+  // axial pair along y, three equatorial sites 120° apart; one equatorial site lies in the x = 0 mirror plane, so x→−x is a σv
+  TBP:{ id:'TBP', name:'Trigonal bipyramidal', sym:'D<sub>3h</sub>', fluxional:true,
+       sites:[[0,s,0],[0,-s,0],[0,0,s],[s*0.8660254038,0,-s/2],[-s*0.8660254038,0,-s/2]], axial:[0,1], equatorial:[2,3,4],
+       planar:null, order:[0,2,3,4,1], camDir:[0.55,0.3,1], mirrorD:3.8 },
   Oh:{ id:'Oh', name:'Octahedral', sym:'O<sub>h</sub>',
        sites:[[s,0,0],[-s,0,0],[0,s,0],[0,-s,0],[0,0,s],[0,0,-s]], planar:null, order:[2,3,4,0,1,5], camDir:[0.66,0.42,1], mirrorD:3.9 },
 };
@@ -865,7 +869,14 @@ const TEMPLATES={
   Oh:{2:{a:90,l:1,s:'plain'},3:{a:270,l:1,s:'plain'},0:{a:-20,l:.92,s:'wedge'},4:{a:200,l:.92,s:'wedge'},1:{a:160,l:.92,s:'hash'},5:{a:20,l:.92,s:'hash'}},
   Td:{0:{a:90,l:1,s:'plain'},1:{a:199.47,l:1,s:'plain'},3:{a:-53,l:.95,s:'wedge'},2:{a:-17,l:.95,s:'hash'}},
   SP:{0:{a:0,l:1,s:'plain'},1:{a:180,l:1,s:'plain'},2:{a:90,l:1,s:'plain'},3:{a:270,l:1,s:'plain'}},
+  TBP:{0:{a:90,l:1,s:'plain'},1:{a:270,l:1,s:'plain'},2:{a:205,l:.95,s:'wedge'},3:{a:0,l:1,s:'plain'},4:{a:157,l:.95,s:'hash'}},
 };
+/* The trigonal bipyramid has one trans pair (the axial ligands); its equatorial sites have no trans partner. Isomers are
+   named by what sits axial and what sits equatorial, not by the octahedron's cis/trans/fac/mer. */
+{ const T=GEOMS.TBP, pack=a=>{const out=[];a.forEach(t=>{const last=out[out.length-1];if(last&&last[0]===t)last[1]++;else out.push([t,1]);});return out.map(([t,n])=>n>1?`${t}<sub>${n}</sub>`:t).join(', ');};
+  T.transPairs=(cfg,lbl)=>[0,1].map(i=>lbl(cfg.labels[i])).sort().join('–');
+  T.nameIso=(c,cfg,lbl)=>{const L=cfg.labels, text=i=>lbl(L[i]);
+    return `axial ${pack(T.axial.map(text).sort())}; equatorial ${pack(T.equatorial.map(text).sort())}`;}; }
 function permutations(n){
   const out=[], cur=[], used=Array(n).fill(false);
   (function rec(){ if(cur.length===n){out.push(cur.slice());return;}
@@ -1437,12 +1448,13 @@ const MULTI_TYPES={
       4:['ABBA:x','ABCD:x','ABBA:p','ABCD:p','ABBA:f','ABCD:f','BAAA:t','CAAB:t','DABC:t',
          'AAAA:r','ABAB:r','AAAB:r','AABB:r','ABCD:r','AAAA:rp','ABAB:rp','AAAB:rp','AABB:rp','ABCD:rp']},
   Td:{2:['AA','AB'],3:['ABA:x','ABC:x','AAA:c','AAB:c','ABC:c'],4:['ABBA:x','ABCD:x','BAAA:t','CAAB:t','DABC:t']},
+  TBP:{2:['AA','AB'],3:['ABA:x','ABC:x','ABA:m','ABC:m'],4:['ABBA:x','ABCD:x','BAAA:t','CAAB:t','DABC:t']},   // no macrocycles, no planar-only chains: neither fits a trigonal bipyramid
   SP:{2:['AA','AB'],3:['ABA:x','ABC:x'],4:['ABBA:x','ABCD:x','AAAA:r','ABAB:r','AAAB:r','AABB:r','ABCD:r']},
 };
 function intPartitions(n,max=n){if(n===0)return [[]];const out=[];for(let k=Math.min(n,max);k>=1;k--)for(const p of intPartitions(n-k,k))out.push([k,...p]);return out;}
 function generateAll(){
   const out=new Map(), LET='ABCDEFGH';
-  for(const g of ['Oh','Td','SP']){
+  for(const g of ['Oh','Td','SP','TBP']){
     const T=MULTI_TYPES[g];
     for(const part of intPartitions(GEOMS[g].n,4)){
       const multi=part.filter(d=>d>1), k=part.length-multi.length;
@@ -1528,8 +1540,14 @@ function formulaHTML(c,lbl=ID){
   const mc=letterCounts(c.mono||''); Object.keys(mc).sort().forEach(k=>{const t=lbl(k),poly=!/<sup>/.test(t)&&t.replace(/<[^>]+>/g,'').length>1;f+=(poly?`(${t})`:t)+(mc[k]>1?`<sub>${mc[k]}</sub>`:'');});   // NO₂ twice is (NO₂)₂, not NO₂₂
   return `[${f}]`;
 }
+/* five-coordinate shapes: the static count is of idealised configurations, many of which interconvert (Berry pseudorotation) */
+const isFluxional=c=>!!GEOMS[c.geom].fluxional;
 function summaryHTML(A){
   const n=A.geometric,k=A.pairs,cat=catOf(A);
+  if(isFluxional(A.c)){
+    if(cat==='one') return `Only one configuration is possible, and it is superimposable on its mirror image.`;
+    if(cat==='enan') return `Only one arrangement is possible, but it has no mirror plane, inversion centre or S<sub>n</sub> axis (point group ${A.groups[0][0].sym.html}), so it exists as a pair of enantiomers: <b>2</b> configurations.`;
+    return `<b>${A.stereo}</b> configurations: ${n} different arrangements${k?`, ${k===n?'all':k} of them chiral (each an enantiomeric pair)`:', none of them chiral'}. These are idealised, fixed positions; five-coordinate complexes are usually fluxional, so several of them are normally one observable species.`;}
   if(cat==='one') return `Only one arrangement is possible, and it is superimposable on its mirror image, so there are no stereoisomers.`;
   if(cat==='enan') return `Only one arrangement is possible, but it has no mirror plane, inversion centre or S<sub>n</sub> axis (point group ${A.groups[0][0].sym.html}), so it exists as a pair of enantiomers: <b>2</b> stereoisomers.`;
   const pgs=[...new Set(A.groups.filter(g=>g.length===2).map(g=>g[0].sym.html))].join(', ');
@@ -1571,6 +1589,9 @@ const ligChips=c=>ligKinds(c).map(k=>`<span class="chip lig">${k}</span>`).join(
 /* counts, with the geometrical count defined explicitly */
 function countsHTML(A,compact){
   const s=A.stereo,g=A.geometric,p=A.pairs;
+  if(isFluxional(A.c)){
+    if(compact) return `${s} configuration${s>1?'s':''}${p?` · ${p} enantiomeric pair${p>1?'s':''}`:''}`;
+    return `<span><b>${s}</b> configuration${s>1?'s':''}</span><span><b>${p}</b> enantiomeric pair${p===1?'':'s'}</span>`;}
   if(compact) return catOf(A)==='one'?'1 arrangement · no stereoisomers':`${s} stereoisomers · ${g===1?'1 arrangement':g+' geometrical'}${p?` · ${p} enantiomeric pair${p>1?'s':''}`:''}`;
   return `<span><b>${g}</b> ${g===1?'arrangement':'geometrical isomers'}${g>1&&p?' (each enantiomeric pair counted once)':''}</span><span><b>${p}</b> enantiomeric pair${p===1?'':'s'}</span><span><b>${s}</b> stereoisomer${s===1?'':'s'} in total</span>`;
 }
@@ -1752,6 +1773,7 @@ const LAYOUTS={
   Oh:[{name:'standard octahedron',toward:[1,0.553,1],up:[0,1,0]}],
   Td:[{name:'one up, one lower-left',toward:[0.94,0.279,-0.197],up:[0,1,0]},
       {name:'V shape',toward:[0.94,0.279,-0.197],up:[0,0.577,0.816]}],
+  TBP:[{name:'axial vertical',toward:[0.55,0.3,1],up:[0,1,0]}],
   SP:[{name:'flat cross',toward:[0,0,1],up:[0,1,0]},
       {name:'square in perspective',toward:[0.45,-1,0.6],up:[0,0,1]}],
 };
@@ -2018,6 +2040,7 @@ function frame(now){
    3. EXPLORE: FORMULA FINDER UI
    ===================================================================== */
 const ICONS={
+  TBP:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M20 3 L8 24 L20 29 L33 22 Z"/><path d="M20 3 L20 37 M8 24 L33 22 M20 37 L8 24 M20 37 L33 22 M20 29 L20 37" stroke-width="1.5"/><path d="M20 3 L26 25" stroke-dasharray="3 3" stroke-width="1.5"/><circle cx="20" cy="22" r="3" fill="#a7b4bf"/></svg>`,
   Td:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M20 4 L5 31 L33 34 Z"/><path d="M20 4 L27 23"/><path d="M5 31 L27 23 L33 34" stroke-dasharray="3 3"/></svg>`,
   SP:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M5 22 L15 11 L35 15 L25 27 Z"/><path d="M5 22 L35 15 M15 11 L25 27" stroke-width="1.4"/><circle cx="20" cy="18.5" r="3" fill="#a7b4bf"/></svg>`,
   Oh:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M20 3 L6 20 L20 37 L34 20 Z"/><path d="M20 3 L15 25 L20 37 M6 20 L15 25 L34 20"/><path d="M20 3 L25 15 L20 37 M6 20 L25 15 L34 20" stroke-dasharray="3 3" stroke-width="1.6"/></svg>`,
@@ -2025,7 +2048,7 @@ const ICONS={
 
 /* ---------- the finder: one searchable, filterable list of every formula
    (the sidebar on a desktop, the Explore home on a phone). Both read the same FIND state. ---------- */
-const GEO_ORDER=['Td','SP','Oh'];
+const GEO_ORDER=['Td','SP','TBP','Oh'];
 const DENT_FACET=[[1,'monodentate only'],[2,'bidentate'],[3,'tridentate'],[4,'tetradentate']];
 const CAT_SHORT={one:'no isomers',geo:'geometrical only',enan:'enantiomers only',both:'geometrical + enantiomers'};
 const FIND={q:'',geo:new Set(),dent:new Set(),cat:new Set(),open:null,facets:false,shapeOpen:new Set(),famOpen:new Set()};   // shapes and 'shape:family' groups expanded in the browse list (all start closed)
@@ -2152,7 +2175,7 @@ function rowHTML(e,mobile,searching){
 function resultsHTML(mobile){
   const {list,exact,parsed}=findMatches(), q=FIND.q.trim(), total=BANK.length;
   if(!list.length){
-    const hint=parsed?`No formula in the bank has that combination of ligands${[4,6].includes(parsed.dent)?'':` (it has ${parsed.dent} donor atoms; these shapes need 4 or 6)`}.`
+    const hint=parsed?`No formula in the bank has that combination of ligands${[4,5,6].includes(parsed.dent)?'':` (it has ${parsed.dent} donor atoms; these shapes need 4, 5 or 6)`}.`
       :'Nothing matches. Try a formula such as <b>MA2B2</b>, <b>M(AA)2B2</b> or <b>[Co(en)2Cl2]</b>, or a word such as <b>fac</b>, <b>chiral</b> or <b>macrocycle</b>.';
     return {html:famLinkHTML(parsed)+`<p class="fempty">${hint}${FIND.geo.size||FIND.dent.size||FIND.cat.size?' <button class="linkbtn" data-freset>Clear the filters</button>':''}</p>`,stat:`0 of ${total} formulas`};
   }
@@ -2173,7 +2196,7 @@ function resultsHTML(mobile){
         const fr=rows.filter(e=>e.fam===fm.id); if(!fr.length) return;
         const k=g+':'+fm.id, fo=FIND.famOpen.has(k), fp=fr.filter(e=>e.A.pairs).length;
         html+=`<button class="ffam-head" data-fam="${k}" aria-expanded="${fo}"><span class="fgeo-arrow" aria-hidden="true">▶</span><span class="ffam-name">${fm.name}</span><small>${fr.length}${fp?` · ${fp} chiral`:''}</small></button>`;
-        if(fo) html+=`<div class="ffam-body">${fm.note&&(g==='Oh'||fm.id[0]==='q')?`<p class="ffam-note">${fm.note}</p>`:''}${fr.map(e=>rowHTML(e,mobile,false)).join('')}</div>`;
+        if(fo) html+=`<div class="ffam-body">${fm.note&&(g==='Oh'||(fm.id[0]==='q'&&g!=='TBP'))?`<p class="ffam-note">${fm.note}</p>`:''}${fr.map(e=>rowHTML(e,mobile,false)).join('')}</div>`;
       });
       html+=`</div>`;
     });
@@ -2417,7 +2440,7 @@ function renderBuilder(){
   else{
     const I=res.iso;
     st.innerHTML=`<b>${formulaHTML(res.A.c)}</b>: your drawing is <b>${I.label}</b> <span class="chip pg">${I.sym.html}</span> <span class="chip ${I.chiral?'chiral':'achiral'}">${I.chiral?'chiral':'achiral'}</span>,
-      one of ${res.A.stereo} stereoisomer${res.A.stereo>1?'s':''} (${res.A.geometric} geometric${res.A.pairs?`, ${res.A.pairs} enantiomeric pair${res.A.pairs>1?'s':''}`:''}).${monoLetters(res.A.c).length?` <button class="btn" data-bcomplicate title="Let a ligand bond through more than one atom, or swap with a copy outside the sphere">Complicate this ⇢</button>`:''}`;
+      one of ${res.A.stereo} ${isFluxional(res.A.c)?'configuration':'stereoisomer'}${res.A.stereo>1?'s':''} (${res.A.geometric} geometric${res.A.pairs?`, ${res.A.pairs} enantiomeric pair${res.A.pairs>1?'s':''}`:''}).${monoLetters(res.A.c).length?` <button class="btn" data-bcomplicate title="Let a ligand bond through more than one atom, or swap with a copy outside the sphere">Complicate this ⇢</button>`:''}`;
   }
 }
 function isRing4(v){ // the component through v is a 4-cycle (every position has two links)
@@ -2451,7 +2474,7 @@ function openBuilder(){
 }
 function closeBuilder(){$('#builder').hidden=true;B.thumbs.forEach(t=>t.destroy());B.thumbs=[];}
 function buildBuilder(){
-  $('#bGeom').innerHTML=['Oh','Td','SP'].map(g=>`<button class="btn" data-g="${g}">${GEOMS[g].name}</button>`).join('');
+  $('#bGeom').innerHTML=['Oh','Td','SP','TBP'].map(g=>`<button class="btn" data-g="${g}">${GEOMS[g].name}</button>`).join('');
   $('#bTools').innerHTML=['A','B','C','D','E','F'].map(l=>`<button class="btn letter" data-tool="${l}" style="--lc:${COLORS[l]}">${l}</button>`).join('')+
     `<button class="btn" data-tool="link" title="Click two adjacent positions to join them with a chelate ring">⌒ chelate link</button><button class="btn" data-tool="erase">eraser</button>`;
   $('#bGeom').addEventListener('click',e=>{const b=e.target.closest('.btn');if(!b)return;resetBuilder(b.dataset.g);renderBuilder();});
@@ -2533,11 +2556,11 @@ function matrixHTML(F,g){
   return `<div class="fmat-wrap"><table class="fmat"><thead><tr><th>isomer of ${F.groups.length>1?'this inner sphere':'the base formula'}</th>${T.map(v=>`<th>${v.desc||'—'}${mark(v)}</th>`).join('')}<th>all forms</th></tr></thead><tbody>`+
     g.rows.map(r=>{const tot=r.cells.reduce((t,x)=>t+x.length,0);
       return `<tr><td class="rowh">${r.parent.label} <span class="chip ${r.parent.chiral?'chiral':'achiral'}">${r.parent.chiral?'chiral':'achiral'}</span></td>${r.cells.map(x=>`<td class="${x.length?x.length>1?'n2':'':'n0'}">${x.length||'–'}</td>`).join('')}<td><b>${tot}</b></td></tr>`;}).join('')+
-    `<tr class="tot"><td class="rowh">stereoisomers</td>${T.map(v=>`<td>${v.A.stereo}</td>`).join('')}<td><b>${T.reduce((t,v)=>t+v.A.stereo,0)}</b></td></tr></tbody></table></div>`;
+    `<tr class="tot"><td class="rowh">${isFluxional(F.base)?'configurations':'stereoisomers'}</td>${T.map(v=>`<td>${v.A.stereo}</td>`).join('')}<td><b>${T.reduce((t,v)=>t+v.A.stereo,0)}</b></td></tr></tbody></table></div>`;
 }
 function renderFamily(){
   const b=FAM.base, A0=analysisFor(b.geom,b.mono,b.chel), pl=poolLetters(), kap=[...FAM.kappa].filter(l=>pl.includes(l)), sel=[...FAM.letters].filter(l=>pl.includes(l)&&!kap.includes(l)), S=FAM.pool?spareLetter(b):null;
-  const slot=isMobile()?'slot':'Viewport', ltr=l=>`${l}${countOf(b.mono,l)>1?`<sub>${countOf(b.mono,l)}</sub>`:''}`;
+  const W=isFluxional(b)?'configuration':'stereoisomer', slot=isMobile()?'slot':'Viewport', ltr=l=>`${l}${countOf(b.mono,l)>1?`<sub>${countOf(b.mono,l)}</sub>`:''}`;
   $('#fTitle').innerHTML=`${formulaHTML({chel:b.chel,mono:b.mono})} <span>${GEOMS[b.geom].name.toLowerCase()}, with complications</span>`;
   const canPreset=sel.length===1&&FAM.donors===2;
   let h=`<p class="fvocab"><b>Structural</b> isomers differ in what is bonded to the metal; <b>stereo</b> isomers have the same bonds and differ in arrangement. Each complication below adds the first kind on top of the second. It is an abstract model: it counts what connectivity allows, and says nothing about which form is stable.</p>
@@ -2559,12 +2582,12 @@ function renderFamily(){
     <div class="fctl"><span class="lab">may bond κ¹ or κ²:</span>${pl.map(l=>`<button class="btn ${kap.includes(l)?'on':''}" data-famkappa="${l}" aria-pressed="${kap.includes(l)}">${ltr(l)}</button>`).join('')}</div>
     <small class="fnote">A κ² ligand takes two sites and a κ¹ ligand one, and the sphere keeps its ${GEOMS[b.geom].n} sites, so another ligand has to give way: the ones allowed to swap in section 2 do that.${kap.length&&!FAM.pool?' <b>Switch section 2 on first</b>: nothing can make room yet.':''}</small></div>`;
   const spec={amb:sel.map(letter=>({letter,donors:famDonors()})),opts:FAM.pool?{outside:Object.fromEntries(Object.entries(FAM.out).filter(e=>e[1]>0)),mobile:[...FAM.swap],chelate:kap}:{chelate:kap}};
-  if(!spec.amb.length&&!FAM.pool&&!kap.length){FAM.cur=null;$('#fBody').innerHTML=h+`<p class="fwhy">Switch a complication on. ${A0.stereo} stereoisomer${A0.stereo>1?'s':''} for now.</p>`;setHash(famHash());return;}
+  if(!spec.amb.length&&!FAM.pool&&!kap.length){FAM.cur=null;$('#fBody').innerHTML=h+`<p class="fwhy">Switch a complication on. ${A0.stereo} ${W}${A0.stereo>1?'s':''} for now.</p>`;setHash(famHash());return;}
   let F; try{F=structuralFamily(b,spec.amb,spec.opts);}catch(e){FAM.cur=null;$('#fBody').innerHTML=h+`<p class="fwhy">${e.message.replace(/^./,x=>x.toUpperCase())}. Adjust the spare copies or what may swap.</p>`;setHash(famHash());return;}
   FAM.cur=F; setHash(famHash());
   if(F.tooMany){$('#fBody').innerHTML=h+`<p class="fwhy">That makes ${F.tooMany} forms, more than the ${F.cap} this panel will analyse. Switch something off, or use two donor atoms.</p>`;return;}
   const T=F.tally, withAmb=spec.amb.length>0, withKap=kap.length>0;
-  h+=`<div class="ftally"><span class="big">${A0.stereo} → ${T.stereo}</span><span>stereoisomers in total</span>${FAM.pool||withKap?`<span><b>${T.spheres}</b> inner-sphere composition${T.spheres>1?'s':''}</span>`:''}${withAmb?`<span><b>${T.forms}</b> binding form${T.forms>1?'s':''}</span>`:''}<span><b>${T.pairs}</b> enantiomeric pair${T.pairs===1?'':'s'}</span></div>`;
+  h+=`<div class="ftally"><span class="big">${A0.stereo} → ${T.stereo}</span><span>${W}s in total</span>${FAM.pool||withKap?`<span><b>${T.spheres}</b> inner-sphere composition${T.spheres>1?'s':''}</span>`:''}${withAmb?`<span><b>${T.forms}</b> binding form${T.forms>1?'s':''}</span>`:''}<span><b>${T.pairs}</b> enantiomeric pair${T.pairs===1?'':'s'}</span></div>`;
   let why=withAmb?`Each binding form is an ordinary stereo formula, analysed like any other. The table counts how many stereoisomers each isomer splits into: it is not simply a multiple, because ligands that are no longer identical break symmetry differently in different arrangements.`:'';
   if(FAM.pool&&Object.values(FAM.out).some(n=>n>0)) why+=` Each inner-sphere composition is a different compound: <b>ionisation</b> isomers where an anion swaps with one outside, <b>hydrate</b> isomers where water does. Its stereoisomers are counted as usual. Charge and conductivity are not modelled.`;
   if(withKap) why+=` <b>Denticity</b> isomers: the same ligands, but a ligand bonded through two atoms (a chelate, κ²) uses two sites where κ¹ uses one, so the rest of the sphere differs. Each composition is analysed as the ordinary chelate formula it is.`;
@@ -2583,7 +2606,7 @@ function renderFamily(){
   const tw=isMobile()?'slot':'Viewport';
   h+=F.variants.map((v,vi)=>{
     const row=iso=>`<div class="iso"><span class="nm" data-fl="${vi}:${iso.idx}:1" title="load into ${tw} 1">${iso.label}</span><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span><button class="ld" data-fl="${vi}:${iso.idx}:1" title="Load into ${tw} 1">1</button><button class="ld" data-fl="${vi}:${iso.idx}:2" title="Load into ${tw} 2">2</button></div>`;
-    return `<div class="fform"><div class="fform-h"><span class="xf">${v.title}</span><small>${v.desc?v.desc+' · ':''}${v.A.stereo} stereoisomer${v.A.stereo>1?'s':''}${FAM.mark&&JSON.stringify(v.pick)===FAM.mark?' · <b>your formula</b>':''}</small></div>`+
+    return `<div class="fform"><div class="fform-h"><span class="xf">${v.title}</span><small>${v.desc?v.desc+' · ':''}${v.A.stereo} ${W}${v.A.stereo>1?'s':''}${FAM.mark&&JSON.stringify(v.pick)===FAM.mark?' · <b>your formula</b>':''}</small></div>`+
       v.A.groups.map(g=>g.length===1?row(g[0]):`<div class="pairbox"><div class="pairlab"><span>enantiomeric pair</span><button data-flpair="${vi}:${g[0].idx}">compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+`</div>`;}).join('');
   $('#fBody').innerHTML=h;
 }
@@ -2591,7 +2614,7 @@ function renderFamily(){
 const FAMLINKS=[];
 function famLinkHTML(pf){
   if(!pf||!pf.amb||!pf.amb.length) return '';
-  const geoms=pf.dent===6?['Oh']:pf.dent===4?['SP','Td']:[]; let out='';
+  const geoms=pf.dent===6?['Oh']:pf.dent===5?['TBP']:pf.dent===4?['SP','Td']:[]; let out='';
   for(const a of pf.amb) for(const geom of geoms){
     let F; try{F=structuralFamily({geom,mono:a.mono,chel:a.chel},[{letter:a.letter,donors:AMBIDENTATE[a.key].donors}]);}catch(e){continue;}
     if(F.tooMany||!F.tally.stereo) continue;

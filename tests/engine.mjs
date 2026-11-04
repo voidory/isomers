@@ -149,4 +149,36 @@ test('denticity composes with linkage on another ligand',()=>{
   assert.ok(F.variants.length>F.groups.length); assert.ok(F.variants.every(v=>v.cells.every(x=>x.parent)));
 });
 
+/* ---- the trigonal bipyramid: static configurations ---- */
+const tbp=E.BANK.filter(c=>c.geom==='TBP');
+test('TBP has 39 formulas, all analysable',()=>{ assert.equal(tbp.length,39); assert.ok(tbp.every(c=>E.ANALYSIS[c.id].isomers.length>0)); });
+test('TBP static counts for monodentates: 1, 2, 3, 4, 6, 10, 20 (the permutation count 5!/6)',()=>{
+  const n=m=>E.analyzeCase({id:'x'+m,geom:'TBP',mono:m,chel:[]}).stereo;
+  same(['AAAAA','AAAAB','AAABB','AAABC','AABBC','AABCD','ABCDE'].map(n),[1,2,3,4,6,10,20]);
+});
+test('TBP chelates span axial-equatorial sites only, symmetrically',()=>{
+  same(E.GEOMS.TBP.edges,[[0,2],[0,3],[0,4],[1,2],[1,3],[1,4]]);
+  for(const g of ['Td','SP','Oh']) assert.ok(E.GEOMS[g].edges.length>0);
+});
+test('TBP isomers are named by axial and equatorial occupancy, uniquely',()=>{
+  for(const c of tbp){const A=E.ANALYSIS[c.id], seen=new Set();
+    for(const grp of A.groups){const l=grp[0].label; assert.ok(!/fac|mer|cis|trans/.test(l.replace(/<[^>]+>/g,'').replace(/trans pairs?/,'')),c.id+': '+l); assert.ok(!seen.has(l),c.id+': duplicate label '+l); seen.add(l);}}
+});
+test('every TBP formula matches the golden file (counts, names, point groups)',()=>{
+  const now=tbp.map(c=>{const A=E.ANALYSIS[c.id];return [c.id,A.stereo,A.geometric,A.pairs,A.isomers.map(i=>[i.label,i.sym.plain,i.chiral?1:0,i.trans,i.chir||''].join('|'))];}).sort((a,b)=>a[0]<b[0]?-1:1);
+  const f=path.join(here,'golden-tbp.json'); if(!fs.existsSync(f)||process.env.UPDATE_GOLDEN){fs.writeFileSync(f,JSON.stringify(now));console.log('     (wrote golden-tbp.json)');}
+  same(now,JSON.parse(fs.readFileSync(f,'utf8')));
+});
+
+test('the structural layer works on the trigonal bipyramid: linkage, ionisation and denticity',()=>{
+  let n=0;
+  for(const c of tbp){ for(const X of new Set(c.mono||'')){ const base={geom:'TBP',mono:c.mono||'',chel:c.chel||[]};
+    for(const F of [E.structuralFamily(base,[{letter:X}]), E.structuralFamily(base,[],{mobile:[...new Set(c.mono)],chelate:[X]})]){
+      if(F.tooMany) continue; n++;
+      assert.ok(F.variants.every(v=>v.cells.every(x=>x.parent)),'projection total: '+c.id);
+      assert.ok(F.groups.every(g=>Object.values(g.inner).reduce((t,k)=>t+k.k1+2*k.k2,0)===F.sites),'sphere full: '+c.id);}}}
+  assert.ok(n>20,n+' families');
+  const F=E.structuralFamily({geom:'TBP',mono:'AAAAB',chel:[]},[{letter:'A'}]); assert.equal(F.tally.forms,5);
+});
+
 console.log(fails?`\n${fails} failed`:'\nall passed'); process.exit(fails?1:0);
