@@ -1755,41 +1755,67 @@ function structuralFamily(base,amb=[],opts={}){
 
 /* =====================================================================
    1c. BERRY PSEUDOROTATION — which five-coordinate configurations interconvert
-   A Berry move keeps one equatorial ligand (the pivot) and swaps the two axial ligands with the other two equatorial ones,
-   passing through a square pyramid. As a permutation of positions it is (ax1 u)(ax2 v): two swaps, so EVEN. An enantiomer
-   differs from its mirror image by an odd permutation, so Berry moves keep handedness unless two ligands are identical
-   (swapping identical ligands is invisible). A move is not allowed if it would put a chelate ring across two equatorial
-   sites: that arrangement is not a configuration at all. Both mappings per pivot are included (they differ by a C2).
+   A Berry move keeps one equatorial ligand (the pivot). The two axial ligands swing down to become equatorial and the other two
+   equatorial ligands swing up to become axial, passing through a square pyramid with the pivot at its apex. The moves are not
+   hand-typed: the path is computed from the shape's coordinates (berryPose), the finished structure is turned about the pivot
+   axis to sit back on the shape's own sites, and each ligand's new site is read off. That gives a 4-cycle of sites
+   (ax1 e1 ax2 e2) — an ODD permutation, equal to the "double swap" (ax1 e2)(ax2 e1) followed by a mirror reflection (the double swap
+   alone would be the mirror image of what really happens). So a move is a rigid motion and never changes the handedness of the
+   structure while it lasts, yet a chain of moves can reach the mirror image: for five different ligands the 20 configurations form
+   ONE connected set (the Desargues–Levi graph, 30 edges). A move is rejected if it would put a chelate ring across two equatorial
+   sites: that arrangement is not a configuration at all. The two senses of a pivot are inverse moves.
    ===================================================================== */
+function berryFrame(G,p){const U=G.sites.map(s=>V.norm(s)),z=U[p],y=U[G.axial[0]];return {U,x:V.cross(y,z),y,z};}
+/* position of every site's ligand a fraction t (0..1) along the pseudorotation about pivot site p */
+function berryPose(G,p,t){
+  const {U,x,y,z}=berryFrame(G,p), b=(120-30*t)*Math.PI/180, g=(90+30*t)*Math.PI/180, at=(u,v,w)=>V.add(V.add(V.scale(x,u),V.scale(y,v)),V.scale(z,w));
+  return U.map((u,i)=>{
+    if(i===p) return u;
+    if(G.axial.includes(i)) return at(0,Math.sign(V.dot(u,y))*Math.sin(g),Math.cos(g));     // axial pair: 90° -> 120° from the pivot
+    return at(Math.sign(V.dot(u,x))*Math.sin(b),0,Math.cos(b));});                        // equatorial pair: 120° -> 90°
+}
+/* turn a point a quarter turn (sense = ±1) about the pivot axis */
+const berryTurn=(G,p,sense,v)=>{const z=berryFrame(G,p).z;return V.add(V.scale(V.cross(z,v),sense),V.scale(z,V.dot(z,v)));};
+function berryPerm(G,p,sense){
+  const {U}=berryFrame(G,p);
+  return berryPose(G,p,1).map(e=>{const r=berryTurn(G,p,sense,e);let best=0;U.forEach((u,j)=>{if(V.dot(u,r)>V.dot(U[best],r))best=j;});return best;});
+}
 function berryMoves(G){
   if(!G.axial) return [];
-  const out=[], [a0,a1]=G.axial;
-  for(const p of G.equatorial){const [i,j]=G.equatorial.filter(x=>x!==p);
-    for(const [u,v] of [[i,j],[j,i]]){const q=G.sites.map((_,k)=>k); q[a0]=u;q[u]=a0;q[a1]=v;q[v]=a1; out.push({pivot:p,perm:q});}}
+  const out=[]; for(const p of G.equatorial) for(const sense of [1,-1]) out.push({pivot:p,sense,perm:berryPerm(G,p,sense)});
   return out;
 }
 const permParity=q=>{const seen=[];let t=0;q.forEach((_,i)=>{if(seen[i])return;let j=i,l=0;while(!seen[j]){seen[j]=1;j=q[j];l++;}t+=l-1;});return t%2;};
 function berrySets(A){
   const G=A.G; if(!G.axial) return null;
   const moves=berryMoves(G), edgeOK=new Set(G.edges.map(e=>e.join('-')));
-  const byKey=new Map(A.isomers.map(i=>[i.key,i])), parent=new Map(A.isomers.map(i=>[i.key,i.key]));
+  const byKey=new Map(A.isomers.map(i=>[i.key,i])), parent=new Map(A.isomers.map(i=>[i.key,i.key])), adj=new Map(A.isomers.map(i=>[i.key,new Set()]));
   const find=k=>{while(parent.get(k)!==k){parent.set(k,parent.get(parent.get(k)));k=parent.get(k);}return k;};
   let blocked=0, tried=0;
   for(const iso of A.isomers) for(const m of moves){
     tried++; const c2=applyCfg(m.perm,iso.cfg);
     if(!c2.edges.every(e=>edgeOK.has(e[0]+'-'+e[1]))){blocked++;continue;}      // a ring may not end up across two equatorial sites
     const k=canon(c2,G.rots); if(!byKey.has(k)) throw new Error('a Berry move left the isomers of '+A.c.id);
-    parent.set(find(iso.key),find(k));}
+    parent.set(find(iso.key),find(k)); adj.get(iso.key).add(k); adj.get(k).add(iso.key);}
   const byRoot=new Map(); A.isomers.forEach(i=>{const r=find(i.key);if(!byRoot.has(r))byRoot.set(r,[]);byRoot.get(r).push(i);});
   const sets=[...byRoot.entries()].map(([root,isos],index)=>({index,root,isos}));
   const idx=new Map(sets.map(s=>[s.root,s.index]));
+  /* fewest moves from one configuration to another (breadth-first over the pseudorotation graph) */
+  const dist=(a,b)=>{if(a===b)return 0;const seen=new Set([a]);let front=[a],d=0;
+    while(front.length){d++;const nxt=[];for(const k of front)for(const n of adj.get(k)){if(seen.has(n))continue;if(n===b)return d;seen.add(n);nxt.push(n);}front=nxt;}return Infinity;};
   sets.forEach(s=>{
     s.racemises=s.isos.some(i=>i.chiral&&find(i.mirrorKey)===s.root);
     s.chiral=!s.racemises&&s.isos.some(i=>i.chiral);
-    s.mirror=s.chiral?idx.get(find(s.isos.find(i=>i.chiral).mirrorKey)):null;});
-  return {sets,moves:tried,blocked,allBlocked:tried>0&&blocked===tried,setOf:iso=>sets[idx.get(find(iso.key))]};
+    s.mirror=s.chiral?idx.get(find(s.isos.find(i=>i.chiral).mirrorKey)):null;
+    s.racSteps=s.racemises?Math.min(...s.isos.filter(i=>i.chiral).map(i=>dist(i.key,i.mirrorKey))):null;});   // moves to reach the mirror image
+  return {sets,moves:tried,blocked,allBlocked:tried>0&&blocked===tried,setOf:iso=>sets[idx.get(find(iso.key))],dist,adj};
 }
 const berryOf=A=>A.berry!==undefined?A.berry:(A.berry=berrySets(A));
+/* the new configuration a Berry move reaches from a displayed one, or null when a ring blocks it */
+function berryStep(G,cfg,pivot,sense=1){
+  const m=berryMoves(G).find(x=>x.pivot===pivot&&x.sense===sense), edgeOK=new Set(G.edges.map(e=>e.join('-')));
+  const c2=applyCfg(m.perm,cfg); return c2.edges.every(e=>edgeOK.has(e[0]+'-'+e[1]))?{cfg:c2,perm:m.perm}:null;
+}
 /* why the grouping came out as it did, in words */
 function berryWhy(A,B){
   const out=[];
@@ -1797,8 +1823,10 @@ function berryWhy(A,B){
   if(B.allBlocked) out.push('Every pseudorotation is blocked: each would put a chelate ring across two equatorial sites. These configurations are rigid.');
   else if(B.blocked) out.push('Chelate rings block some pseudorotations: a ring may not end up across two equatorial sites.');
   if(A.pairs){
-    if(B.sets.some(s=>s.racemises)) out.push('Pseudorotation can turn a chiral configuration into its mirror image here, so these racemise: two ligands are identical, and swapping identical ligands changes nothing visible.');
-    else if(!B.allBlocked) out.push('Pseudorotation never turns a configuration into its mirror image here: a Berry move swaps two pairs of positions (an even permutation), and no two ligands are identical to make up the difference. Each chiral set is the mirror image of another set.');}
+    const r=B.sets.filter(s=>s.racemises);
+    if(r.length){const n=Math.min(...r.map(s=>s.racSteps));
+      out.push(`Pseudorotation can turn a chiral configuration into its mirror image here (the shortest route takes ${n} move${n>1?'s':''}), so these racemise.`+(n>1?' Each single move keeps its handedness while it lasts, but a chain of them with different pivots arrives at the mirror image.':''));}
+    if(B.sets.some(s=>s.chiral)) out.push('For '+(r.length?'the other sets':'these configurations')+' no chain of allowed moves reaches the mirror image'+(B.blocked?', because the chelate rings block the moves that would be needed':'')+': each chiral set is the mirror image of another set.');}
   return out;
 }
 

@@ -11,7 +11,7 @@ Status: **phases 0 to 2 are built** (edge rule and hooks, the static trigonal bi
 | 4 Square pyramid shape | not started |
 | 5 Variable-coordination-number families (separate decision) | not started |
 
-What changed from the plan while building: moves that put a ring across two equatorial sites are rejected inside `berrySets` (as designed), and the TBP's chelate formulas include tridentate chains in both flexible and mer-only forms. The counts match the prototype exactly (39 formulas; 17 of the 32 chelate formulas keep several sets); the numbers are now asserted by `node tests/engine.mjs`, with golden files `tests/golden-tbp.json` and `tests/golden-berry.json`. Every number below comes from a throwaway prototype run against the real engine, headlessly, with a trigonal bipyramid injected into a copy of it. The prototype is not in the repository.
+What changed from the plan while building: moves that put a ring across two equatorial sites are rejected inside `berrySets` (as designed), and the TBP's chelate formulas include tridentate chains in both flexible and mer-only forms. The static counts match the prototype (39 formulas). The Berry-set counts were corrected afterwards (see the note in 2.2): 15 of the 32 chelate formulas keep several sets; the numbers are now asserted by `node tests/engine.mjs`, with golden files `tests/golden-tbp.json` and `tests/golden-berry.json`. Every number below comes from a throwaway prototype run against the real engine, headlessly, with a trigonal bipyramid injected into a copy of it. The prototype is not in the repository.
 
 ## 1. The point
 
@@ -32,21 +32,23 @@ With one new entry in `GEOMS` (axial at ±y, three equatorial sites 120° apart,
 
 ### 2.2 Berry moves, and what they do to the counts
 
-A Berry move with pivot p (an equatorial site) is the double swap (ax₁ eₐ)(ax₂ e_b). It is an **even permutation**, and an enantiomer differs from its mirror image by an **odd** one. Derived from the geometry and applied to each isomer:
+> **Correction (made while building the animation).** Phases 0 to 2 first modelled a Berry move as the double swap (ax₁ eₐ)(ax₂ e_b), an even permutation, and concluded that "Berry moves preserve handedness, so five different ligands split into two mirror-image sets of 10". That was wrong. Writing the animation forced the real motion to be computed from the coordinates, and a rigid motion of the ligands, turned back onto the shape's sites, gives a **4-cycle** (ax₁ eₐ ax₂ e_b), an odd permutation. It equals the double swap followed by a mirror reflection, so the double swap alone produced the *mirror image* of what really happens, and with it the wrong sets. The literature agrees with the corrected version: the 20 isomers form one connected reaction graph (the Desargues–Levi graph, 30 edges) and the enantiomers sit in the same component (Merx et al. 2004; van der Boon et al. 2018). The tables and tests below are the corrected ones.
+
+A Berry move with pivot p (an equatorial site): the two axial ligands swing down to equatorial, the other two equatorial ligands swing up to axial, through a square pyramid with the pivot at its apex. The moves are computed from the shape's coordinates (`berryPose`, `berryPerm`), not typed in. Each move is a rigid motion, so it never changes handedness *while it lasts*, but the chain of moves around different pivots can arrive at the mirror image. Derived from the geometry and applied to each isomer:
 
 | Formula | Static isomers | Berry-linked sets | Notes |
 |---|---|---|---|
 | MA₄B | 2 | 1 | B axial and B equatorial are one fluxional species |
 | MA₃B₂ | 3 | 1 | |
-| MA₂B₂C | 6 | 1 | includes a chiral pair, which racemises by pseudorotation |
-| MA₂BCD | 10 | 1 | includes 3 chiral pairs, which racemise |
-| **MABCDE** | **20** | **2, of 10 each** | **the two sets are mirror images: pseudorotation cannot racemise** |
+| MA₂B₂C | 6 | 1 | includes a chiral pair, which racemises in 1 move |
+| MA₂BCD | 10 | 1 | includes 3 chiral pairs, which racemise (shortest route 2 moves) |
+| **MABCDE** | **20** | **1** | **one set that contains all the mirror-image pairs; the shortest route from a configuration to its mirror image is 5 moves** |
 
-The rule behind it, which the UI should state: **Berry moves preserve handedness unless two ligands are identical**, because swapping two identical ligands is an odd permutation that changes nothing visible.
+The reaction graph for MABCDE is 3-regular on 20 vertices with 30 edges, as in the literature. What a ring does to this is section 2.3.
 
 ### 2.3 Chelate rings block moves, and this is forced, not a choice
 
-On the TBP a chelate can span axial–equatorial (90°) but not equatorial–equatorial (120°). A Berry move whose pivot is the equatorial end of a chelate that also has an axial end would put the ring across two equatorial sites. Such an arrangement is not an isomer at all, so the move is excluded by definition. Over the 32 chelate formulas the generator produces, **every one has blocked moves** (2 to 32 blocked isomer-and-move pairs per formula), and 17 of them split into several Berry sets, i.e. their isomers stay separate on this model; the other 15 still collapse to one set. Examples: a tripodal tetradentate such as tren with one extra ligand has its single isomer with every move blocked (1 static, 1 set); trien-type [M(ABBA)X] has a chiral pair that cannot interconvert (2 static, 2 sets); [M(ABA)X₂] still forms one set of 2 to 3. That fits the usual picture of tripodal ligands holding a TBP in place, though the app only counts connectivity and does not model the barrier.
+On the TBP a chelate can span axial–equatorial (90°) but not equatorial–equatorial (120°). A Berry move whose pivot is the equatorial end of a chelate that also has an axial end would put the ring across two equatorial sites. Such an arrangement is not an isomer at all, so the move is excluded by definition. Over the 32 chelate formulas the generator produces, **every one has blocked moves** (2 to 32 blocked isomer-and-move pairs per formula), and 15 of them split into several Berry sets, i.e. their isomers stay separate on this model; the other 17 still collapse to one set. Examples: a tripodal tetradentate such as tren with one extra ligand has its single isomer with every move blocked (1 static, 1 set); trien-type [M(ABBA)X] has a chiral pair that does interconvert (2 static, 1 set that racemises); [M(ABCD)X] keeps 2 sets of 2; [M(ABA)X₂] still forms one set of 2 to 3. That fits the usual picture of tripodal ligands holding a TBP in place, though the app only counts connectivity and does not model the barrier.
 
 ### 2.4 Size
 
@@ -102,9 +104,9 @@ berryMoves(G)            // derived from the geometry: for each equatorial pivot
 berrySets(A)             // → { sets:[{isos, chiral, racemises}], blocked, rule }
 ```
 
-- Moves come from the shape, not hand-typed: `G.axial` and `G.equatorial` are enough. Both mappings per pivot are included; they differ by a C₂ rotation and give the same sets.
+- Moves come from the shape, not hand-typed: `G.axial` and `G.equatorial` are enough. The two senses of a pivot are inverse moves; both are included.
 - A move is applied to each isomer's configuration, rejected if any chelate edge no longer lies on a shape edge (2.3), otherwise canonicalised under the rotations and joined with the isomer it reaches (union-find).
-- A set is **chiral** when its mirror image is a different set; it **racemises** when it contains its own mirror image. The UI explanation is generated from this, using the parity rule in 2.2, not a fixed sentence.
+- A set is **chiral** when its mirror image is a different set; it **racemises** when it contains its own mirror image. The UI explanation is generated from this, from the sets and the shortest route to the mirror image, not a fixed sentence.
 - `berrySets` knows nothing about drawing, so it also works on the structural layer's variants (each binding form gets its own sets).
 
 ### 4.3 UI
@@ -145,7 +147,7 @@ The structural layer holds the number of sites fixed because each shape has a fi
 - **No regression:** the existing 248 bank entries stay byte-identical (the snapshot test, adapted as in 4.1).
 - **TBP golden file:** the 39 formulas' counts and names.
 - **Static counts:** 1, 2, 3, 4, 6, 10, 20 for the monodentate formulas, as above.
-- **Berry invariants:** every move maps isomers to isomers or is rejected; the sets partition the isomers; the set of a chiral isomer's mirror image is the mirror set; for monodentate formulas the number of sets is 1 unless all five ligands differ, then 2; every move is an even permutation (checked from the derived permutations, not assumed).
+- **Berry invariants:** every move maps isomers to isomers or is rejected; the sets partition the isomers; the set of a chiral isomer's mirror image is the mirror set; for monodentate formulas the number of sets is 1, and for five different ligands the reaction graph is 3-regular with 30 edges; every move is a 4-cycle (odd), equal to the double swap followed by the axial mirror (checked, not assumed).
 - **Ring rule:** every chelate formula either has a set count and blocked count equal to the prototype's, or the test fails.
 - **Animation:** the path's endpoints are the TBP before and after, to numerical tolerance; the midpoint is a C₄ᵥ pyramid.
 
