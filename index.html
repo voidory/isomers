@@ -873,18 +873,14 @@ for(const G of Object.values(GEOMS)){
   G.sigma=G.group.find(g=>Math.abs(g.m[0][0]+1)<1e-9&&Math.abs(g.m[1][1]-1)<1e-9&&Math.abs(g.m[2][2]-1)<1e-9); // x → −x
 }
 
-/* configuration = labels per site + chelate edges (unordered site pairs; a third entry '6' marks a three-carbon link)
-   + optionally h: for each secondary-amine (N–H) donor, the direction its H points ('x,y,z'), or 'f' where the
-   ring geometry fixes it. H directions are real vectors, so they turn with the group element's matrix. */
-const rv=v=>v.map(x=>Math.round(x)||0).join(',');
+/* configuration = labels per site + chelate edges (unordered site pairs) */
 function applyCfg(perm,cfg){
   const L=new Array(cfg.labels.length);
   cfg.labels.forEach((l,i)=>{L[perm[i]]=l;});
-  const out={labels:L, edges:cfg.edges.map(e=>{const x=perm[e[0]],y=perm[e[1]],r=x<y?[x,y]:[y,x];if(e[2])r.push(e[2]);return r;})};
-  if(cfg.h){out.h={};for(const k in cfg.h){const v=cfg.h[k];out.h[perm[k]]=v==='f'?'f':rv(M3.mulV(perm.mat,v.split(',').map(Number)));}}
+  const out={labels:L, edges:cfg.edges.map(e=>{const x=perm[e[0]],y=perm[e[1]],r=x<y?[x,y]:[y,x];return r;})};
   return out;
 }
-const keyOf = cfg => cfg.labels.join('')+'|'+cfg.edges.map(e=>e.join('-')).sort().join(',')+(cfg.h?'|'+Object.keys(cfg.h).map(k=>k+':'+cfg.h[k]).sort().join(';'):'');
+const keyOf = cfg => cfg.labels.join('')+'|'+cfg.edges.map(e=>e.join('-')).sort().join(',');
 function canon(cfg,rots){let best=null;for(const g of rots){const k=keyOf(applyCfg(g.perm,cfg));if(best===null||k<best)best=k;}return best;}
 
 function uniquePerms(arr){
@@ -898,8 +894,7 @@ function uniquePerms(arr){
    bidentate 'AB'.  tridentate chain 'ABA:x' (donors in chain order; x flexible, m mer only, f fac only),
    face-capping ring 'AAA:c'.  tetradentate chain 'ABBA:x' (x flexible, p planar only, f folded only),
    tripod 'BAAA:t' (first letter = central donor, then the three arms), macrocycle 'AAAA:r' (flexible) or ':rp' (planar only).
-   A trailing n counts N–H configurations: 'NNNN:xn' = trien (the two inner donors are N–H), 'NNNN:rn' = cyclam
-   (all four donors N–H; links alternate –CH2CH2– and –CH2CH2CH2–). */
+   Ligands are idealised rigid frameworks of donor points: chelate-ring conformations and N–H configurations are not counted. */
 const lig=s=>{const [L,mode]=s.split(':');return {L,mode:mode||''};};
 const ligDent=s=>lig(s).L.length;
 const P6=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
@@ -908,7 +903,6 @@ function ligPerms(d,mode){
   if(d===2) return [[0,1],[1,0]];
   if(d===3) return mode==='c'?P6:[[0,1,2],[2,1,0]];
   if(mode==='t') return P6.map(a=>[0,a[0]+1,a[1]+1,a[2]+1]);
-  if(mode==='rn') return [[0,1,2,3],[2,3,0,1],[1,0,3,2],[3,2,1,0]];   // cyclam: 5- and 6-membered rings alternate
   if(mode==='r'||mode==='rp') return [[0,1,2,3],[1,2,3,0],[2,3,0,1],[3,0,1,2],[3,2,1,0],[0,3,2,1],[1,0,3,2],[2,1,0,3]];
   return [[0,1,2,3],[3,2,1,0]];}
 function ligImages(L,mode){return ligPerms(L.length,mode).map(p=>p.map(i=>L[i]).join(''));}
@@ -926,21 +920,15 @@ function speciesKey(mono,chel){const cnt={};chel.forEach(x=>{const n=normItem(x)
   const mc={};for(const ch of mono)mc[ch]=(mc[ch]||0)+1;
   return sp+'|'+Object.values(mc).sort((a,b)=>b-a).join('.');}
 function enumerateRaw(G,mono,chel){
-  const out=[], labels=new Array(G.n).fill(null), edges=[], nhs=[];
+  const out=[], labels=new Array(G.n).fill(null), edges=[];
   const letters=mono.split(''), adj=(i,j)=>G.edges.some(e=>(e[0]===i&&e[1]===j)||(e[0]===j&&e[1]===i));
   const E=(i,j)=>i<j?[i,j]:[j,i];
   function fill(){
     const free=[]; labels.forEach((l,i)=>{if(!l)free.push(i);});
-    // an N–H donor whose two ring links run to trans positions (rings coplanar) can point its H to either face;
-    // where the links run to cis positions (rings on adjacent faces) the ring geometry fixes it
-    const hopts=nhs.map(v=>{const nb=edges.filter(e=>e[0]===v||e[1]===v).map(e=>e[0]===v?e[1]:e[0]);
-      if(nb.length!==2||G.transOf[nb[0]]!==nb[1]) return ['f'];
-      const c=V.cross(V.norm(G.sites[v]),V.norm(G.sites[nb[0]]));return [rv(c),rv(V.scale(c,-1))];});
-    const hs=[{}];hopts.forEach((o,k)=>{const cur=hs.splice(0);cur.forEach(h=>o.forEach(x=>hs.push({...h,[nhs[k]]:x})));});
     for(const p of uniquePerms(letters)){const L=labels.slice(); free.forEach((si,k)=>L[si]=p[k]);
-      for(const h of hs){const cfg={labels:L.slice(),edges:edges.map(e=>e.slice())};if(nhs.length)cfg.h=h;out.push(cfg);}}
+      out.push({labels:L.slice(),edges:edges.map(e=>e.slice())});}
   }
-  const place=(sites,Ls,add,next,nh=[])=>{sites.forEach((v,k)=>labels[v]=Ls[k]);edges.push(...add);nhs.push(...nh);next();edges.length-=add.length;nhs.length-=nh.length;sites.forEach(v=>labels[v]=null);};
+  const place=(sites,Ls,add,next)=>{sites.forEach((v,k)=>labels[v]=Ls[k]);edges.push(...add);next();edges.length-=add.length;sites.forEach(v=>labels[v]=null);};
   (function rec(ci){
     if(ci===chel.length){fill();return;}
     const {L:c,mode}=lig(chel[ci]), free=[...Array(G.n).keys()].filter(i=>!labels[i]), next=()=>rec(ci+1);
@@ -968,7 +956,7 @@ function enumerateRaw(G,mono,chel){
       if(new Set([a,b,d,e]).size<4) continue;
       const rest=[...Array(G.n).keys()].filter(i=>![a,b,d,e].includes(i));
       const planar=rest.length===2&&G.transOf[rest[0]]===rest[1];       // octahedron: the two free positions are trans
-      const bm=mode.replace(/n$/,''), nh=bm!==mode;
+      const bm=mode;
       if(bm==='t'){ if(!adj(a,b)||!adj(a,d)||!adj(a,e)) continue; place([a,b,d,e],c,[E(a,b),E(a,d),E(a,e)],next); continue; }
       if(!adj(a,b)||!adj(b,d)||!adj(d,e)) continue;
       const ring=bm==='r'||bm==='rp';
@@ -976,8 +964,7 @@ function enumerateRaw(G,mono,chel){
       if((bm==='p'||bm==='rp')&&!planar) continue;
       if(bm==='f'&&planar) continue;
       const es=[E(a,b),E(b,d),E(d,e)].concat(ring?[E(e,a)]:[]);
-      if(mode==='rn'){es[1].push('6');es[3].push('6');}
-      place([a,b,d,e],c,es,next,!nh?[]:ring?[a,b,d,e]:[b,d]);
+      place([a,b,d,e],c,es,next);
     }
   })(0);
   return out;
@@ -1047,8 +1034,7 @@ function letterCounts(str){const c={};for(const ch of str)c[ch]=(c[ch]||0)+1;ret
 function transPairs(G,cfg){
   if(G.id==='Td') return '';
   const seen=new Set(), out=[];
-  // trien/cyclam donors: secondary amine NH (an N–H stereocentre) or terminal NH₂
-  const lab=i=>cfg.h&&cfg.labels[i]==='N'?(i in cfg.h?'NH':'NH₂'):cfg.labels[i];
+  const lab=i=>cfg.labels[i];
   for(let i=0;i<G.n;i++){if(seen.has(i))continue;const j=G.transOf[i];seen.add(i);seen.add(j);out.push([lab(i),lab(j)].sort().join('–'));}
   return out.sort().join(', ');
 }
@@ -1140,40 +1126,11 @@ function rsLabel(G,cfg){
   return V.dot(V.cross(V.sub(b,a),V.sub(c,a)),d)>0?'R':'S';
 }
 
-/* ---------- secondary-amine (N–H) stereocentres ---------- */
-const nhNb=(cfg,v)=>cfg.edges.filter(e=>e[0]===v||e[1]===v).map(e=>({s:e[0]===v?e[1]:e[0],six:e[2]==='6'}));
-/* approximate local geometry at an N–H donor (unit vectors from N): M, the two ring carbons, and H. A ring carbon sits
-   out from the M–N…N edge, as in the drawing; H leans 19° away from M off the face it points to (tetrahedral N). */
-function nhGeom(G,cfg,v){
-  const p=V.norm(G.sites[v]), C=s=>{const q=V.norm(G.sites[s]);return V.norm(V.add(V.scale(V.norm(V.add(p,q)),0.42),V.scale(V.sub(q,p),0.14)));};
-  const nb=nhNb(cfg,v), t=cfg.h[v];
-  let h;
-  if(t!=='f') h=V.norm(V.add(V.scale(t.split(',').map(Number),0.94),V.scale(p,0.33)));
-  else{const c=V.add(C(nb[0].s),C(nb[1].s));h=V.norm(V.sub(V.scale(p,0.33),V.scale(V.norm(c),0.94)));}   // fixed: away from both carbons
-  return {p,nb,C,h};}
-const nhVec=(G,cfg,v)=>nhGeom(G,cfg,v).h;
-/* CIP at N: M > C on the higher-ranked branch > C on the other > H. trien: the branch toward the other N–H outranks the
-   one toward NH2 (sphere 4: N(M,C,H) > N(M,H,H)). cyclam: the ethylene branch outranks the propylene one (sphere 3: N > C). */
-function nhRS(G,cfg,v){
-  const {p,nb,C,h}=nhGeom(G,cfg,v), deg=s=>cfg.edges.filter(e=>e[0]===s||e[1]===s).length;
-  nb.sort((x,y)=>(x.six-y.six)||(deg(y.s)-deg(x.s)));
-  const a=V.scale(p,-1), b=C(nb[0].s), c=C(nb[1].s);
-  return M3.det(M3.cols(V.sub(a,h),V.sub(b,h),V.sub(c,h)))<0?'R':'S';}
-function ringOrder(cfg,s){const ord=[s,nhNb(cfg,s).find(o=>!o.six).s];   // around the ring: 5-ring link, 6-ring link, 5-ring link
-  while(ord.length<4){const x=ord[ord.length-1];ord.push(nhNb(cfg,x).find(o=>!ord.includes(o.s)).s);}return ord;}
-function nhDesc(G,cfg){const vs=Object.keys(cfg.h).map(Number),rs={};vs.forEach(v=>rs[v]=nhRS(G,cfg,v));
-  if(vs.length!==4) return vs.map(v=>rs[v]).sort().join(',');
-  return vs.map(s=>ringOrder(cfg,s).map(v=>rs[v]).join(',')).sort()[0];}
-/* Bosnich's configurations of cyclam, from the N descriptors read around the ring along an ethylene link first
-   (N1, N4, N8, N11). Each class and its mirror image share a label; the same five apply flat (trans) or folded (cis). */
-const BOSNICH={'R,S,R,S':'I','R,R,R,S':'II','R,S,S,S':'II','R,R,S,S':'III','R,S,S,R':'IV','R,R,R,R':'V','S,S,S,S':'V'};
-function bosnich(G,cfg){return Object.keys(cfg.h).length===4?(BOSNICH[nhDesc(G,cfg)]||''):'';}
-
 /* ---------- full analysis of one formula ---------- */
 function analyzeCase(c){
   const G=GEOMS[c.geom], mono=c.mono||'', chel=c.chel||[];
   if(mono.length+chel.reduce((t,x)=>t+ligDent(x),0)!==G.n) throw new Error('bad case '+c.id);
-  const raw=enumerateRaw(G,mono,chel), orbits=new Map(), NH=chel.some(x=>/n$/.test(lig(x).mode));
+  const raw=enumerateRaw(G,mono,chel), orbits=new Map();
   // build each set of rotation-equivalent arrangements once: rotate an unseen arrangement 24 ways and mark all it reaches
   const seenK=new Set();
   for(const cfg of raw){if(seenK.has(keyOf(cfg)))continue;
@@ -1203,7 +1160,6 @@ function analyzeCase(c){
     for(const iso of grp){
       iso.caseId=c.id; iso.geom=c.geom; iso.caseRef=c;
       iso.name=nameIso(c,G,iso.cfg);
-      if(NH){iso.nhd='('+nhDesc(G,iso.cfg)+')';const b=bosnich(G,iso.cfg);if(b)iso.name=(iso.name.startsWith('cis')?'cis-':'trans-')+b+iso.name.replace(/^(trans|cis)/,'');}
       iso.trans=transPairs(G,iso.cfg);
       const stab=G.group.filter(g=>keyOf(applyCfg(g.perm,iso.cfg))===keyOf(iso.cfg));
       iso.sym=classify(stab);
@@ -1215,23 +1171,15 @@ function analyzeCase(c){
         if(!la||!lb||la===lb){const own=cfg=>{const u=ligUnits(cfg).find(u=>u.sites.length===4);return u?helicity(G,{...cfg,edges:cfg.edges.filter(e=>u.sites.includes(e[0]))}):null;};
           const a2=own(grp[0].cfg),b2=own(grp[1].cfg);if(a2&&b2&&a2!==b2){la=a2;lb=b2;}}}
       if(c.geom==='Td'&&!chel.length&&new Set(mono).size===4){la=rsLabel(G,grp[0].cfg);lb=rsLabel(G,grp[1].cfg);}
-      if(NH&&(!la||!lb||la===lb)&&grp[0].nhd!==grp[1].nhd){la=grp[0].nhd;lb=grp[1].nhd;grp.forEach(i=>i.nhUsed=true);if(la>lb){grp.reverse();[la,lb]=[lb,la];}}
       if(!la||!lb||la===lb){la='I';lb='II';}
       if(la==='Λ'||la==='S'){grp.reverse();[la,lb]=[lb,la];}
       grp[0].chir=la; grp[1].chir=lb;
       grp[0].partner=grp[1]; grp[1].partner=grp[0]; grp[1].second=true;
     }
   }
-  groups.flat().forEach(iso=>{if(iso.nhd&&!iso.nhUsed)iso.name=(iso.name?iso.name+' ':'')+iso.nhd;});
   // de-duplicate names using trans-pair listing
-  const toward=cfg=>{if(!cfg.h)return '';const cnt={};
-    for(const k in cfg.h){const t=cfg.h[k];if(t==='f')continue;const v=t.split(',').map(Number),j=G.sites.findIndex(p=>V.dot(V.norm(p),v)>0.99);if(j>=0)cnt[cfg.labels[j]]=(cnt[cfg.labels[j]]||0)+1;}
-    const ks=Object.keys(cnt).sort();if(!ks.length)return '';
-    return ks.length===1?`N–H toward ${ks[0]}`:'N–H toward '+ks.map(x=>cnt[x]+'× '+x).join(', ');};
   const byName={}; groups.forEach(g=>(byName[g[0].name]=byName[g[0].name]||[]).push(g));
   Object.values(byName).forEach(gs=>{if(gs.length<2)return;
-    const tw=gs.map(g=>toward(g[0].cfg));
-    if(NH&&tw.every(Boolean)&&new Set(tw).size===gs.length){gs.forEach(g=>g.forEach(iso=>iso.name+=` (${toward(iso.cfg)})`));return;}
     gs.forEach(g=>{if(g[0].trans) g.forEach(iso=>iso.name=iso.name?`${iso.name} (${iso.trans} trans)`:`${iso.trans} trans`);});});
   groups.sort((a,b)=>(b[0].sym.order-a[0].sym.order)||(a.length-b.length)||a[0].name.localeCompare(b[0].name));
   const isomers=groups.flat();
@@ -1355,32 +1303,6 @@ const EXTRA=[
  {id:'oh-mab3',geom:'Oh',chel:['AB','AB','AB'],hint:`The three A ends can be fac or mer, and every tris-chelate propeller has a handedness.`},
  {id:'oh-maab2c2',geom:'Oh',mono:'BBCC',chel:['AA'],hint:`Place the chelate first, then decide where the B pair and the C pair go (cis or trans).`},
 ];
-/* trien and cyclam with their N–H stereocentres counted. These sit beside the idealised (ABBA) chain and (AAAA) ring
-   formulas rather than replacing them: same donor pattern, but each N–H donor whose two chelate rings are coplanar
-   (its ring partners trans) can point its H to either face. Where its rings lie on adjacent faces the H direction is
-   fixed by the ring geometry. cyclam's links alternate ethylene (5-ring) and propylene (6-ring). */
-const NH_CASES=[
- {id:'nh-oh-trien-c2',geom:'Oh',mono:'AA',chel:['NNNN:xn'],study:true,
-  insight:`[Co(trien)Cl<sub>2</sub>]<sup>+</sup> with the N–H groups counted. Each secondary N is a stereocentre (R or S). Flat (trans): the two N–H can point to the same face (R,S: achiral) or opposite faces (R,R / S,S: a chiral C<sub>2</sub> pair), so the single trans form of the idealised model splits in two. cis-α: both secondary N sit where their two rings are on adjacent faces, so the ring geometry fixes them: still one pair. cis-β: one secondary N is fixed, the other sits between coplanar rings and can invert, giving β-(R,R)/(S,S) and β-(R,S)/(S,R): two pairs. 5 geometrical isomers, 9 stereoisomers, against 3 and 5 when N–H is ignored.`,
-  hint:`Start from the 5 isomers of the idealised chain. Which secondary N atoms sit between two coplanar rings? Only those can invert.`},
- {id:'nh-oh-trien-cd',geom:'Oh',mono:'AB',chel:['NNNN:xn'],study:true,
-  insight:`With two different free ligands, the meso trans form splits again: both N–H can face A or both face B. Each cis-β form also doubles, because A and B can swap places.`},
- {id:'nh-oh-trien-cc',geom:'Oh',chel:['NNNN:xn','AA'],study:true,
-  insight:`[Co(trien)(ox)]<sup>+</sup> with N–H counted. The chelate needs two cis positions, so only cis-α (both N fixed: one pair) and cis-β (one N free: β-(R,R)/(S,S) and β-(R,S)/(S,R)) remain: 3 geometrical isomers, 6 stereoisomers. Both cis-β diastereomers are known for amino-acid analogues such as β-[Co(trien)(gly)]<sup>2+</sup> (often called β<sub>1</sub> and β<sub>2</sub>).`},
- {id:'nh-oh-trien-cd2',geom:'Oh',chel:['NNNN:xn','AB'],study:true,
-  insight:`An unsymmetrical chelate such as glycinate doubles each cis-β form: its two ends can swap. cis-α stays a single pair, because its C<sub>2</sub> axis makes the two ways round equivalent.`},
- {id:'nh-oh-cyclam-b2',geom:'Oh',mono:'AA',chel:['NNNN:rn'],study:true,
-  insight:`[M(cyclam)X<sub>2</sub>] with all four N–H counted. Flat, the ring gives Bosnich's five configurations: trans-I (R,S,R,S), trans-II (R,R,R,S, chiral), trans-III (R,R,S,S, centrosymmetric and the most common), trans-IV (R,S,S,R) and trans-V (R,R,R,R, chiral). Folding leaves two N–H fixed and gives the three cis forms cis-I, cis-II and cis-V, all chiral. 8 geometrical isomers, 13 stereoisomers, against 2 when N–H is ignored. Whether each form is stable is a separate question: this model counts what the connectivity allows.`,
-  hint:`Flat ring: each of the four N–H points up or down. The ring alternates 5- and 6-membered chelate rings, so which neighbours share a face matters.`},
- {id:'nh-oh-cyclam-bc',geom:'Oh',mono:'AB',chel:['NNNN:rn'],study:true,
-  insight:`Making the axial ligands different splits trans-I (all four N–H toward A, or all toward B) and trans-II, and removes the σ<sub>h</sub>-type symmetry elsewhere.`},
- {id:'nh-oh-cyclam-bb',geom:'Oh',chel:['NNNN:rn','AA'],study:true,
-  insight:`A chelate forces the ring to fold, so only cis-I, cis-II and cis-V remain, each as a pair of enantiomers: 6 stereoisomers.`},
- {id:'nh-sp-trien',geom:'SP',chel:['NNNN:xn'],study:true,
-  insight:`[Pt(trien)]<sup>2+</sup>: the chain lies flat, so both secondary N–H can point to either face: same face (R,S, achiral C<sub>s</sub>) or opposite faces (R,R / S,S, a chiral C<sub>2</sub> pair). 3 stereoisomers, where the idealised model has 1.`},
- {id:'nh-sp-cyclam',geom:'SP',chel:['NNNN:rn'],study:true,
-  insight:`[Ni(cyclam)]<sup>2+</sup>: the five Bosnich configurations trans-I to trans-V, of which trans-II and trans-V are chiral: 7 stereoisomers. trans-III is the one usually found.`},
-];
 /* EVERY formula is generated, not hand-picked. Isomer counts depend only on which ligands are present: a rotation
    or reflection must map each ligand onto an identical one, so a ligand is described by the symmetry of its own donor
    framework, and different ligands simply get different letters. For each shape the generator takes every way to split
@@ -1459,13 +1381,11 @@ const ANALYSIS={}, BANK=[];
     ANALYSIS[c.id]=A; BANK.push(c); keys.add(k);
   });
   HAND.forEach(c=>{const k=c.geom+':'+speciesKey(c.mono||'',c.chel||[]);if(!keys.has(k)){console.warn('hand case outside the generated set',c.id);ANALYSIS[c.id]=analyzeCase(c);BANK.push(c);keys.add(k);}});
-  NH_CASES.forEach(c=>{ANALYSIS[c.id]=analyzeCase(c);BANK.push(c);});
 })();
 
 
-const MODE_TAG={3:{m:'mer',f:'fac',c:'cyc'},4:{p:'planar',f:'folded',t:'tripod',r:'cyc',rp:'cyc, planar',xn:'trien, N–H',rn:'cyclam, N–H'}};
-const NAMED_LIG={xn:'trien',rn:'cyclam'};   // tetradentates modelled as the real ligand: written by name, donors drawn as N
-const ligHTML=x=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];if(NAMED_LIG[mode])return `(${NAMED_LIG[mode]})`;return `(${L})`+(t?`<sup>${t}</sup>`:'');};
+const MODE_TAG={3:{m:'mer',f:'fac',c:'cyc'},4:{p:'planar',f:'folded',t:'tripod',r:'cyc',rp:'cyc, planar'}};
+const ligHTML=x=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];return `(${L})`+(t?`<sup>${t}</sup>`:'');};
 function formulaHTML(c){
   let f='M'; const cc={};
   (c.chel||[]).forEach(x=>cc[x]=(cc[x]||0)+1);
@@ -1495,7 +1415,7 @@ const caseLetters=c=>new Set((c.mono||'')+(c.chel||[]).map(x=>lig(x).L).join('')
 const ligKind=x=>{const {L,mode}=lig(x),d=L.length;
   if(d===2) return L[0]===L[1]?'symmetric chelate':'unsymmetric chelate';
   if(d===3) return {x:'flexible tridentate',m:'rigid tridentate (mer only)',f:'tridentate (fac only)',c:'face-capping tridentate'}[mode];
-  return {x:'flexible tetradentate chain',p:'planar tetradentate chain',f:'folded tetradentate chain',t:'tripodal tetradentate',r:'flexible macrocycle',rp:'planar macrocycle',xn:'trien (N–H counted)',rn:'cyclam (N–H counted)'}[mode];};
+  return {x:'flexible tetradentate chain',p:'planar tetradentate chain',f:'folded tetradentate chain',t:'tripodal tetradentate',r:'flexible macrocycle',rp:'planar macrocycle'}[mode];};
 const ligKinds=c=>{const k=[];if(c.mono)k.push('monodentate');(c.chel||[]).forEach(x=>{const t=ligKind(x);if(!k.includes(t))k.push(t);});return k;};
 const FAMS=[
   {id:'m',name:'Monodentate ligands only'},
@@ -1506,10 +1426,9 @@ const FAMS=[
   {id:'qc',name:'Tetradentate chains (trien-type)',note:'A chain of four donors lies flat (trans: the two free positions are trans) or folds (cis-α: its two end donors are trans to each other; cis-β: they are not).'},
   {id:'qt',name:'Tripodal tetradentates (tren-type)',note:'A central donor with three arms always leaves one free position trans to the central donor and one cis to it.'},
   {id:'qr',name:'Macrocycles (cyclam- or porphyrin-type)',note:'A ring of four donors lies flat (trans) or, if flexible, folds (cis). A rigid planar macrocycle like a porphyrin can only lie flat, so it cannot hold a bidentate ligand.'},
-  {id:'qn',name:'N–H counted (trien, cyclam)',note:'Each secondary N–H donor is a stereocentre. It can invert (H up or down) only where its two chelate rings are coplanar; where they lie on adjacent faces the ring geometry fixes it. Descriptors are R/S at each N (CIP: M > C on the branch toward the other N–H, or the ethylene side in cyclam > the other C > H).'},
 ];
 function famOf(c){const ks=(c.chel||[]).map(x=>({d:ligDent(x),mode:lig(x).mode}));
-  const q=ks.find(k=>k.d===4); if(q) return /n$/.test(q.mode)?'qn':q.mode==='t'?'qt':(q.mode==='r'||q.mode==='rp')?'qr':'qc';
+  const q=ks.find(k=>k.d===4); if(q) return q.mode==='t'?'qt':(q.mode==='r'||q.mode==='rp')?'qr':'qc';
   const t=ks.filter(k=>k.d===3).length; if(t===2) return 't3'; if(t===1) return ks.some(k=>k.d===2)?'t2b':'t1';
   return ks.length?'b':'m';}
 const ligChips=c=>ligKinds(c).map(k=>`<span class="chip lig">${k}</span>`).join('');
@@ -1531,8 +1450,7 @@ function formulaCanon(mono,chel){
 const NB={}; let bankKeys=null;
 const DENT_WORD=['','','bidentate','tridentate','tetradentate'];
 const MODE_SWAPS={3:{x:[['m','make it rigid (mer only)'],['f','restrict it to fac']],m:[['x','make it flexible']],f:[['x','make it flexible']]},
-  4:{x:[['p','restrict it to lie flat'],['f','restrict it to folded (cis) shapes'],['xn','count its N–H configurations (trien)']],p:[['x','make it flexible']],f:[['x','make it flexible']],r:[['rp','make the macrocycle rigid and flat'],['rn','count its N–H configurations (cyclam)']],rp:[['r','make the macrocycle flexible']],
-     xn:[['x','ignore the N–H configurations']],rn:[['r','ignore the N–H configurations']]}};
+  4:{x:[['p','restrict it to lie flat'],['f','restrict it to folded (cis) shapes'],],p:[['x','make it flexible']],f:[['x','make it flexible']],r:[['rp','make the macrocycle rigid and flat'],],rp:[['r','make the macrocycle flexible']]}};
 /* formulas in the app that differ from this one by changing a single donor, or one ligand's flexibility */
 function neighbours(c){
   if(NB[c.id]) return NB[c.id];
@@ -1625,18 +1543,15 @@ function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
     items.push({kind:'bond',i,st,depth:z/2},{kind:'label',i,depth:z});
   });
   items.push({kind:'label',i:-1,depth:0});
-  cfg.edges.forEach(([a,b,t])=>{
+  cfg.edges.forEach(([a,b])=>{
     const pa=G.unit[a],pb=G.unit[b],n=V.norm(V.add(pa,pb)),e=V.sub(pb,pa);
     const c1=V.add(V.add(pa,V.scale(n,0.42)),V.scale(e,0.14)), c2=V.sub(V.add(pb,V.scale(n,0.42)),V.scale(e,0.14));
-    const pts=t==='6'?[P[a],proj(V.add(V.add(pa,V.scale(n,0.4)),V.scale(e,0.03))),proj(V.add(V.scale(V.add(pa,pb),.5),V.scale(n,0.66))),proj(V.sub(V.add(pb,V.scale(n,0.4)),V.scale(e,0.03))),P[b]]
-                     :[P[a],proj(c1),proj(c2),P[b]];
+    const pts=[P[a],proj(c1),proj(c2),P[b]];
     const mid=pts.slice(1,-1);
     items.push({kind:'bridge',a,b,pts,depth:mid.reduce((t,o)=>t+o.z,0)/mid.length});
   });
-  if(cfg.h) Object.keys(cfg.h).forEach(k=>{const i=+k,ph=proj(V.add(G.unit[i],V.scale(nhVec(G,cfg,i),0.4)));
-    items.push({kind:'nh',i,ph,depth:(P[i].z+ph.z)/2},{kind:'hlab',i,ph,depth:ph.z});});
   // lines back-to-front, then every label on top (as in ChemDraw, no line ever covers text)
-  const isLab=k=>k==='label'||k==='hlab';
+  const isLab=k=>k==='label';
   items.sort((u,v)=>(isLab(u.kind)-isLab(v.kind))||(u.depth-v.depth));
   ctx.lineCap='round';ctx.lineJoin='round';
   // every stroke sits on a white halo, so a nearer bond crossing a farther one shows ChemDraw's gap
@@ -1660,19 +1575,6 @@ function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
       const cut=(a,b)=>{const dd=Math.hypot(b[0]-a[0],b[1]-a[1])||1,k=Math.min(clrL,dd*0.8);return [a[0]+(b[0]-a[0])/dd*k,a[1]+(b[1]-a[1])/dd*k];};
       const k=p.length-1, path=[cut(p[0],p[1]),...p.slice(1,k),cut(p[k],p[k-1])]; bridgePaths[it.a+'-'+it.b]=path;
       inked(()=>{ctx.beginPath();ctx.moveTo(...path[0]);path.slice(1).forEach(o=>ctx.lineTo(...o));ctx.stroke();});
-    } else if(it.kind==='nh'){
-      // N–H: wedge if H points toward the reader, hash if away (narrow end at N, as for any stereocentre)
-      const a=P[it.i],b=it.ph,dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy),hc=fs*0.36;
-      if(len<clrL+hc+lw) continue;
-      const ux=dx/len,uy=dy/len,nx=-uy,ny=ux,s0=[a.x+ux*clrL,a.y+uy*clrL],s1=[b.x-ux*hc,b.y-uy*hc],dz=(b.z-a.z)/0.4;
-      const st=dz>0.3?'wedge':dz<-0.3?'hash':'plain', w=L*0.05;
-      if(st==='plain') inked(()=>{ctx.beginPath();ctx.moveTo(...s0);ctx.lineTo(...s1);ctx.stroke();});
-      else if(st==='wedge') inked(h=>{ctx.beginPath();ctx.moveTo(s0[0],s0[1]);ctx.lineTo(s1[0]+nx*w,s1[1]+ny*w);ctx.lineTo(s1[0]-nx*w,s1[1]-ny*w);ctx.closePath();h?ctx.stroke():ctx.fill();});
-      else{const sl=Math.hypot(s1[0]-s0[0],s1[1]-s0[1]),m=Math.max(3,Math.round(sl/(lw*3)));
-        inked(()=>{ctx.beginPath();for(let j=0;j<m;j++){const t=(j+0.6)/m,c=[s0[0]+ux*sl*t,s0[1]+uy*sl*t],hw=w*(0.15+0.85*t);ctx.moveTo(c[0]-nx*hw,c[1]-ny*hw);ctx.lineTo(c[0]+nx*hw,c[1]+ny*hw);}ctx.stroke();});}
-    } else if(it.kind==='hlab'){
-      const x=it.ph.x,y=it.ph.y;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,fs*0.36,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=INKC;ctx.font=`${fs*0.7}px ${DRAW_FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('H',x,y+fs*0.03);
     } else {
       const isM=it.i<0, x=isM?cx:P[it.i].x, y=isM?cy:P[it.i].y, X=isM?'M':cfg.labels[it.i];
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,fs*0.56,0,Math.PI*2);ctx.fill();   // label knock-out, as in ChemDraw
@@ -1862,7 +1764,7 @@ const METALS=new Set('M Sc Ti V Cr Mn Fe Co Ni Cu Zn Y Zr Nb Mo Tc Ru Rh Pd Ag C
 const NAMED_MONO=['NH3','H2O','OH2','PPh3','PMe3','PEt3','PR3','NCMe','MeCN','SCN','NCS','ONO','NO2','NO','CO','CN','NC','OH','Cl','Br','py','N3','Me','Ph','F','I','H','O','S','X','L','Y','Z'];
 const NAMED_CHEL={en:'AA',pn:'AA',tmen:'AA',ox:'AA',mal:'AA',acac:'AA',bipy:'AA',bpy:'AA',phen:'AA',dppe:'AA',dmpe:'AA',diars:'AA',co3:'AA',
   gly:'AB',ala:'AB',pic:'AB',dien:'AAA:x',ida:'ABA:x',terpy:'AAA:m',tpy:'AAA:m',tacn:'AAA:c',
-  trien:['AAAA:x','ABBA:xn'],tren:'AAAA:t',cyclam:['AAAA:r','AAAA:rn'],cyclen:'AAAA:r',porph:'AAAA:rp',por:'AAAA:rp',tpp:'AAAA:rp',pc:'AAAA:rp',salen:'ABBA:x'};
+  trien:'AAAA:x',tren:'AAAA:t',cyclam:'AAAA:r',cyclen:'AAAA:r',porph:'AAAA:rp',por:'AAAA:rp',tpp:'AAAA:rp',pc:'AAAA:rp',salen:'ABBA:x'};
 const MODE_WORD={mer:'m',fac:'f',cyc:'c',planar:'p',folded:'f',tripod:'t'};
 const ANY_MODES={3:['x','m','f','c'],4:['x','p','f','t','r','rp']};
 function parseFormula(q){
@@ -2287,9 +2189,9 @@ function buildBuilder(){
 /* =====================================================================
    4. QUIZ UI
    ===================================================================== */
-const Q={nh:false,fams:new Set(['mb','tri','tet']),   // nh: include the trien/cyclam cases that count N–H stereocentres (off unless chosen)
+const Q={fams:new Set(['mb','tri','tet']),
 cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
-try{Q.best=+localStorage.getItem('isoSketchBest')||0;Q.nh=localStorage.getItem('isoQuizNH')==='1';const m=localStorage.getItem('isoAnsMode');if(m==='mc'||m==='type')Q.mode=m;}catch(e){}
+try{Q.best=+localStorage.getItem('isoSketchBest')||0;const m=localStorage.getItem('isoAnsMode');if(m==='mc'||m==='type')Q.mode=m;}catch(e){}
 const TYPE_TEXT={
   stereo:`How many <b>stereoisomers</b> (counting each enantiomer separately) are possible for`,
   geometric:`How many <b>geometrical isomers</b> (each enantiomeric pair counted once) are possible for`,
@@ -2305,8 +2207,7 @@ function gloss(c){
   if(bi.some(x=>x[0]!==x[1])) bits.push(`AB = unsymmetrical bidentate ligand (like glycinate), donor ends A and B`);
   if(bi.length) bits.push(`chelates span ${c.geom==='Td'?'an edge':'cis positions'}`);
   const tet=chel.filter(x=>ligDent(x)===4);
-  if(tet.some(x=>!/n$/.test(lig(x).mode))) bits.push(`four-letter groups = tetradentate ligands: a chain like trien (unmarked = flexible; <sup>planar</sup> = lies flat only; <sup>folded</sup> = folds only), a <sup>tripod</sup> like tren (first letter = central donor), or a macrocycle <sup>cyc</sup> like cyclam (<sup>cyc, planar</sup> = rigid and flat, like a porphyrin)`);
-  if(tet.some(x=>/n$/.test(lig(x).mode))) bits.push(`(trien), (cyclam) = the real ligands, all four donors N. Their secondary-amine N–H groups are counted as stereocentres (trien: the two inner N; cyclam: all four, with ethylene and propylene links alternating). H drawn on each; a three-carbon bridge marks a 6-membered ring`);
+  if(tet.length) bits.push(`four-letter groups = tetradentate ligands: a chain like trien (unmarked = flexible; <sup>planar</sup> = lies flat only; <sup>folded</sup> = folds only), a <sup>tripod</sup> like tren (first letter = central donor), or a macrocycle <sup>cyc</sup> like cyclam (<sup>cyc, planar</sup> = rigid and flat, like a porphyrin)`);
   if(tri.length) bits.push(`(ABA), (ABC) = tridentate ligands, donors in chain order (like dien); <sup>mer</sup> = rigid, binds only meridionally (like terpy); <sup>fac</sup> = binds only facially; <sup>cyc</sup> = cyclic or tripodal, caps a face (like tacn); unmarked chains are flexible`);
   return bits.join(' · ')+'. Ligands are idealised as points; chelate-ring conformations are ignored.';
 }
@@ -2318,7 +2219,7 @@ function setAnswerMode(m){
 }
 function nextQuestion(){
   clearResults(); hidePop();
-  const quizzable=c=>caseLetters(c).size>1&&(Q.nh||famOf(c)!=='qn');   // [MA6]-type formulas are too trivial to ask about; N–H counting only when chosen
+  const quizzable=c=>caseLetters(c).size>1;   // [MA6]-type formulas are too trivial to ask about
   const fk=c=>{const f=famOf(c);return f==='m'||f==='b'?'mb':f[0]==='t'?'tri':'tet';};
   // pick the ligand group first, so the many tri- and tetradentate formulas don't crowd out the rest
   const famsAvail=[...Q.fams].filter(f=>BANK.some(c=>fk(c)===f&&quizzable(c)&&Q.geoms.has(c.geom)));
@@ -2455,7 +2356,6 @@ function buildFilters(){
   const f=$('#filters');
   f.innerHTML=`<span>ask about:</span>`+['Td','SP','Oh'].map(g=>`<button class="btn ${Q.geoms.has(g)?'on':''}" data-geo="${g}">${GEOMS[g].name}</button>`).join('')+
     `<span class="dot-sep">·</span>`+[['mb','mono- & bidentate'],['tri','tridentate'],['tet','tetradentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join('')+
-    `<button class="btn ${Q.nh?'on':''}" data-nh title="Include [M(trien)…] and [M(cyclam)…] with each secondary N–H counted as a stereocentre (beyond most syllabuses)" ${Q.fams.has('tet')?'':'disabled'}>+ N–H counted (trien, cyclam)</button>`+
     `<span class="dot-sep">·</span>`+[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}">${l}</button>`).join('')+
     `<span class="keyhint">${Q.mode==='mc'?'keys 1–4 answer · Enter = next':'Enter = check, then Enter = next'}</span>`;
 }
@@ -2715,8 +2615,6 @@ function init(){
     else{const r=v.step(a[1]);if(r)$('#iflag').innerHTML=STEP_TEXT(r,a[1]);}});
   $('#filters').addEventListener('click',e=>{
     const b=e.target.closest('.btn'); if(!b) return;
-    if('nh' in b.dataset){Q.nh=!Q.nh;try{localStorage.setItem('isoQuizNH',Q.nh?'1':'0');}catch(e){}buildFilters();
-      if(!Q.nh&&Q.cur&&famOf(Q.cur.c)==='qn'&&!Q.resolved)nextQuestion();return;}   // drop a question that is no longer allowed
     const set=b.dataset.geo?Q.geoms:b.dataset.fam?Q.fams:Q.types, key=b.dataset.geo||b.dataset.fam||b.dataset.type;
     if(set.has(key)){if(set.size>1)set.delete(key);}else set.add(key);
     buildFilters();
