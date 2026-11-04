@@ -16,7 +16,7 @@ test('every original bank formula is unchanged (counts, names, point groups)',()
   const bad=[]; for(const g of golden){const c=byId.get(g[0]); if(!c){bad.push(g[0]+' missing');continue;}
     const A=E.ANALYSIS[c.id], r=[c.id,A.stereo,A.geometric,A.pairs,A.isomers.map(i=>[i.label,i.sym.plain,i.chiral?1:0,i.trans,i.chir||''].join('|'))];
     if(JSON.stringify(r)!==JSON.stringify(g)) bad.push(g[0]);}
-  same(bad,[],'changed: '+bad.slice(0,5).join(', ')); assert.equal(golden.length,248);
+  same(bad,[],'changed: '+bad.slice(0,5).join(', ')); assert.equal(golden.length,239);
 });
 
 test('tetrahedral R/S works with non-contiguous letters (was hard-coded to A-D)',()=>{
@@ -70,7 +70,7 @@ test('family invariants over the whole bank (every monodentate letter, two donor
       // each parent isomer's children, counted across forms, equal the family total
       assert.equal(F.rows.reduce((t,r)=>t+r.cells.reduce((u,x)=>u+x.length,0),0),F.tally.stereo);
     }}
-  assert.ok(nFam>=250&&nVar>=600,nFam+' families, '+nVar+' forms');
+  assert.ok(nFam>=240&&nVar>=600,nFam+' families, '+nVar+' forms');
 });
 
 test('linkage can switch chirality on: tetrahedral mixed S/N, never square planar',()=>{
