@@ -13,6 +13,7 @@ b.textContent='The app hit a problem while starting ('+(e.message||'unknown erro
 <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Patrick+Hand&display=swap" rel="stylesheet">
 <style>
 :root{
+  --arr:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 16' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.4 9.6C9 7.3 17.4 8.9 30.2 7.7'/%3E%3Cpath d='M23.2 2.4C25.7 4.7 28 6.3 30.6 7.8C27.9 9.4 25.7 11.5 23.9 14'/%3E%3C/svg%3E");
   --paper:#f7f5f0; --card:#fffdf8; --ink:#1f1d1a; --ink2:#5a554c; --ink3:#8b857a;
   --grid:#e7e2d7; --grid2:#ddd6c8;
   --A:#f0716b; --B:#5aa9e6; --C:#f6c445; --D:#72c47f; --E:#b28fe0; --F:#f4974a; --M:#a7b4bf;
@@ -35,6 +36,12 @@ sub,sup{font-size:.72em;line-height:0}
 .btn:hover{background:var(--hl)}
 .btn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
 .btn.on{background:var(--ink);color:var(--paper)}
+/* the sketch arrow that stands in for → and ⇢: a mask, so it is always the colour of the text beside it */
+.nw{white-space:nowrap}
+.tw{display:inline-block;flex:none;width:1.3em;height:.7em;background:currentColor;-webkit-mask:var(--arr) center/contain no-repeat;mask:var(--arr) center/contain no-repeat;transition:transform .2s}
+.arr{display:inline-block;width:1.9em;height:.9em;margin:0 .08em;vertical-align:-.16em;background:currentColor;-webkit-mask:var(--arr) center/contain no-repeat;mask:var(--arr) center/contain no-repeat;transition:transform .12s}
+small .arr,.nbr-row .arr,.chip .arr{width:1.55em}
+@media (hover:hover){.btn:hover:not(:disabled) .arr,.nbr-row:hover .arr{transform:translateX(3px)}}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:2px 2px 0 var(--ink)}
 .chip{display:inline-block;border:1.5px solid var(--ink);border-radius:9px 3px 8px 4px;padding:0 6px;font-family:var(--hand);font-size:12.5px;background:var(--card);white-space:nowrap}
 .chip.chiral{background:#efe3ff;border-color:var(--violet)}
@@ -74,7 +81,7 @@ main[hidden]{display:none!important}
 .case-btn:hover{background:var(--hl)}
 .case-btn .f{font-size:17px}
 .case-btn .cnt{margin-left:auto;font-size:12px;color:var(--ink2);text-align:right;line-height:1.1}
-.case-btn .arrow{transition:transform .2s;font-size:13px}
+.case-btn .arrow{font-size:13px}
 .case.open .case-btn .arrow{transform:rotate(90deg)}
 .case-body{display:none;margin:6px 2px 4px 10px;padding:6px 0 4px 10px;border-left:2px dashed var(--ink3)}
 .case.open .case-body{display:block}
@@ -188,6 +195,7 @@ main[hidden]{display:none!important}
 .results{margin-top:22px}
 .results h3{font-family:var(--hand);font-size:22px;margin:0 0 6px}
 .results .explain{font-size:16px;color:var(--ink2);max-width:900px;margin:0 0 14px}
+.rform{font-family:var(--hand);font-size:17px;margin:12px 0 6px;font-weight:normal}.rform small{font-size:12.5px;color:var(--ink2)}
 .rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
 .rcard{padding:8px;display:flex;flex-direction:column;animation:pop .35s ease-out both}
 .rcard.pair{grid-column:span 2}
@@ -232,6 +240,9 @@ main[hidden]{display:none!important}
 .isheet{width:min(900px,100%);max-height:100%;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .isheet h3{font-family:var(--hand);font-size:20px;margin:0}
 .isheet h3 span{font-size:15px;color:var(--ink2);font-family:var(--body)}
+.btn.step{padding:0 8px;min-width:26px;box-shadow:1px 1px 0 var(--ink)}.btn.step:disabled{opacity:.35}
+.btn:disabled{opacity:.45;cursor:default}
+.outer{color:var(--ink2)}
 .istages{display:flex;gap:8px;height:min(60vh,520px)}
 .istage{flex:1;min-width:0;border:2px solid var(--ink);border-radius:6px 3px 8px 4px;background:#fff}
 .istage canvas{display:block;width:100%;height:100%;touch-action:none}
@@ -304,7 +315,8 @@ body.mobile .nbr-h{font-size:13px}
 .fgeo-head svg{width:32px;height:32px;flex:none}
 .fgeo-name{display:flex;flex-direction:column;line-height:1.15}
 .fgeo-name small{font-family:var(--body);font-size:13px;color:var(--ink2)}
-.fgeo-arrow{font-size:12px;transition:transform .2s}
+.fgeo-arrow{font-size:13px}
+.fgeo-head .fgeo-arrow{font-size:16px}
 .fgeo-head[aria-expanded="true"] .fgeo-arrow{transform:rotate(90deg)}
 .fgeo-body{padding:0 0 4px 4px;display:flex;flex-direction:column}
 .side .fgeo-head{scroll-margin-top:84px}
@@ -429,6 +441,24 @@ body.mobile .long{display:none} body.mobile .short{display:inline}
 #cSlot1 .cbadge{background:#ffd9d6}#cSlot2 .cbadge{background:#d6ebff}
 .ct{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--hand);font-size:15px}.ct small{font-family:var(--body);color:var(--ink2);font-size:13.5px}
 .chip.live{background:#d6ebff;border-color:#3b6f96;color:#3b6f96}
+.chip.alt{background:#f6efff;border:1.5px dashed var(--violet);color:var(--violet)}
+/* complicate strip: the base isomer stays in Viewport 1, the altered one is shown in Viewport 2 */
+.cx{flex:none;display:flex;flex-direction:column;gap:6px;padding:7px 10px;border-style:dashed;border-color:var(--violet);background:#fbf8ff;box-shadow:2px 2px 0 var(--violet)}
+.cx-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cx-t{font-family:var(--hand);font-size:16px;color:var(--violet);margin-right:2px}
+.cx .lab{font-family:var(--hand);font-size:13px;color:var(--ink2)}
+.cx .btn{font-size:13px;padding:2px 9px}
+.cx .btn.on{background:var(--hl);color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink),2px 2px 0 var(--ink)}
+.cx-res .btn{border-color:var(--violet)}
+.cx-x{margin-left:auto}
+.cx small{color:var(--ink2);font-size:12.5px}
+.cx-err{color:var(--bad);font-size:13px}
+.cx .step{padding:0 8px;min-width:26px}
+body.mobile .cx{padding:6px 8px;gap:5px}
+body.mobile .cx-row{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+body.mobile .cx .btn,body.mobile .cx .lab,body.mobile .cx .cx-t{flex:none;white-space:nowrap}
+body.mobile .cx .btn{min-height:36px}
+body.mobile .cx-x{margin-left:0}
 .cstage-host{flex:1;min-height:0;position:relative}
 .cstage-host .vp-stage{position:absolute;inset:0;border:0;border-radius:0;min-height:0}
 .cmid{flex:none;display:flex;align-items:center;gap:8px;position:relative;min-height:42px}
@@ -522,7 +552,8 @@ body.mobile .istages{flex:1;height:auto;min-height:0}
 /* landscape phone */
 body.mobile.land .mtop{min-height:46px;padding-block:3px}
 body.mobile.land .mtabs button{min-height:46px;padding:3px 0;font-size:11px}
-body.mobile.land #tabCompare{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 176px;grid-template-rows:auto minmax(0,1fr)}
+body.mobile.land #tabCompare{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 176px;grid-template-rows:auto minmax(0,1fr) auto}
+body.mobile.land #cxHost{grid-column:1 / 4;grid-row:3}
 body.mobile.land #cSlot1{grid-column:1;grid-row:1 / 3} body.mobile.land #cSlot2{grid-column:2;grid-row:1 / 3}
 body.mobile.land .cmid{grid-column:3;grid-row:1;flex-direction:column;align-items:stretch}
 body.mobile.land #cFab{grid-column:3;grid-row:2;display:grid;grid-template-columns:1fr 1fr;align-content:start}
@@ -541,7 +572,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
 <div id="nojs">
   <h1>Isomer Sketchbook</h1>
   <p>This preview can't run the interactive app. Telegram, Files and Mail show HTML files in a preview that switches JavaScript off.</p>
-  <p><b>Open the app here instead:</b><br><a href="https://voidoro.github.io/isomers/" target="_blank" rel="noopener">https://voidoro.github.io/isomers/</a></p>
+  <p><b>Open the app here instead:</b><br><a href="https://voidory.github.io/isomers/" target="_blank" rel="noopener">https://voidory.github.io/isomers/</a></p>
   <p>Or open this file in a browser on a computer (Chrome, Safari, Edge or Firefox).</p>
 </div>
 <div class="app">
@@ -577,7 +608,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
             <button class="btn" data-act="shuffle" data-v="1" title="Show the same molecule from a random exam-style angle">Shuffle</button>
             <button class="btn" data-act="reset" data-v="1">Reset</button>
             <button class="btn" data-act="mirror" data-v="1" title="Draw its reflection beside it">Mirror plane</button>
-            <button class="btn" data-act="send" data-v="1">Mirror image → V2</button>
+            <button class="btn" data-act="send" data-v="1">Mirror image <i class="arr" role="img" aria-label="to"></i> V2</button>
           </div>
           <div class="vp-info" id="info1"></div>
         </div>
@@ -592,14 +623,15 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
             <button class="btn" data-act="shuffle" data-v="2" title="Show the same molecule from a random exam-style angle">Shuffle</button>
             <button class="btn" data-act="reset" data-v="2">Reset</button>
             <button class="btn" data-act="mirror" data-v="2" title="Draw its reflection beside it">Mirror plane</button>
-            <button class="btn" data-act="send" data-v="2">Mirror image → V1</button>
+            <button class="btn" data-act="send" data-v="2">Mirror image <i class="arr" role="img" aria-label="to"></i> V1</button>
           </div>
           <div class="vp-info" id="info2"></div>
         </div>
       </div>
+      <div class="cx sketch" id="cx" hidden></div>
       <div class="compare sketch">
         <div class="rel" id="rel"></div>
-        <button class="btn" id="alignBtn"><span class="long">Try to superimpose V2 onto V1</span><span class="short">Superimpose V2 → V1</span></button>
+        <button class="btn" id="alignBtn"><span class="long">Try to superimpose V2 onto V1</span><span class="short">Superimpose V2 <i class="arr" role="img" aria-label="to"></i> V1</span></button>
         <label title="Dragging one molecule turns the other the same way"><input type="checkbox" id="linkChk"> link rotation</label>
         <label title="On release, settle on the nearest textbook/exam-style orientation"><input type="checkbox" id="snapChk" checked> snap to exam views</label>
         <label title="Viewport 2 becomes a live mirror image of Viewport 1"><input type="checkbox" id="liveChk"> mirror between viewports</label>
@@ -630,7 +662,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
           <div class="q-actions">
             <button class="btn" id="revealBtn" style="display:none">Show me the answer</button>
             <span class="spacer"></span>
-            <button class="btn" id="nextBtn">Next question →</button>
+            <button class="btn" id="nextBtn">Next question <i class="arr" role="img" aria-label="to"></i></button>
           </div>
           <div class="filters" id="filters"></div>
         </div>
@@ -674,8 +706,9 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
       </div>
     </section>
     <section class="mscreen" data-tab="compare" id="tabCompare" hidden>
+      <div id="cxHost" hidden></div>
       <div class="cslot" id="cSlot1"><div class="cslot-head" id="cHead1"></div><div class="cstage-host" id="cHost1"></div></div>
-      <div class="cmid"><span id="cStamp"></span><button class="btn" id="cAlign">Superimpose 2 → 1</button></div>
+      <div class="cmid"><span id="cStamp"></span><button class="btn" id="cAlign">Superimpose 2 <i class="arr" role="img" aria-label="to"></i> 1</button></div>
       <div class="cslot" id="cSlot2"><div class="cslot-head" id="cHead2"></div><div class="cstage-host" id="cHost2"></div></div>
       <div id="cFab"><button class="fab" data-mact="rv" aria-label="Turn about the axis nearest the vertical">↻<small>vert</small></button><button class="fab" data-mact="rh" aria-label="Turn about the axis nearest the horizontal">↻<small>horiz</small></button><button class="fab" data-mact="rz" aria-label="Turn within the page">⟲<small>page</small></button><button class="fab" data-mact="shuffle" aria-label="Show from another exam-style angle">⤮<small>shuffle</small></button><button class="fab" data-mact="reset" aria-label="Back to the start view">⌂<small>reset</small></button><button class="fab" data-open="more" aria-label="More tools">⋯<small>more</small></button></div>
     </section>
@@ -719,7 +752,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
   <div class="sheet-head"><span class="grab"></span><b>More</b><span style="flex:1"></span><button class="btn" data-close>✕</button></div>
   <div class="more-grid">
     <button class="btn" data-more="mirror">Mirror plane</button>
-    <button class="btn" data-more="send">Mirror image → other viewport</button>
+    <button class="btn" data-more="send">Mirror image <i class="arr" role="img" aria-label="to"></i> other viewport</button>
     <label><input type="checkbox" id="mLive"> mirror between viewports</label>
     <label><input type="checkbox" id="mLink"> link rotation</label>
     <label><input type="checkbox" id="mSnap"> snap to exam views</label>
@@ -785,6 +818,7 @@ const THREE={Vector3:Vec3,Quaternion:Quat};
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
+/*ENGINE-BEGIN*/
 /* =====================================================================
    1. CHEMISTRY ENGINE — sites, symmetry groups, isomer enumeration
    ===================================================================== */
@@ -867,7 +901,7 @@ for(const G of Object.values(GEOMS)){
   G.n=P.length;
   G.transOf=P.map((p,i)=>P.findIndex((q,j)=>j!==i && V.dot(V.norm(p),V.norm(q))<-0.99));
   G.edges=[];
-  for(let i=0;i<G.n;i++)for(let j=i+1;j<G.n;j++) if(V.dot(V.norm(P[i]),V.norm(P[j]))>-0.5) G.edges.push([i,j]);
+  for(let i=0;i<G.n;i++)for(let j=i+1;j<G.n;j++) if(V.dot(V.norm(P[i]),V.norm(P[j]))>-0.5+1e-6) G.edges.push([i,j]);   // tolerance: sites exactly 120° apart are not neighbours, all of them or none
   G.group=buildGroup(G);
   G.rots=G.group.filter(g=>g.det>0);
   G.sigma=G.group.find(g=>Math.abs(g.m[0][0]+1)<1e-9&&Math.abs(g.m[1][1]-1)<1e-9&&Math.abs(g.m[2][2]-1)<1e-9); // x → −x
@@ -1031,21 +1065,23 @@ function classify(elems){
 
 /* ---------- descriptors ---------- */
 function letterCounts(str){const c={};for(const ch of str)c[ch]=(c[ch]||0)+1;return c;}
-function transPairs(G,cfg){
+const ID=x=>x;   // names take an optional lbl(letter) -> text hook, so a variant can name its ligands (NO₂, ONO) instead of B, C
+function transPairs(G,cfg,lbl=ID){
+  if(G.transPairs) return G.transPairs(cfg,lbl);   // a shape with its own descriptors (the trigonal bipyramid)
   if(G.id==='Td') return '';
   const seen=new Set(), out=[];
-  const lab=i=>cfg.labels[i];
+  const lab=i=>lbl(cfg.labels[i]);
   for(let i=0;i<G.n;i++){if(seen.has(i))continue;const j=G.transOf[i];seen.add(i);seen.add(j);out.push([lab(i),lab(j)].sort().join('–'));}
   return out.sort().join(', ');
 }
-function monoParts(G,L,sites,counts){
+function monoParts(G,L,sites,counts,lbl=ID){
   const isT=(i,j)=>G.transOf[i]===j, pos=X=>sites.filter(i=>L[i]===X);
   const anyT=arr=>arr.some((a,i)=>arr.some((b,j)=>j>i&&isT(a,b)));
   const letters=Object.keys(counts).sort();
   const doubles=letters.filter(x=>counts[x]===2), triples=letters.filter(x=>counts[x]===3), singles=letters.filter(x=>counts[x]===1);
   if(G.id==='SP'){
     if(doubles.length) return [anyT(pos(doubles[0]))?'trans':'cis'];
-    if(singles.length===4){const a=pos(singles[0])[0];return [`${singles[0]} trans to ${L[G.transOf[a]]}`];}
+    if(singles.length===4){const a=pos(singles[0])[0];return [`${lbl(singles[0])} trans to ${lbl(L[G.transOf[a]])}`];}
     if(singles.length===2&&sites.length===4) return [anyT(singles.map(x=>pos(x)[0]))?'trans':'cis'];
     return [];
   }
@@ -1053,9 +1089,9 @@ function monoParts(G,L,sites,counts){
   if(triples.length) parts.push(anyT(pos(triples[0]))?'mer':'fac');
   if(doubles.length===3){
     const tr=doubles.filter(x=>anyT(pos(x)));
-    parts.push(tr.length===3?'all-trans':tr.length===0?'all-cis':`${tr[0]}<sub>2</sub> trans, others cis`);
+    parts.push(tr.length===3?'all-trans':tr.length===0?'all-cis':`${lbl(tr[0])}<sub>2</sub> trans, others cis`);
   } else if(doubles.length===1&&!triples.length&&!singles.length){ parts.push(anyT(pos(doubles[0]))?'trans':'cis'); }
-  else doubles.forEach(x=>parts.push(`${x}<sub>2</sub> ${anyT(pos(x))?'trans':'cis'}`));
+  else doubles.forEach(x=>parts.push(`${lbl(x)}<sub>2</sub> ${anyT(pos(x))?'trans':'cis'}`));
   if(singles.length===2&&!doubles.length&&!triples.length) parts.push(anyT(singles.map(x=>pos(x)[0]))?'trans':'cis');
   return parts;
 }
@@ -1071,7 +1107,8 @@ function ligUnits(cfg){  // connected groups of ≥3 linked positions = tri- and
     units.push({sites:comp,deg,nE,ends,mid});});
   return units;
 }
-function nameIso(c,G,cfg){
+function nameIso(c,G,cfg,lbl=ID){
+  if(G.nameIso) return G.nameIso(c,cfg,lbl);        // likewise
   if(G.id==='Td') return '';
   const units=ligUnits(cfg);
   if(units.length){
@@ -1092,7 +1129,7 @@ function nameIso(c,G,cfg){
   const L=cfg.labels, inEdge=new Set(cfg.edges.flat());
   const monoSites=[...Array(G.n).keys()].filter(i=>!inEdge.has(i));
   const chel=(c.chel||[]).filter(x=>ligDent(x)===2), isT=(i,j)=>G.transOf[i]===j, counts=letterCounts(c.mono||'');
-  if(!chel.length) return monoParts(G,L,monoSites,counts).join(', ');
+  if(!chel.length) return monoParts(G,L,monoSites,counts,lbl).join(', ');
   const unsym=chel.filter(x=>x[0]!==x[1]);
   const donors=X=>L.map((l,i)=>(l===X&&inEdge.has(i))?i:-1).filter(i=>i>=0);
   const parts=[];
@@ -1100,7 +1137,7 @@ function nameIso(c,G,cfg){
     if(d.length===2) parts.push(isT(d[0],d[1])?'trans':'cis');
     if(d.length===3) parts.push(d.some((a,i)=>d.some((b,j)=>j>i&&isT(a,b)))?'mer':'fac');}
   if(chel.length===2&&monoSites.length===2&&G.id==='Oh') parts.push(isT(monoSites[0],monoSites[1])?'trans':'cis');
-  if(chel.length===1) parts.push(...monoParts(G,L,monoSites,counts));
+  if(chel.length===1) parts.push(...monoParts(G,L,monoSites,counts,lbl));
   return parts.join(', ');
 }
 /* IUPAC skew-line convention: Δ = right-handed helix defined by two chelate edges */
@@ -1122,12 +1159,13 @@ function helicity(G,cfg){
 /* R/S for tetrahedral MABCD, taking A > B > C > D as (hypothetical) CIP priorities */
 function rsLabel(G,cfg){
   const at=X=>G.sites[cfg.labels.indexOf(X)];
-  const a=at('A'),b=at('B'),c=at('C'),d=at('D');
+  const [la,lb,lc,ld]=[...new Set(cfg.labels)].sort();   // the four distinct labels, whatever letters they are
+  const a=at(la),b=at(lb),c=at(lc),d=at(ld);
   return V.dot(V.cross(V.sub(b,a),V.sub(c,a)),d)>0?'R':'S';
 }
 
 /* ---------- full analysis of one formula ---------- */
-function analyzeCase(c){
+function analyzeCase(c,lbl=ID){
   const G=GEOMS[c.geom], mono=c.mono||'', chel=c.chel||[];
   if(mono.length+chel.reduce((t,x)=>t+ligDent(x),0)!==G.n) throw new Error('bad case '+c.id);
   const raw=enumerateRaw(G,mono,chel), orbits=new Map();
@@ -1159,8 +1197,8 @@ function analyzeCase(c){
   for(const grp of groups){
     for(const iso of grp){
       iso.caseId=c.id; iso.geom=c.geom; iso.caseRef=c;
-      iso.name=nameIso(c,G,iso.cfg);
-      iso.trans=transPairs(G,iso.cfg);
+      iso.name=nameIso(c,G,iso.cfg,lbl);
+      iso.trans=transPairs(G,iso.cfg,lbl);
       const stab=G.group.filter(g=>keyOf(applyCfg(g.perm,iso.cfg))===keyOf(iso.cfg));
       iso.sym=classify(stab);
     }
@@ -1206,7 +1244,7 @@ const CASES=[
   insight:`Still only cis or trans for the A pair. Swapping B and C gives nothing new: flipping the square over (a C<sub>2</sub> rotation in the plane) maps one onto the other.`,
   hint:`Place the two A ligands first; B and C then just fill the gaps.`},
  {id:'sp-mabcd',geom:'SP',mono:'ABCD',study:true,
-  insight:`Fix A. The ligand trans to A can be B, C or D; the other two take the cis sites, and flipping the square swaps them. So 3 isomers, the classic example being [Pt(NO<sub>2</sub>)(NH<sub>3</sub>)(NH<sub>2</sub>OH)(py)]<sup>+</sup>. They are often loosely called "structural" isomers, but strictly they are geometric (stereo)isomers: same connectivity, different spatial arrangement.`,
+  insight:`Fix A. The ligand trans to A can be B, C or D; the other two take the cis sites, and flipping the square swaps them. So 3 isomers, the classic example being [Pt(NO<sub>2</sub>)(NH<sub>3</sub>)(NH<sub>2</sub>OH)(py)]<sup>+</sup>. They are often loosely called "structural" isomers, but strictly they are geometric (stereo)isomers: every ligand is bonded to the metal through the same atom in all three, and only the arrangement in space differs. Structural isomers differ in what is bonded to the metal (for example N-bound versus O-bound nitrite).`,
   hint:`Fix A and ask: which ligand can sit trans to it?`},
  {id:'sp-mab2',geom:'SP',chel:['AB','AB'],study:true,
   insight:`Two unsymmetrical chelates: the like donor atoms (A with A) end up cis or trans, as in cis- and trans-bis(glycinato)platinum(II). Still planar, still achiral.`,
@@ -1383,14 +1421,29 @@ const ANALYSIS={}, BANK=[];
   HAND.forEach(c=>{const k=c.geom+':'+speciesKey(c.mono||'',c.chel||[]);if(!keys.has(k)){console.warn('hand case outside the generated set',c.id);ANALYSIS[c.id]=analyzeCase(c);BANK.push(c);keys.add(k);}});
 })();
 
+/* any formula, analysed once and cached: the bank's own entry if it has one, else a 'custom:' case (used by the Builder and the structural layer) */
+const isoById={}; Object.values(ANALYSIS).forEach(A=>A.isomers.forEach(i=>isoById[i.id]=i));
+const caseByKey={};
+const formulaKey=(geom,mono,chel)=>geom+'|'+mono.split('').sort().join('')+'|'+chel.map(normItem).sort().join(',');
+BANK.forEach(c=>{caseByKey[formulaKey(c.geom,c.mono||'',c.chel||[])]=c.id;});
+function analysisFor(geom,mono,chel){
+  const k=formulaKey(geom,mono,chel);
+  if(!caseByKey[k]){
+    const c={id:'custom:'+k,geom,mono:mono.split('').sort().join(''),chel:chel.map(normItem).sort()};
+    ANALYSIS[c.id]=analyzeCase(c); ANALYSIS[c.id].isomers.forEach(i=>isoById[i.id]=i); caseByKey[k]=c.id;
+  }
+  return ANALYSIS[caseByKey[k]];
+}
+
 
 const MODE_TAG={3:{m:'mer',f:'fac',c:'cyc'},4:{p:'planar',f:'folded',t:'tripod',r:'cyc',rp:'cyc, planar'}};
-const ligHTML=x=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];return `(${L})`+(t?`<sup>${t}</sup>`:'');};
-function formulaHTML(c){
+const ligHTML=(x,lbl=ID)=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];const w=lbl.chel&&lbl.chel(x);if(w)return w;return `(${L.split('').map(lbl).join('')})`+(t?`<sup>${t}</sup>`:'');};
+const caseTitle=c=>c.titleHTML||formulaHTML(c);   // a structural-family variant writes its own title
+function formulaHTML(c,lbl=ID){
   let f='M'; const cc={};
   (c.chel||[]).forEach(x=>cc[x]=(cc[x]||0)+1);
-  Object.keys(cc).sort((a,b)=>ligDent(b)-ligDent(a)||(a<b?-1:1)).forEach(k=>{f+=ligHTML(k)+(cc[k]>1?`<sub>${cc[k]}</sub>`:'');});
-  const mc=letterCounts(c.mono||''); Object.keys(mc).sort().forEach(k=>{f+=k+(mc[k]>1?`<sub>${mc[k]}</sub>`:'');});
+  Object.keys(cc).sort((a,b)=>ligDent(b)-ligDent(a)||(a<b?-1:1)).forEach(k=>{f+=ligHTML(k,lbl)+(cc[k]>1?`<sub>${cc[k]}</sub>`:'');});
+  const mc=letterCounts(c.mono||''); Object.keys(mc).sort().forEach(k=>{const t=lbl(k),poly=!/<sup>/.test(t)&&t.replace(/<[^>]+>/g,'').length>1;f+=(poly?`(${t})`:t)+(mc[k]>1?`<sub>${mc[k]}</sub>`:'');});   // NO₂ twice is (NO₂)₂, not NO₂₂
   return `[${f}]`;
 }
 function summaryHTML(A){
@@ -1458,11 +1511,11 @@ function neighbours(c){
   const mono=c.mono||'',chel=c.chel||[],NEW='Z',self=speciesKey(mono,chel),out=new Map();
   const consider=(m,ch,desc)=>{const k=speciesKey(m,ch);if(k===self)return;const b=bankKeys[c.geom+':'+k];if(b&&!out.has(b.id))out.set(b.id,{c:b,desc});};
   const monoL=[...new Set(mono)];
-  monoL.forEach(X=>{const i=mono.indexOf(X);monoL.filter(y=>y!==X).concat(NEW).forEach(Y=>consider(mono.slice(0,i)+Y+mono.slice(i+1),chel,`one ${X} → ${Y===NEW?'a new ligand':Y}`));});
+  monoL.forEach(X=>{const i=mono.indexOf(X);monoL.filter(y=>y!==X).concat(NEW).forEach(Y=>consider(mono.slice(0,i)+Y+mono.slice(i+1),chel,`<span class="nw">one ${X} <i class="arr" role="img" aria-label="to"></i> ${Y===NEW?'a new ligand':Y}</span>`));});
   chel.forEach((pr,ci)=>{const {L,mode}=lig(pr),sw=x=>{const ch=chel.slice();ch[ci]=x;return ch;};
     const copies=chel.filter(x=>normItem(x)===normItem(pr)).length, ref=`${copies>1?'one':'the'} ${ligHTML(pr)} ${DENT_WORD[L.length]}`;
     for(let p=0;p<L.length;p++) [NEW].concat([...new Set(L)].filter(y=>y!==L[p])).forEach(Y=>{const nl=L.slice(0,p)+Y+L.slice(p+1);
-      consider(mono,sw(mode?nl+':'+mode:nl),`${ref}: one ${L[p]} donor → ${Y===NEW?'a new donor':Y}`);});
+      consider(mono,sw(mode?nl+':'+mode:nl),`${ref}: <span class="nw">one ${L[p]} donor <i class="arr" role="img" aria-label="to"></i> ${Y===NEW?'a new donor':Y}</span>`);});
     ((MODE_SWAPS[L.length]||{})[mode]||[]).forEach(([md,d])=>consider(mono,sw(L+':'+md),`${ref}: ${d}`));});
   const n=caseLetters(c).size;
   return NB[c.id]=[...out.values()].map(o=>({...o,dir:Math.sign(caseLetters(o.c).size-n)})).sort((a,b)=>a.dir-b.dir);
@@ -1471,10 +1524,186 @@ function neighbourHTML(c){
   const nb=neighbours(c); if(!nb.length) return '';
   const A=ANALYSIS[c.id], lab={'-1':'one fewer ligand type','0':'same number of ligand types','1':'one more ligand type'};
   return `<div class="nbr"><div class="nbr-h">One substitution away</div>`+nb.map(o=>{const B=ANALYSIS[o.c.id];
-    const chg=A.stereo===B.stereo?`still ${B.stereo}`:`${A.stereo} → ${B.stereo}`;
+    const chg=A.stereo===B.stereo?`still ${B.stereo}`:`<span class="nw">${A.stereo} <i class="arr" role="img" aria-label="to"></i> ${B.stereo}</span>`;
     return `<button class="nbr-row" data-case-go="${o.c.id}"><span class="xf">${formulaHTML(o.c)}</span><small>${o.desc} (${lab[o.dir]}) · ${chg} stereoisomer${B.stereo===1?'':'s'}, ${B.pairs?B.pairs+' enantiomeric pair'+(B.pairs>1?'s':''):(B.stereo>1?'all achiral':'achiral')}</small></button>`;}).join('')+'</div>';
 }
 
+/* =====================================================================
+   1b. STRUCTURAL LAYER — which atom (or species) is bonded to the metal
+   Stereo isomers share their bonds and differ in arrangement; structural isomers differ in what is bonded.
+   This layer never enumerates a polyhedron: it chooses how ligands bind, renames the result as an ordinary
+   stereo formula, and hands that to analysisFor. A "family" is one base formula plus one complication.
+   Phase 1 (abstract mode): a monodentate letter X becomes ambidentate, with d donor atoms (default two, x and y).
+   Identical copies are indistinguishable, so k copies over d donors give C(k+d-1, d-1) binding forms.
+   ===================================================================== */
+const FAMILY_CAP=120;                                           // most forms one family will analyse
+const DEFAULT_DONORS=[{id:'x',tag:'x'},{id:'y',tag:'y'}];       // abstract donor atoms, drawn as B^x and B^y
+/* Named ambidentate ligands are presets over the abstract donors: text is what is drawn, html what is written,
+   tokens are the formula spellings of each donor (a typed NO2 and ONO are one ligand bonded two ways). */
+const AMBIDENTATE={
+  NO2:{name:'nitrite',   tokens:['NO2','ONO'],donors:[{id:'N',text:'NO₂',html:'NO<sub>2</sub>',iupac:'nitrito-κN (nitro)'},{id:'O',text:'ONO',html:'ONO',iupac:'nitrito-κO'}]},
+  SCN:{name:'thiocyanate',tokens:['SCN','NCS'],donors:[{id:'S',text:'SCN',html:'SCN',iupac:'thiocyanato-κS'},{id:'N',text:'NCS',html:'NCS',iupac:'thiocyanato-κN (isothiocyanato)'}]},
+  CN: {name:'cyanide',    tokens:['CN','NC'], donors:[{id:'C',text:'CN',html:'CN',iupac:'cyanido-κC'},{id:'N',text:'NC',html:'NC',iupac:'cyanido-κN (isocyano)'}]},
+};
+const donorHTML=(letter,dn)=>dn.html||(dn.tag?`${letter}<sup>${dn.tag}</sup>`:letter);
+function compositions(k,d){                                     // ways to split k identical copies over d donors
+  if(d===1) return [[k]];
+  const out=[]; for(let i=k;i>=0;i--) compositions(k-i,d-1).forEach(r=>out.push([i,...r])); return out;}
+/* letters actually used by a formula, renamed contiguously from A in the order given (the engine reads A, B, C ...) */
+/* A formula in tokens: a monodentate is the token of its letter + donor index ('B0', 'B1'), and a kappa-2 copy of a ligand
+   is a symmetric chelate whose two donors are the token 'B9'. Letters are then renamed contiguously from A in rank order
+   (the engine reads A, B, C ...). chelT: [{toks:[...],mode}]. */
+const chelToks=chel=>chel.map(x=>{const {L,mode}=lig(x);return {toks:L.split('').map(c=>c+'0'),mode};});
+function compactTokens(monoTok,chelT,order){
+  const used=new Set(monoTok); chelT.forEach(c=>c.toks.forEach(t=>used.add(t)));
+  const toks=[...used].sort((a,b)=>order(a)-order(b)), map={}; toks.forEach((t,i)=>map[t]='ABCDEFGH'[i]);
+  return {map,mono:monoTok.map(t=>map[t]).join(''),
+    chel:chelT.map(c=>c.toks.map(t=>map[t]).join('')+(c.mode?':'+c.mode:''))};
+}
+/* The complications, one function.
+   base: {geom,mono,chel}.  amb: [{letter,donors?}] makes a monodentate letter ambidentate (linkage isomers).
+   opts.outside {letter:n} adds n spare copies of a ligand to the pool; opts.mobile [letters] says which ligands may sit
+   outside the coordination sphere (ionisation and hydrate isomers). opts.chelate [letters] lets a ligand bond through
+   one atom (kappa-1, one site) or two (kappa-2, a chelate, two sites): denticity isomers. The sphere has exactly as many
+   sites as the shape has, so a ligand leaving, or bonding through one atom instead of two, changes what else fits.
+   Identical copies are indistinguishable throughout.
+   Returns groups (one per inner-sphere composition), each with its binding forms, the base isomers they refine
+   (rows), and the totals. */
+function structuralFamily(base,amb=[],opts={}){
+  const geom=base.geom, G=GEOMS[geom], mono=base.mono||'', chel=base.chel||[];
+  const outside=opts.outside||{}, mobile=new Set(opts.mobile||[]), kap=new Set(opts.chelate||[]), names=opts.names||{}, baseMono=new Set(mono);
+  const nm=l=>names[l]?names[l].html:l, nmText=l=>names[l]?names[l].text:l;           // a letter given a real ligand is written by name
+  const sites=G.n-chel.reduce((t,x)=>t+ligDent(x),0);
+  const letters=[...new Set([...mono,...Object.keys(outside).filter(l=>outside[l]>0).sort()])];
+  const N=Object.fromEntries(letters.map(l=>[l,[...mono].filter(c=>c===l).length+(outside[l]||0)]));
+  letters.forEach(l=>{if(outside[l]>0&&!mobile.has(l)) throw new Error('a ligand kept in the sphere has no spare copies outside');});
+  const defs=amb.map(a=>({letter:a.letter,donors:a.donors||DEFAULT_DONORS}));
+  defs.forEach(d=>{if(!N[d.letter]) throw new Error('letter '+d.letter+' is not a monodentate ligand in this formula');});
+  if(new Set(defs.map(d=>d.letter)).size<defs.length) throw new Error('a letter can be made ambidentate once');
+  kap.forEach(l=>{if(!N[l]) throw new Error('letter '+l+' is not a monodentate ligand in this formula');
+    if(defs.some(d=>d.letter===l)) throw new Error('a ligand is either ambidentate or kappa-1/kappa-2 here, not both');});
+  // inner-sphere compositions: for each ligand, how many copies bond through one atom (k1) and through two (k2); k1 + 2*k2 sites
+  const inners=[]; (function rec(i,left,acc){
+    if(i===letters.length){if(left===0)inners.push({...acc});return;}
+    const l=letters[i], lo=mobile.has(l)?0:N[l];
+    for(let k2=0;k2<=(kap.has(l)?N[l]:0);k2++) for(let k1=0;k1+k2<=N[l];k1++){
+      if(k1+k2<lo||k1+2*k2>left) continue; acc[l]={k1,k2}; rec(i+1,left-k1-2*k2,acc);}})(0,sites,{});
+  if(!inners.length) throw new Error('these ligands cannot fill the '+sites+' sites');
+  const nForms=inners.reduce((t,b)=>t+defs.reduce((u,d)=>u*compositions(b[d.letter].k1,d.donors.length).length,1),0);
+  if(nForms>FAMILY_CAP) return {tooMany:nForms,cap:FAMILY_CAP};
+  const firstSeen=[...new Set([...chel.map(x=>lig(x).L).join('').split(''),...letters])];   // stable order of parent letters
+  const rank=t=>firstSeen.indexOf(t[0])*10+(+t.slice(1)||0);
+  const famId='fam:'+geom+'|'+mono+'|'+chel.join(',')+'|'+defs.map(d=>d.letter+d.donors.map(x=>x.id).join('')).join(',')+'|'+letters.map(l=>l+N[l]+(mobile.has(l)?'m':'')+(kap.has(l)?'k':'')).join('');
+  /* how a token is written: B^x for a donor atom, B^k2 / B^k1 for how many atoms bond, or the preset's own name */
+  const tokText=t=>{const l=t[0],m=+t.slice(1)||0;
+    if(m===9) return `${nm(l)}<sup>κ²</sup>`; if(kap.has(l)) return `${nm(l)}<sup>κ¹</sup>`;
+    const d=defs.find(x=>x.letter===l); return d?donorHTML(l,d.donors[m]):nm(l);};
+  const lblFor=tokOf=>{const f=l=>tokText(tokOf(l));
+    f.chel=x=>{const L=lig(x).L; if(L.length!==2||L[0]!==L[1]) return null; const t=tokOf(L[0]); return t[1]==='9'?`(${nm(t[0])}<sup>κ²</sup>)`:null;};   // a kappa-2 ligand is written once
+    return f;};
+  const allVariants=[], newChiral=[];
+  const groups=inners.map(b=>{
+    const innerMono=letters.map(l=>l.repeat(b[l].k1)).join('');
+    const k2chel=letters.flatMap(l=>Array.from({length:b[l].k2},()=>({toks:[l+'9',l+'9'],mode:''})));
+    const chelT=[...chelToks(chel),...k2chel];
+    const P=compactTokens([...innerMono].map(c=>c+'0'),chelT,rank), parent=analysisFor(geom,P.mono,P.chel);
+    const pTok={}; Object.keys(P.map).forEach(t=>pTok[P.map[t]]=t);
+    const outs=letters.filter(l=>N[l]>b[l].k1+b[l].k2).map(l=>[N[l]-b[l].k1-b[l].k2,l]);
+    const outer=outs.map(([n,l])=>`${n>1?n:''}${nm(l)}`).join('·'), outerText=outs.map(([n,l])=>`${n>1?n:''}${nmText(l)}`).join(' · ');
+    const forms=[]; (function rec(i,pick){
+      if(i===defs.length){forms.push(pick.slice());return;}
+      compositions(b[defs[i].letter].k1,defs[i].donors.length).forEach(c=>{pick.push(c);rec(i+1,pick);pick.pop();});})(0,[]);
+    const kdesc=[...kap].filter(l=>N[l]).map(l=>[b[l].k2?`${b[l].k2}×${l}<sup>κ²</sup>`:'',b[l].k1?`${b[l].k1}×${l}<sup>κ¹</sup>`:''].filter(Boolean).join(' + ')).filter(Boolean).join('; ');
+    const variants=forms.map(pick=>{
+      const left=Object.fromEntries(defs.map((d,j)=>[d.letter,pick[j].slice()]));
+      const monoTok=[...innerMono].map(c=>{const a=left[c];if(!a)return c+'0';const m=a.findIndex(x=>x>0);a[m]--;return c+m;});
+      const C=compactTokens(monoTok,chelT,rank), back={};                         // child letter -> its token, and the parent letter it forgets to
+      Object.keys(C.map).forEach(t=>back[C.map[t]]={tok:t,letter:t[0],base:P.map[t[1]==='9'?t:t[0]+'0']});
+      const lbl=lblFor(l=>back[l].tok);
+      const skin={}; Object.keys(back).forEach(l=>{const {tok,letter}=back[l],m=+tok.slice(1)||0,d=defs.find(x=>x.letter===letter),dn=d?d.donors[m]:null;
+        skin[l]={text:dn&&dn.text?dn.text:nmText(letter),tag:m===9?'κ²':kap.has(letter)?'κ¹':(dn&&!dn.text&&dn.tag?dn.tag:''),base:letter,donor:!!(dn&&dn.text),
+          alt:m===9||!!(d&&m>0)||!baseMono.has(letter)};});   // donor:true marks a named ligand, spelled donor atom first; alt: differs from the base formula (a later donor, two atoms, or a ligand that was outside)
+      const title=formulaHTML({chel:C.chel,mono:C.mono},lbl)+(outer?`<span class="outer">·${outer}</span>`:'');
+      const id='fam:'+geom+':'+C.mono+'|'+C.chel.join(',')+'#'+letters.map(l=>b[l].k1+'.'+b[l].k2).join('/')+'#'+pick.map(p=>p.join('.')).join('/');
+      const A=analyzeCase({id,geom,mono:C.mono,chel:C.chel,family:famId,kind:opts.kind||'',titleHTML:title},lbl);
+      A.isomers.forEach(iso=>isoById[iso.id]=iso);
+      const project=iso=>{const cfg={...iso.cfg,labels:iso.cfg.labels.map(l=>back[l].base)};
+        return parent.isomers.find(q=>q.key===canon(cfg,G.rots));};
+      const cells=A.isomers.map(iso=>({iso,parent:project(iso)}));
+      const adesc=defs.map((d,j)=>pick[j].map((c,m)=>c?`${c}×${donorHTML(d.letter,d.donors[m])}`:'').filter(Boolean).join(' + ')).filter(Boolean).join('; ');
+      const desc=[kdesc,adesc].filter(Boolean).join('; ');
+      const v={id,pick,title,desc,A,skin,cells,inner:b,outerText,formula:{geom,mono:C.mono,chel:C.chel}};
+      allVariants.push(v); v.cells.forEach(x=>{if(x.iso.chiral&&!x.parent.chiral)newChiral.push({variant:v,iso:x.iso,parent:x.parent});});
+      return v;});
+    const rows=parent.isomers.map(p=>({parent:p,cells:variants.map(v=>v.cells.filter(x=>x.parent===p).map(x=>x.iso))}));
+    const innerFormula=formulaHTML({chel:P.chel,mono:P.mono},lblFor(l=>pTok[l]));
+    return {inner:b,outer,outerText,innerFormula,innerTitle:innerFormula+(outer?`<span class="outer">·${outer}</span>`:''),parent,variants,rows};
+  });
+  const tally={forms:allVariants.length,spheres:groups.length,geometric:0,pairs:0,stereo:0};
+  allVariants.forEach(v=>{tally.geometric+=v.A.geometric;tally.pairs+=v.A.pairs;tally.stereo+=v.A.stereo;});
+  return {base:{geom,mono,chel},famId,defs,sites,letters,N,groups,variants:allVariants,
+    parent:groups.length===1?groups[0].parent:null,rows:groups.length===1?groups[0].rows:null,tally,newChiral};
+}
+
+/* =====================================================================
+   1d. WHICH LIGANDS MAY BE COMPLICATED
+   Only ligands that definitely show the behaviour are offered, so nothing abstract like "donor atoms x, y" reaches the user.
+   A letter of the formula is given one of these real ligands; the other letters stay letters. The counting is still the
+   abstract engine above (structuralFamily): this just says which letter becomes what, and builds the call.
+   ===================================================================== */
+const monoLetters=c=>[...new Set(c.mono||'')];
+const countOf=(m,l)=>[...m].filter(x=>x===l).length;
+const spareLetter=b=>{const used=new Set((b.mono||'')+(b.chel||[]).map(x=>lig(x).L).join(''));return 'ABCDEFGH'.split('').find(l=>!used.has(l))||null;};
+const ION=(key,name,html,text)=>({key,name,html,text});
+const VETTED={
+  link:['NO2','SCN','CN'],                                    // keys of AMBIDENTATE: ligands that bond through either of two atoms
+  halide:[ION('Cl','chloride','Cl','Cl'),ION('Br','bromide','Br','Br'),ION('I','iodide','I','I')],
+  oxoanion:[ION('NO3','nitrate','NO<sub>3</sub>','NO₃'),ION('SO4','sulfate','SO<sub>4</sub>','SO₄')],
+  water:ION('H2O','water','H<sub>2</sub>O','H₂O'),
+  kap:[ION('NO3','nitrate','NO<sub>3</sub>','NO₃'),ION('OAc','acetate','OAc','OAc'),ION('CO3','carbonate','CO<sub>3</sub>','CO₃'),ION('SO4','sulfate','SO<sub>4</sub>','SO₄')],   // bond through one O or through two
+};
+VETTED.ion=[...VETTED.halide,...VETTED.oxoanion];              // anions that are both a common ligand and a common counter-ion
+const vettedIon=key=>[...VETTED.ion,VETTED.water].find(x=>x.key===key)||null;
+/* what may trade places with what: water only with a halide (hydrate isomers); an anion with another anion (ionisation isomers) */
+const ionPartners=key=>key==='H2O'?VETTED.halide.map(x=>x.key)
+  :VETTED.halide.some(x=>x.key===key)?['H2O',...VETTED.ion.filter(x=>x.key!==key).map(x=>x.key)]
+  :VETTED.ion.filter(x=>x.key!==key).map(x=>x.key);
+const CX_KINDS=['link','ion','kap'];
+/* can this complication be offered for this formula? (it needs the right ligands to exist) */
+function cxAvailable(kind,base){
+  const ls=monoLetters(base); if(!ls.length) return false;
+  if(kind==='link') return true;
+  if(kind==='ion') return !!spareLetter(base);
+  if(kind==='kap') return ls.length>1;                         // a ligand bonding through two atoms needs another to give way
+  return false;
+}
+/* the arguments for structuralFamily, from a choice. sel: {letter, ident, spare, n}. Throws a short message if the choice is not allowed. */
+function cxPlan(kind,base,sel){
+  const ls=monoLetters(base), L=sel.letter;
+  if(!ls.includes(L)) throw new Error('That ligand is not in this formula');
+  if(kind==='link'){
+    const a=AMBIDENTATE[sel.ident]; if(!VETTED.link.includes(sel.ident)||!a) throw new Error('That ligand does not show linkage isomerism');
+    const d=a.donors[0];
+    return {kind:'link',amb:[{letter:L,donors:a.donors}],opts:{kind:'link'},names:{},baseNames:{[L]:{html:d.html,text:d.text}}};
+  }
+  if(kind==='ion'){
+    const S=spareLetter(base); if(!S) throw new Error('No room for another ligand letter');
+    const x=vettedIon(sel.ident), y=vettedIon(sel.spare);
+    if(!x||!y||!ionPartners(x.key).includes(y.key)) throw new Error('Those two cannot trade places');
+    const n=Math.max(1,Math.min(3,sel.n||1)), names={[L]:x,[S]:y}, water=x.key==='H2O'||y.key==='H2O';
+    return {kind:water?'hydrate':'ion',amb:[],opts:{outside:{[S]:n},mobile:[L,S],names,kind:water?'hydrate':'ion'},names,baseNames:names};
+  }
+  if(kind==='kap'){
+    const x=VETTED.kap.find(k=>k.key===sel.ident); if(!x) throw new Error('That ligand does not bond through one atom or two');
+    const others=ls.filter(l=>l!==L); if(!others.length) throw new Error('Another ligand has to give way, and there is none');
+    return {kind:'kap',amb:[],opts:{chelate:[L],mobile:others,names:{[L]:x},kind:'kap'},names:{[L]:x},baseNames:{[L]:x}};
+  }
+  throw new Error('Unknown complication');
+}
+/* the inner-sphere group that is the original formula (same ligands, all bonded through one atom, nothing swapped) */
+const cxBaseGroup=(F,base)=>F.groups.find(g=>F.letters.every(l=>g.inner[l].k1===countOf(base.mono||'',l)&&g.inner[l].k2===0))||null;
+
+/*ENGINE-END*/
 /* =====================================================================
    2. LIVE EXAM-STYLE DRAWING OF A ROTATABLE 3-D MOLECULE
    The molecule lives in 3-D (Three.js quaternions); every frame it is projected
@@ -1518,19 +1747,29 @@ for(const G of Object.values(GEOMS)){
 const nearestSnap=(G,q)=>G.snaps.reduce((b,c)=>Math.abs(c.dot(q))>Math.abs(b.dot(q))?c:b,G.snaps[0]);
 const mirrorIsoOf=iso=>iso.chiral?iso.partner:iso;
 /* exact mirror image of a displayed molecule, as a mirror standing at the page's vertical edge would show it */
-function mirrorDisp(d,axis='x'){const G=GEOMS[d.iso.geom];return {iso:mirrorIsoOf(d.iso),cfg:applyCfg(G.sigma.perm,d.cfg),q:mirrorQ(d.q,G,axis)};}
-function dispOf(iso){
-  if(iso.second) return mirrorDisp(dispOf(iso.partner));
-  return {iso,cfg:iso.cfg,q:GEOMS[iso.geom].baseQ.clone()};
+function mirrorDisp(d,axis='x'){const G=GEOMS[d.iso.geom];return {iso:mirrorIsoOf(d.iso),cfg:applyCfg(G.sigma.perm,d.cfg),q:mirrorQ(d.q,G,axis),skin:d.skin||null,alt:d.alt||null};}
+/* skin (optional): how the engine's one-letter labels are drawn, {letter:{text,donor,hue}}; null = the letter itself */
+function dispOf(iso,skin=null){
+  if(iso.second) return mirrorDisp(dispOf(iso.partner,skin));
+  return {iso,cfg:iso.cfg,q:GEOMS[iso.geom].baseQ.clone(),skin};
 }
 
 const _v=new THREE.Vector3();
 /* draws one molecule; returns projected atom positions (for hit-testing) */
+/* widths of a skinned label: its donor atom (bold, when the ligand is named), the rest, and the raised tag */
+function skinMeasure(ctx,sk,fs){
+  ctx.font=(sk.donor?'bold ':'')+`${fs}px ${DRAW_FONT}`; const w0=sk.donor?ctx.measureText(sk.text[0]).width:0;
+  ctx.font=`${fs}px ${DRAW_FONT}`; const w1=ctx.measureText(sk.donor?sk.text.slice(1):sk.text).width;
+  let tw=0; if(sk.tag){ctx.font=`${fs*0.58}px ${DRAW_FONT}`;tw=ctx.measureText(sk.tag).width;}
+  return {w0,w1,tw};
+}
 function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
   const d=view.disp, G=GEOMS[d.iso.geom], cfg=d.cfg, q=d.q;
   const fs=Math.max(10,L*0.25), lw=Math.max(1.1,L*0.024), clrL=fs*0.58, clrM=fs*0.62;
   const proj=v=>{_v.set(v[0],v[1],v[2]).applyQuaternion(q);return {x:cx+(flip?-_v.x:_v.x)*L,y:cy-_v.y*L,z:_v.z};};
   const P=G.unit.map(proj), items=[];
+  // skinned labels can be wider than one letter (NO₂, ONO): half their width, so the bond stops at the label's edge
+  const halfW=P.map((p,i)=>{const sk=d.skin&&d.skin[cfg.labels[i]];if(!sk)return 0;const m=skinMeasure(ctx,sk,fs);return (m.w0+m.w1+m.tw)/2;});
   // rotation axis shown while a step-rotation animates
   if(view.anim&&view.anim.axis){const a=view.anim.axis,p1=proj(V.scale(a,1.45)),p2=proj(V.scale(a,-1.45));
     ctx.save();ctx.setLineDash([lw*3,lw*3]);ctx.strokeStyle='#8a63d2';ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();ctx.restore();}
@@ -1561,8 +1800,10 @@ function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
   for(const it of items){
     if(it.kind==='bond'){
       const p=P[it.i], dx=p.x-cx, dy=p.y-cy, len=Math.hypot(dx,dy);
-      if(len<clrM+clrL+lw*2) continue;            // pointing (almost) straight at you: hidden behind the labels
-      const ux=dx/len,uy=dy/len,nx=-uy,ny=ux, s0=[cx+ux*clrM,cy+uy*clrM], s1=[p.x-ux*clrL,p.y-uy*clrL];
+      const hw=halfW[it.i], ax=Math.abs(dx/len), ay=Math.abs(dy/len),
+        cl=hw?Math.max(clrL,Math.min(ax>1e-6?hw/ax:1e9,ay>1e-6?fs*0.5/ay:1e9)+lw*1.5):clrL;   // distance from the label's centre to its edge along the bond
+      if(len<clrM+cl+lw*2) continue;              // pointing (almost) straight at you: hidden behind the labels
+      const ux=dx/len,uy=dy/len,nx=-uy,ny=ux, s0=[cx+ux*clrM,cy+uy*clrM], s1=[p.x-ux*cl,p.y-uy*cl];
       if(it.st==='plain') inked(()=>{ctx.beginPath();ctx.moveTo(...s0);ctx.lineTo(...s1);ctx.stroke();});
       else if(it.st==='wedge'){const w=L*0.075,t0=lw*0.35;
         inked(h=>{ctx.beginPath();ctx.moveTo(s0[0]+nx*t0,s0[1]+ny*t0);ctx.lineTo(s1[0]+nx*w,s1[1]+ny*w);ctx.lineTo(s1[0]-nx*w,s1[1]-ny*w);ctx.lineTo(s0[0]-nx*t0,s0[1]-ny*t0);ctx.closePath();h?ctx.stroke():ctx.fill();});}
@@ -1576,14 +1817,26 @@ function drawMolecule(ctx,view,{cx,cy,L,flip=false,key=0}){
       const k=p.length-1, path=[cut(p[0],p[1]),...p.slice(1,k),cut(p[k],p[k-1])]; bridgePaths[it.a+'-'+it.b]=path;
       inked(()=>{ctx.beginPath();ctx.moveTo(...path[0]);path.slice(1).forEach(o=>ctx.lineTo(...o));ctx.stroke();});
     } else {
-      const isM=it.i<0, x=isM?cx:P[it.i].x, y=isM?cy:P[it.i].y, X=isM?'M':cfg.labels[it.i];
-      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,fs*0.56,0,Math.PI*2);ctx.fill();   // label knock-out, as in ChemDraw
+      const isM=it.i<0, x=isM?cx:P[it.i].x, y=isM?cy:P[it.i].y, X=isM?'M':cfg.labels[it.i], sk=(!isM&&d.skin&&d.skin[X])||null;
+      const tf=fs*0.58, sm=sk?skinMeasure(ctx,sk,fs):{w0:0,w1:0,tw:0}, mw=sm.w0+sm.w1, tw=sm.tw;
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(x,y,Math.max(fs*0.56,(mw+tw)/2+fs*0.08),fs*0.56,0,0,Math.PI*2);ctx.fill();   // label knock-out, as in ChemDraw
       if(!X){ctx.save();ctx.setLineDash([3,3]);ctx.strokeStyle='#9a958c';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(x,y,fs*0.5,0,Math.PI*2);ctx.stroke();ctx.restore();
         ctx.fillStyle='#9a958c';ctx.font=`${fs*0.8}px ${DRAW_FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('?',x,y+fs*0.03);}
-      else{ctx.fillStyle=(!isM&&drawOpts.color)?COLORS[X]:INKC;ctx.font=`${fs}px ${DRAW_FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(X,x,y+fs*0.04);}
+      else{ctx.fillStyle=(!isM&&drawOpts.color)?COLORS[sk?sk.base:X]:INKC;ctx.textBaseline='middle';
+        if(sk&&sk.tag){const x0=x-(mw+tw)/2;ctx.textAlign='left';ctx.font=`${fs}px ${DRAW_FONT}`;ctx.fillText(sk.text,x0,y+fs*0.04);   // the ligand, with its donor atom raised beside it
+          ctx.font=`${tf}px ${DRAW_FONT}`;ctx.fillText(sk.tag,x0+mw,y-fs*0.26);}
+        else if(sk&&sk.donor){const x0=x-mw/2;ctx.textAlign='left';   // the atom bonded to the metal is bold and underlined
+          ctx.font=`bold ${fs}px ${DRAW_FONT}`;ctx.fillText(sk.text[0],x0,y+fs*0.04);
+          ctx.font=`${fs}px ${DRAW_FONT}`;ctx.fillText(sk.text.slice(1),x0+sm.w0,y+fs*0.04);
+          ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=Math.max(1,fs*0.07);ctx.beginPath();ctx.moveTo(x0,y+fs*0.5);ctx.lineTo(x0+sm.w0,y+fs*0.5);ctx.stroke();}
+        else{ctx.font=`${fs}px ${DRAW_FONT}`;ctx.textAlign='center';ctx.fillText(sk?sk.text:X,x,y+fs*0.04);}}
       if(!isM&&view.pick===it.i){ctx.strokeStyle='#2f7fd1';ctx.lineWidth=lw*1.6;ctx.beginPath();ctx.arc(x,y,fs*0.78,0,Math.PI*2);ctx.stroke();}
     }
   }
+  // ligands that differ from the base formula (a different donor atom, bonded through two atoms, or brought in from outside)
+  P.forEach((p,i)=>{const sk=d.skin&&d.skin[cfg.labels[i]]; if(!sk||!sk.alt) return;
+    ctx.save();ctx.setLineDash([lw*2.4,lw*1.6]);ctx.strokeStyle='#8a63d2';ctx.lineWidth=lw*1.5;ctx.beginPath();
+    ctx.ellipse(p.x,p.y,Math.max(fs*0.74,halfW[i]+fs*0.22),fs*0.76,0,0,Math.PI*2);ctx.stroke();ctx.restore();});
   if(hl){
     ctx.strokeStyle='#e0251b';ctx.lineWidth=lw*1.6;
     hl.sites.forEach(i=>{ctx.beginPath();ctx.arc(P[i].x,P[i].y,fs*0.8,0,Math.PI*2);ctx.stroke();});
@@ -1616,7 +1869,7 @@ class View{
     if(!mini&&!builder) c.addEventListener('wheel',e=>{if(!this.disp)return;e.preventDefault();this.zoom=Math.min(2.4,Math.max(0.55,this.zoom*Math.exp(-e.deltaY*0.0015)));this.dirty=true;},{passive:false});
     views.add(this);
   }
-  load(disp){this.disp={iso:disp.iso,cfg:disp.cfg,q:disp.q.clone()};this.iso=disp.iso;this.hl=disp.hl||null;this.anim=null;this.styles={};this.dirty=true;}
+  load(disp){this.disp={iso:disp.iso,cfg:disp.cfg,q:disp.q.clone(),skin:disp.skin||null,alt:disp.alt||null};this.iso=disp.iso;this.hl=disp.hl||null;this.anim=null;this.styles={};this.dirty=true;}
   get G(){return GEOMS[this.iso.geom];}
   partner(){return this===V1?V2:this===V2?V1:null;}
   down(e){
@@ -1713,6 +1966,16 @@ class View{
       ctx.fillStyle='#3b6f96';ctx.font=`italic 12px ${DRAW_FONT}`;ctx.textAlign='center';ctx.fillText('mirror plane',W/2,H*0.06);
     }
     panes.forEach((p,k)=>{const P=drawMolecule(ctx,this,{cx:p.cx,cy:H/2,L,flip:p.flip,key:k});if(k===0)this.hits=P;});
+    const al=this.disp.alt;
+    if(al){
+      ctx.save();ctx.strokeStyle='#8a63d2';ctx.fillStyle='#8a63d2';
+      if(!al.base){   // altered from the base formula: dashed frame and a label
+        ctx.setLineDash([8,5]);ctx.lineWidth=2;ctx.strokeRect(4,4,W-8,H-8);ctx.setLineDash([]);
+        const t=al.same?al.label+' (same bonding as base)':al.label; ctx.font=`13px ${DRAW_FONT}`;const w=ctx.measureText(t).width+16;
+        ctx.fillStyle='#f6efff';ctx.fillRect(12,12,w,22);ctx.lineWidth=1.3;ctx.strokeRect(12,12,w,22);
+        ctx.fillStyle='#6b3fb5';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(t,20,24);}
+      if(al.outer){ctx.fillStyle='#6b3fb5';ctx.font=`italic 13px ${DRAW_FONT}`;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText('outside the sphere: '+al.outer,14,H-14);}
+      ctx.restore();}
   }
   destroy(){this.ro.disconnect();this.cv.remove();views.delete(this);}
 }
@@ -1734,7 +1997,6 @@ const ICONS={
   SP:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M5 22 L15 11 L35 15 L25 27 Z"/><path d="M5 22 L35 15 M15 11 L25 27" stroke-width="1.4"/><circle cx="20" cy="18.5" r="3" fill="#a7b4bf"/></svg>`,
   Oh:`<svg viewBox="0 0 40 40" fill="none" stroke="#1f1d1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M20 3 L6 20 L20 37 L34 20 Z"/><path d="M20 3 L15 25 L20 37 M6 20 L15 25 L34 20"/><path d="M20 3 L25 15 L20 37 M6 20 L25 15 L34 20" stroke-dasharray="3 3" stroke-width="1.6"/></svg>`,
 };
-const isoById={}; Object.values(ANALYSIS).forEach(A=>A.isomers.forEach(i=>isoById[i.id]=i));
 
 /* ---------- the finder: one searchable, filterable list of every formula
    (the sidebar on a desktop, the Explore home on a phone). Both read the same FIND state. ---------- */
@@ -1806,7 +2068,14 @@ function parseFormula(q){
   }
   if((mono+chel.map(o=>o[0]).join('')).includes('?')) return null;
   const keys=new Set();(function rec(k,acc){if(k===chel.length){try{keys.add(speciesKey(mono,acc));}catch(e){}return;}chel[k].forEach(o=>rec(k+1,acc.concat([o])));})(0,[]);
-  return {keys,dent:mono.length+chel.reduce((t,o)=>t+ligDent(o[0]),0)};
+  // ambidentate ligands spelled both ways (NO2/ONO, SCN/NCS, CN/NC): the base formula has them as one ligand
+  const amb=[];
+  if(chel.every(o=>o.length===1)) for(const key of Object.keys(AMBIDENTATE)){
+    const tk=AMBIDENTATE[key].tokens, lt=tk.map(t=>names[t+'/A']), counts=tk.map(t=>sp.filter(([x])=>x.kind==='mono'&&!x.abs&&x.name===t).reduce((a,[,n])=>a+n,0));
+    if(!counts.some(Boolean)) continue;
+    const L0=lt[counts[0]?0:1];
+    amb.push({key,counts,letter:L0,mono:mono.split('').map(c=>c===lt[1]?L0:c).join(''),chel:chel.map(o=>o[0])});}
+  return {keys,dent:mono.length+chel.reduce((t,o)=>t+ligDent(o[0]),0),amb};
 }
 /* score every formula against the query (0 = no match) */
 function findMatches(){
@@ -1845,14 +2114,14 @@ function caseBodyHTML(c){
     return `<div class="pairbox"><div class="pairlab"><span>enantiomeric pair</span><button data-pair="${grp[0].id}">compare ⇄</button></div>${row(grp[0])}${row(grp[1])}</div>`;
   }).join('');
   return `<div class="ligchips">${ligChips(c)}</div><p class="insight">${c.insight||summaryHTML(A)}</p>
-    <p class="tally">${countsHTML(A)}</p>${rows}${neighbourHTML(c)}`;
+    <p class="tally">${countsHTML(A)}</p>${rows}${neighbourHTML(c)}${complicateHTML(c)}`;
 }
 function rowHTML(e,mobile,searching){
   const c=e.c,A=e.A,geo=searching?`<span class="chip fgeo" title="${GEOMS[c.geom].name}">${GEOMS[c.geom].name}</span>`:'';
   const cnt=countsHTML(A,true);
   if(mobile) return `<button class="xrow" data-go="case:${c.id}"><span class="xr-main"><span class="xf">${formulaHTML(c)}</span><small>${cnt}</small>${geo?`<span class="xchips">${geo}</span>`:''}</span>${chev}</button>`;
   const open=FIND.open===c.id;
-  return `<div class="case ${open?'open':''}" data-case="${c.id}"><button class="case-btn" aria-expanded="${open}"><span class="arrow">▶</span><span class="cmain"><span class="f">${formulaHTML(c)}</span>${geo}</span><span class="cnt">${cnt.replace(/ · /g,'<br>')}</span></button>
+  return `<div class="case ${open?'open':''}" data-case="${c.id}"><button class="case-btn" aria-expanded="${open}"><i class="arrow tw" aria-hidden="true"></i><span class="cmain"><span class="f">${formulaHTML(c)}</span>${geo}</span><span class="cnt">${cnt.replace(/ · /g,'<br>')}</span></button>
     <div class="case-body">${open?caseBodyHTML(c):''}</div></div>`;
 }
 function resultsHTML(mobile){
@@ -1860,10 +2129,11 @@ function resultsHTML(mobile){
   if(!list.length){
     const hint=parsed?`No formula in the bank has that combination of ligands${[4,6].includes(parsed.dent)?'':` (it has ${parsed.dent} donor atoms; these shapes need 4 or 6)`}.`
       :'Nothing matches. Try a formula such as <b>MA2B2</b>, <b>M(AA)2B2</b> or <b>[Co(en)2Cl2]</b>, or a word such as <b>fac</b>, <b>chiral</b> or <b>macrocycle</b>.';
-    return {html:`<p class="fempty">${hint}${FIND.geo.size||FIND.dent.size||FIND.cat.size?' <button class="linkbtn" data-freset>Clear the filters</button>':''}</p>`,stat:`0 of ${total} formulas`};
+    return {html:famLinkHTML(parsed)+`<p class="fempty">${hint}${FIND.geo.size||FIND.dent.size||FIND.cat.size?' <button class="linkbtn" data-freset>Clear the filters</button>':''}</p>`,stat:`0 of ${total} formulas`};
   }
   let html='';
   if(q){
+    html+=famLinkHTML(parsed);
     if(exact&&exact<list.length) html+=`<div class="fsub">That formula</div>`+list.slice(0,exact).map(e=>rowHTML(e,mobile,true)).join('')+`<div class="fsub">Close matches</div>`+list.slice(exact).map(e=>rowHTML(e,mobile,true)).join('');
     else html+=list.map(e=>rowHTML(e,mobile,true)).join('');
   } else {
@@ -1871,13 +2141,13 @@ function resultsHTML(mobile){
     GEO_ORDER.forEach(g=>{
       const rows=list.filter(e=>e.c.geom===g); if(!rows.length) return;
       const open=FIND.shapeOpen.has(g), pairs=rows.filter(e=>e.A.pairs).length;
-      html+=`<button class="fgeo-head" data-shape="${g}" aria-expanded="${open}"><span class="fgeo-arrow" aria-hidden="true">▶</span>${ICONS[g]}<span class="fgeo-name">${GEOMS[g].name}<small>${rows.length} formula${rows.length>1?'s':''} · ${pairs} with enantiomers</small></span></button>`;
+      html+=`<button class="fgeo-head" data-shape="${g}" aria-expanded="${open}"><i class="fgeo-arrow tw" aria-hidden="true"></i>${ICONS[g]}<span class="fgeo-name">${GEOMS[g].name}<small>${rows.length} formula${rows.length>1?'s':''} · ${pairs} with enantiomers</small></span></button>`;
       if(!open) return;
       html+=`<div class="fgeo-body">`;
       FAMS.forEach(fm=>{
         const fr=rows.filter(e=>e.fam===fm.id); if(!fr.length) return;
         const k=g+':'+fm.id, fo=FIND.famOpen.has(k), fp=fr.filter(e=>e.A.pairs).length;
-        html+=`<button class="ffam-head" data-fam="${k}" aria-expanded="${fo}"><span class="fgeo-arrow" aria-hidden="true">▶</span><span class="ffam-name">${fm.name}</span><small>${fr.length}${fp?` · ${fp} chiral`:''}</small></button>`;
+        html+=`<button class="ffam-head" data-fam="${k}" aria-expanded="${fo}"><i class="fgeo-arrow tw" aria-hidden="true"></i><span class="ffam-name">${fm.name}</span><small>${fr.length}${fp?` · ${fp} chiral`:''}</small></button>`;
         if(fo) html+=`<div class="ffam-body">${fm.note&&(g==='Oh'||fm.id[0]==='q')?`<p class="ffam-note">${fm.note}</p>`:''}${fr.map(e=>rowHTML(e,mobile,false)).join('')}</div>`;
       });
       html+=`</div>`;
@@ -1974,8 +2244,8 @@ function viewInfo(v){
 function refreshUI(){
   [[V1,1],[V2,2]].forEach(([v,n])=>{
     const iso=v.iso;
-    $('#t'+n).innerHTML=iso?`${formulaHTML(iso.caseRef)} <span style="font-size:15px;color:var(--ink2)">${iso.label}</span>`:'';
-    $('#pg'+n).innerHTML=iso?iso.sym.html:'';
+    $('#t'+n).innerHTML=iso?`${caseTitle(iso.caseRef)} <span style="font-size:15px;color:var(--ink2)">${iso.label}</span>`:'';
+    $('#pg'+n).innerHTML=iso?iso.sym.html+(v.disp&&v.disp.alt&&!v.disp.alt.base?` <span class="chip alt">${v.disp.alt.label}</span>`:''):'';
     $('#info'+n).innerHTML=viewInfo(v);
     $$(`[data-act="mirror"][data-v="${n}"]`).forEach(b=>b.classList.toggle('on',v.mirrorOn));
   });
@@ -1986,14 +2256,18 @@ function refreshUI(){
   $$('.iso').forEach(r=>{r.classList.toggle('in1',V1.iso&&r.dataset.iso===V1.iso.id);r.classList.toggle('in2',V2.iso&&r.dataset.iso===V2.iso.id);});
   const a=V1.iso,b=V2.iso; let stamp='',why='';
   if(a&&b){
-    if(a.caseId!==b.caseId){
-      if(formulaHTML(a.caseRef)===formulaHTML(b.caseRef)){stamp='<span class="stamp diff">different geometry</span>';why='Same formula, different coordination polyhedron: polytopal (allogon) isomers, not stereoisomers of one another.';}
+    const cxs=cxStamp(a,b);
+    if(cxs){stamp=cxs[0];why=cxs[1];}
+    else if(a.caseId!==b.caseId){
+      if(a.caseRef.family&&a.caseRef.family===b.caseRef.family){stamp='<span class="stamp enan">structural isomers</span>';why='The same overall composition, but a different connectivity: a different donor atom, or a different set of ligands, is bonded to the metal. Not just a different arrangement in space, so they are not stereoisomers of one another.';}
+      else if(formulaHTML(a.caseRef)===formulaHTML(b.caseRef)){stamp='<span class="stamp diff">different geometry</span>';why='Same formula, different coordination polyhedron: polytopal (allogon) isomers, not stereoisomers of one another.';}
       else {stamp='<span class="stamp diff">not isomers</span>';why='Different ligand sets, so these are simply different compounds.';}
     } else if(a.key===b.key){stamp='<span class="stamp same">identical</span>';why=live?'This complex is achiral: its mirror image is the same molecule.':'Same stereoisomer, even if the drawings look different. Some rotation superimposes them. Try it!';}
     else if(a.mirrorKey===b.key){stamp='<span class="stamp enan">enantiomers</span>';why='Non-superimposable mirror images: identical in every scalar property except the sign of optical rotation, and their behaviour toward other chiral things.';}
     else {stamp='<span class="stamp dia">diastereomers</span>';why='Stereoisomers that are not mirror images, so they differ in physical and chemical properties.';}
   }
   $('#rel').innerHTML=`${stamp}<span class="why">${why}</span>`;
+  cxSync();
   setFlag(2,live?'live mirror image of Viewport 1 (turn Viewport 1 and watch)':($('#flag2').dataset.live?'':null));
   refreshMobile();
 }
@@ -2073,17 +2347,6 @@ function buildLegend(){
 /* =====================================================================
    3b. BUILDER — recreate a drawing from an exam paper
    ===================================================================== */
-const caseByKey={};
-const formulaKey=(geom,mono,chel)=>geom+'|'+mono.split('').sort().join('')+'|'+chel.map(normItem).sort().join(',');
-BANK.forEach(c=>{caseByKey[formulaKey(c.geom,c.mono||'',c.chel||[])]=c.id;});
-function analysisFor(geom,mono,chel){
-  const k=formulaKey(geom,mono,chel);
-  if(!caseByKey[k]){
-    const c={id:'custom:'+k,geom,mono:mono.split('').sort().join(''),chel:chel.map(normItem).sort()};
-    ANALYSIS[c.id]=analyzeCase(c); ANALYSIS[c.id].isomers.forEach(i=>isoById[i.id]=i); caseByKey[k]=c.id;
-  }
-  return ANALYSIS[caseByKey[k]];
-}
 const B={geom:'Oh',layout:0,labels:[],edges:[],tool:'A',pending:null,view:null,thumbs:[]};
 function builderCfg(){return {labels:B.labels.slice(),edges:B.edges.map(e=>e.slice())};}
 function builderDisp(){const G=GEOMS[B.geom];return {iso:{geom:B.geom},cfg:builderCfg(),q:G.layouts[B.layout].q.clone()};}
@@ -2132,7 +2395,7 @@ function renderBuilder(){
   else{
     const I=res.iso;
     st.innerHTML=`<b>${formulaHTML(res.A.c)}</b>: your drawing is <b>${I.label}</b> <span class="chip pg">${I.sym.html}</span> <span class="chip ${I.chiral?'chiral':'achiral'}">${I.chiral?'chiral':'achiral'}</span>,
-      one of ${res.A.stereo} stereoisomer${res.A.stereo>1?'s':''} (${res.A.geometric} geometric${res.A.pairs?`, ${res.A.pairs} enantiomeric pair${res.A.pairs>1?'s':''}`:''}).`;
+      one of ${res.A.stereo} stereoisomer${res.A.stereo>1?'s':''} (${res.A.geometric} geometric${res.A.pairs?`, ${res.A.pairs} enantiomeric pair${res.A.pairs>1?'s':''}`:''}).${monoLetters(res.A.c).length?` <button class="btn" data-bcomplicate title="Let a ligand bond through more than one atom, or swap with a copy outside the sphere">Complicate this <i class="arr" role="img" aria-label="to"></i></button>`:''}`;
   }
 }
 function isRing4(v){ // the component through v is a 4-cycle (every position has two links)
@@ -2171,6 +2434,8 @@ function buildBuilder(){
     `<button class="btn" data-tool="link" title="Click two adjacent positions to join them with a chelate ring">⌒ chelate link</button><button class="btn" data-tool="erase">eraser</button>`;
   $('#bGeom').addEventListener('click',e=>{const b=e.target.closest('.btn');if(!b)return;resetBuilder(b.dataset.g);renderBuilder();});
   $('#bTools').addEventListener('click',e=>{const b=e.target.closest('.btn');if(!b)return;B.tool=b.dataset.tool;B.pending=null;renderBuilder();});
+  $('#bStatus').addEventListener('click',e=>{if(!e.target.closest('[data-bcomplicate]'))return;const r=builderResult();if(!r)return;
+    const c=r.A.c;cxOpen({geom:c.geom,mono:c.mono||'',chel:c.chel||[]},{iso:r.iso});});   // the drawn isomer becomes the base, in Viewport 1
   $('#bClear').addEventListener('click',()=>{resetBuilder(B.geom,B.layout);builderMsg('');renderBuilder();});
   $('#bClose').addEventListener('click',closeBuilder);
   $('#builder').addEventListener('click',e=>{if(e.target.id==='builder')closeBuilder();});
@@ -2187,6 +2452,186 @@ function buildBuilder(){
 }
 
 /* =====================================================================
+   3c. COMPLICATE — put a structural variant beside the base isomer, marked as altered
+   Viewport 1 keeps the base isomer; Viewport 2 shows the altered one (dashed violet frame, a ring round each changed ligand,
+   the ion outside the sphere written under it). A strip under the viewports picks the complication, the ligand and the
+   variant. Only vetted ligands are offered (VETTED, in the engine). The counting behind it is structuralFamily.
+   ===================================================================== */
+const CX_LABEL={link:'linkage isomer',ion:'ionisation isomer',hydrate:'hydrate isomer',kap:'denticity isomer'};
+const CX_NAME={link:'Linkage',ion:'Ionisation / hydrate',kap:'κ¹ / κ²'};
+const CX_STAMP={link:['linkage isomers','Same ligands, but a ligand is bonded through a different donor atom.'],
+  ion:['ionisation isomers','The same atoms, but a ligand inside the sphere and an ion outside have traded places.'],
+  hydrate:['hydrate isomers','The same atoms, but water inside the sphere and an ion outside have traded places.'],
+  kap:['denticity isomers','The same ligands, but one of them bonds through two atoms instead of one.']};
+const CX={open:false,kind:null,base:null,A0:null,baseIso:null,sel:{},plan:null,F:null,err:'',forms:[],fi:0,ii:0,saved:null,mark:null,baseOuter:''};
+const cxIsDefault=v=>v.pick[0].slice(1).every(c=>c===0);          // every copy bonded through its first donor atom: the base form, now named
+const cxSel=()=>CX.sel[CX.kind]||(CX.sel[CX.kind]=cxDefaults(CX.kind));
+function cxDefaults(kind){
+  const b=CX.base, ls=monoLetters(b), cnt=l=>countOf(b.mono,l);
+  const least=ls.reduce((a,l)=>cnt(l)<=cnt(a)?l:a);
+  if(kind==='link') return {letter:least,ident:'NO2'};               // the least repeated ligand: fewest binding forms, easiest to read
+  if(kind==='ion') return {letter:least,ident:'Br',spare:'SO4',n:1};
+  return {letter:least,ident:'NO3'};
+}
+function cxBuildForms(){
+  const F=CX.F, p=CX.baseIso, forms=[];
+  if(CX.kind==='link'){
+    const g=F.groups[0], row=g.rows.find(r=>r.parent===p);
+    g.variants.forEach((v,vi)=>{const items=(row?row.cells[vi]:[]).map(iso=>({iso,v})); if(items.length) forms.push({label:v.desc,items,v,def:cxIsDefault(v)});});
+  } else F.groups.forEach(g=>{
+    const items=g.variants.flatMap(v=>v.A.isomers.map(iso=>({iso,v}))); forms.push({label:g.innerTitle,items,v:g.variants[0],def:g===cxBaseGroup(F,CX.base)});});
+  return forms;
+}
+function cxRecompute(){
+  Object.assign(CX,{err:'',F:null,forms:[],plan:null,baseOuter:''});
+  if(CX.kind){
+    try{
+      CX.plan=cxPlan(CX.kind,CX.base,cxSel());
+      const F=structuralFamily(CX.base,CX.plan.amb,CX.plan.opts);
+      if(F.tooMany) CX.err='That makes too many forms to show.';
+      else{CX.F=F;CX.forms=cxBuildForms();const g0=cxBaseGroup(F,CX.base);CX.baseOuter=g0?g0.outerText:'';}
+    }catch(e){CX.err=e.message;}
+  }
+  cxMarkBase();
+  if(CX.forms.length){
+    let fi=CX.mark?CX.forms.findIndex(f=>JSON.stringify(f.v.pick)===CX.mark):-1;
+    if(fi<0&&CX.pendingFi!=null&&CX.forms[CX.pendingFi]) fi=CX.pendingFi;
+    if(fi<0) fi=Math.max(0,CX.forms.findIndex(f=>!f.def));         // open on a form that is actually different from the base
+    CX.mark=null; CX.pendingFi=null; cxShow(fi,CX.pendingIi||0); CX.pendingIi=0;
+  } else{
+    if(V2.disp&&V2.disp.alt&&!V2.disp.alt.base&&CX.saved) loadInto(2,CX.saved);
+    cxRender(); cxHash();}
+}
+/* names for the base molecule's ligands, and what is outside its sphere, so the two viewports read alike */
+function cxMarkBase(){
+  if(!CX.open||!V1.disp||V1.iso!==CX.baseIso) return;
+  if(!CX.plan){V1.disp.skin=null;V1.disp.alt=null;V1.dirty=true;return;}
+  const sk={}; Object.entries(CX.plan.baseNames).forEach(([l,x])=>sk[l]={text:x.text,tag:'',base:l,donor:false,alt:false});
+  V1.disp.skin=sk; V1.disp.alt={kind:CX.plan.kind,base:true,outer:CX.baseOuter}; V1.dirty=true;
+}
+function cxShow(fi,ii=0){
+  const f=CX.forms[fi]; if(!f) return;
+  CX.fi=fi; CX.ii=Math.max(0,Math.min(ii,f.items.length-1));
+  const {iso,v}=f.items[CX.ii], d=dispOf(iso,{...v.skin});
+  d.alt={kind:CX.plan.kind,label:CX_LABEL[CX.plan.kind],outer:v.outerText||'',same:!!f.def,base:false};
+  if(app.live) setLive(false);
+  loadInto(2,d); cxRender(); cxHash();
+}
+function cxOpen(arg,init={}){
+  const A0=typeof arg==='string'?ANALYSIS[arg]:analysisFor(arg.geom,arg.mono||'',arg.chel||[]); if(!A0) return;
+  const c=A0.c, base={geom:c.geom,mono:c.mono||'',chel:c.chel||[]};
+  if(!CX_KINDS.some(k=>cxAvailable(k,base))) return;
+  if(CX.open&&CX.A0!==A0) cxClose();                              // a different formula: start clean, giving Viewport 2 back first
+  if(!$('#builder').hidden) closeBuilder();
+  if(!CX.open) CX.saved=V2.iso?{iso:V2.iso,cfg:V2.disp.cfg,q:V2.disp.q.clone(),skin:V2.disp.skin||null}:null;
+  if(app.live) setLive(false);
+  const iso=init.iso&&A0.isomers.includes(init.iso)?init.iso:(V1.iso&&V1.iso.caseId===A0.c.id?V1.iso:A0.isomers[0]);
+  if(V1.iso!==iso) loadInto(1,dispOf(iso));
+  if(isMobile()) mTab('compare');
+  Object.assign(CX,{open:true,base,A0,baseIso:iso,sel:{},kind:null,mark:init.mark||null,pendingFi:init.fi==null?null:init.fi,pendingIi:init.ii||0});
+  if(init.kind&&cxAvailable(init.kind,base)){CX.kind=init.kind;CX.sel[init.kind]={...cxDefaults(init.kind),...(init.sel||{})};}
+  cxRecompute();
+}
+function cxClose(){
+  if(!CX.open) return;
+  CX.open=false;
+  if(V1.disp){V1.disp.skin=null;V1.disp.alt=null;V1.dirty=true;}
+  const sv=CX.saved; CX.saved=null; CX.plan=null; CX.F=null; CX.forms=[];
+  if(sv) loadInto(2,sv); else if(V2.disp&&V2.disp.alt){V2.disp.alt=null;V2.disp.skin=null;V2.dirty=true;refreshUI();}
+  cxRender(); setHash(CX.A0&&ANALYSIS[CX.A0.c.id]?CX.A0.c.id:null);
+}
+/* Viewport 1 changed: follow it (another isomer of the formula), or let go (another formula) */
+function cxSync(){
+  if(!CX.open||!V1.iso) return;
+  if(V1.iso.caseId!==CX.A0.c.id){cxClose();return;}
+  if(V1.iso!==CX.baseIso){CX.baseIso=V1.iso;cxRecompute();return;}
+  if(!V1.disp.alt) cxMarkBase();
+}
+function cxStamp(a,b){
+  if(!CX.open||!CX.F||!CX.plan) return null;
+  const fam=CX.F.famId, isV=i=>i.caseRef.family===fam, isB=i=>i.caseId===CX.A0.c.id;
+  let base,alt; if(isB(a)&&isV(b)){base=a;alt=b;} else if(isB(b)&&isV(a)){base=b;alt=a;} else return null;
+  const v=CX.F.variants.find(x=>x.A.c.id===alt.caseId); if(!v) return null;
+  const g=CX.F.groups.find(x=>x.variants.includes(v)), same=CX.kind==='link'?cxIsDefault(v):g===cxBaseGroup(CX.F,CX.base);
+  if(same){const cell=v.cells.find(x=>x.iso===alt);
+    return cell&&cell.parent===base?['<span class="stamp same">same bonding</span>','This is the base form with its ligand named: nothing is altered.']
+      :['<span class="stamp dia">same bonding</span>','The same bonds as the base, arranged differently: a stereoisomer of it.'];}
+  const t=CX_STAMP[CX.plan.kind]; return [`<span class="stamp enan">${t[0]}</span>`,t[1]];
+}
+function cxHash(){
+  if(!CX.open||!CX.kind){setHash(CX.A0&&ANALYSIS[CX.A0.c.id]?CX.A0.c.id:null);return;}
+  const b=CX.base,s=cxSel(),p=new URLSearchParams({g:b.geom,m:b.mono,c:b.chel.join(','),t:CX.kind,l:s.letter,i:s.ident,f:CX.fi,k:CX.ii});
+  if(CX.kind==='ion'){p.set('s',s.spare);p.set('n',s.n);}
+  setHash('x?'+p);
+}
+function cxOpenFromHash(h){
+  const p=new URLSearchParams(h.slice(2)), g=p.get('g'), m=p.get('m')||'', c=(p.get('c')||'').split(',').filter(Boolean), kind=p.get('t');
+  if(!GEOMS[g]||!/^[A-H]*$/.test(m)||!c.every(x=>/^[A-H]{2,4}(:[a-z]{1,2})?$/.test(x))||!CX_KINDS.includes(kind)) return false;
+  if(m.length+c.reduce((t,x)=>t+ligDent(x),0)!==GEOMS[g].n) return false;
+  const sel={letter:p.get('l'),ident:p.get('i')}; if(kind==='ion'){sel.spare=p.get('s');sel.n=+p.get('n')||1;}
+  cxOpen({geom:g,mono:m,chel:c},{kind,sel,fi:+p.get('f')||0,ii:+p.get('k')||0}); return true;
+}
+function cxRender(){
+  const el=$('#cx'), host=$('#cxHost'); if(host) host.hidden=!CX.open;
+  if(!CX.open){el.hidden=true;return;}
+  el.hidden=false;
+  const b=CX.base, ltr=l=>`${l}${countOf(b.mono,l)>1?`<sub>${countOf(b.mono,l)}</sub>`:''}`;
+  const chips=(attr,items,cur)=>items.map(([v,label])=>`<button class="btn ${v===cur?'on':''}" ${attr}="${v}" aria-pressed="${v===cur}">${label}</button>`).join('');
+  let h=`<div class="cx-row"><b class="cx-t">Complicate</b>${CX_KINDS.map(k=>`<button class="btn ${CX.kind===k?'on':''}" data-cxkind="${k}" ${cxAvailable(k,b)?'':'disabled'}>${CX_NAME[k]}</button>`).join('')}<button class="btn cx-x" data-cxclose title="Back to the base formula">✕ done</button></div>`;
+  if(CX.kind){
+    const s=cxSel(), letters=chips('data-cxl',monoLetters(b).map(l=>[l,ltr(l)]),s.letter);
+    if(CX.kind==='link') h+=`<div class="cx-row"><span class="lab">ligand</span>${letters}<span class="lab">is</span>${chips('data-cxi',VETTED.link.map(k=>[k,AMBIDENTATE[k].donors.map(d=>d.html).join(' / ')]),s.ident)}</div>`;
+    if(CX.kind==='ion'){
+      const sp=ionPartners(s.ident);
+      h+=`<div class="cx-row"><span class="lab">ligand</span>${letters}<span class="lab">is</span>${chips('data-cxi',[...VETTED.ion,VETTED.water].map(x=>[x.key,x.html]),s.ident)}</div>
+        <div class="cx-row"><span class="lab">swaps with</span>${chips('data-cxs',sp.map(k=>[k,vettedIon(k).html]),s.spare)}<span class="lab">spare outside</span><button class="btn step" data-cxn="-1" ${s.n>1?'':'disabled'} aria-label="fewer">−</button><b>${s.n}</b><button class="btn step" data-cxn="1" ${s.n<3?'':'disabled'} aria-label="more">+</button></div>`;}
+    if(CX.kind==='kap') h+=`<div class="cx-row"><span class="lab">ligand</span>${letters}<span class="lab">is</span>${chips('data-cxi',VETTED.kap.map(x=>[x.key,x.html]),s.ident)}<span class="lab">bonds through one atom or two</span></div>`;
+    if(CX.err) h+=`<div class="cx-row"><span class="cx-err">${CX.err}</span></div>`;
+    else if(CX.forms.length){
+      h+=`<div class="cx-row cx-res">${CX.forms.map((f,i)=>`<button class="btn ${i===CX.fi?'on':''}" data-cxf="${i}" aria-pressed="${i===CX.fi}">${f.label}</button>`).join('')}</div>`;
+      const f=CX.forms[CX.fi]; if(f&&f.items.length>1) h+=`<div class="cx-row cx-res">${f.items.map((x,i)=>`<button class="btn ${i===CX.ii?'on':''}" data-cxk="${i}" aria-pressed="${i===CX.ii}">${x.iso.label}</button>`).join('')}</div>`;
+    }
+  }
+  el.innerHTML=h;
+}
+const ARR_HTML='<i class="arr" role="img" aria-label="to"></i>';
+/* a typed formula that spells both ends of an ambidentate ligand (NO2 and ONO) is one of its binding forms: link to it */
+const FAMLINKS=[];
+function famLinkHTML(pf){
+  if(!pf||!pf.amb||!pf.amb.length) return '';
+  const geoms=pf.dent===6?['Oh']:pf.dent===4?['SP','Td']:[]; let out='';
+  for(const a of pf.amb) for(const geom of geoms){
+    let F; try{F=structuralFamily({geom,mono:a.mono,chel:a.chel},[{letter:a.letter,donors:AMBIDENTATE[a.key].donors}]);}catch(e){continue;}
+    if(F.tooMany||!F.tally.stereo) continue;
+    const lk={geom,base:{geom,mono:a.mono,chel:a.chel},letter:a.letter,preset:a.key,mark:JSON.stringify([a.counts])}, k=JSON.stringify(lk);   // one entry per distinct link: both finders render the same ones
+    let i=FAMLINKS.findIndex(x=>x.k===k); if(i<0) i=FAMLINKS.push({...lk,k})-1;
+    const d=AMBIDENTATE[a.key].donors;
+    out+=`<button class="nbr-row famlink" data-famlink="${i}"><span class="xf">${AMBIDENTATE[a.key].name}: ${d[0].html} or ${d[1].html}${pf.dent===4?` · ${GEOMS[geom].name.toLowerCase()}`:''}</span><small>Show this form beside the base ${ARR_HTML}</small></button>`;}
+  return out?`<div class="fsub">Linkage isomers</div>${out}`:'';
+}
+function complicateHTML(c){
+  if(!CX_KINDS.some(k=>cxAvailable(k,{geom:c.geom,mono:c.mono||'',chel:c.chel||[]}))) return '';
+  return `<div class="nbr"><div class="nbr-h">Complicate this</div><button class="nbr-row" data-complicate="${c.id}"><span class="xf nw">Show a variant ${ARR_HTML}</span><small>Linkage, ionisation, hydrate or κ¹/κ², drawn beside this isomer and marked as altered.</small></button></div>`;
+}
+function buildComplicate(){
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('[data-complicate]'); if(b){cxOpen(b.dataset.complicate);return;}
+    const l=e.target.closest('[data-famlink]'); if(l){const k=FAMLINKS[+l.dataset.famlink];if(k)cxOpen(k.base,{kind:'link',sel:{letter:k.letter,ident:k.preset},mark:k.mark});}
+  });
+  $('#cx').addEventListener('click',e=>{
+    const t=e.target; let x;
+    if(t.closest('[data-cxclose]')){cxClose();return;}
+    if(x=t.closest('[data-cxkind]')){if(x.disabled)return;CX.kind=CX.kind===x.dataset.cxkind?null:x.dataset.cxkind;cxRecompute();return;}
+    if(x=t.closest('[data-cxl]')){cxSel().letter=x.dataset.cxl;cxRecompute();return;}
+    if(x=t.closest('[data-cxi]')){const s=cxSel();s.ident=x.dataset.cxi;if(CX.kind==='ion'&&!ionPartners(s.ident).includes(s.spare))s.spare=ionPartners(s.ident)[0];cxRecompute();return;}
+    if(x=t.closest('[data-cxs]')){cxSel().spare=x.dataset.cxs;cxRecompute();return;}
+    if(x=t.closest('[data-cxn]')){const s=cxSel();s.n=Math.max(1,Math.min(3,s.n+ +x.dataset.cxn));cxRecompute();return;}
+    if(x=t.closest('[data-cxf]')){cxShow(+x.dataset.cxf,0);return;}
+    if(x=t.closest('[data-cxk]')){cxShow(CX.fi,+x.dataset.cxk);}
+  });
+}
+
+/* =====================================================================
    4. QUIZ UI
    ===================================================================== */
 const Q={fams:new Set(['mb','tri','tet']),
@@ -2196,8 +2641,11 @@ const TYPE_TEXT={
   stereo:`How many <b>stereoisomers</b> (counting each enantiomer separately) are possible for`,
   geometric:`How many <b>geometrical isomers</b> (each enantiomeric pair counted once) are possible for`,
   pairs:`How many <b>pairs of enantiomers</b> are possible for`,
+  total:`How many <b>isomers in total</b> (structural and stereo, counting each enantiomer separately) are possible for`,
 };
-const TYPE_W={stereo:3,geometric:1.4,pairs:1};
+const TYPE_W={stereo:3,geometric:1.4,pairs:1,total:2};
+/* the ligands a question can make ambidentate: a monodentate that appears at least twice, so mixed binding forms exist */
+const ambLetters=c=>monoLetters(c).filter(l=>countOf(c.mono,l)>=2);
 function gloss(c){
   const bits=[]; const chel=c.chel||[];
   const mono=[...new Set(c.mono||'')];
@@ -2221,20 +2669,36 @@ function nextQuestion(){
   clearResults(); hidePop();
   const quizzable=c=>caseLetters(c).size>1;   // [MA6]-type formulas are too trivial to ask about
   const fk=c=>{const f=famOf(c);return f==='m'||f==='b'?'mb':f[0]==='t'?'tri':'tet';};
+  const types=[...Q.types]; let r=Math.random()*types.reduce((s,t)=>s+TYPE_W[t],0), t=types[0];
+  for(const ty of types){r-=TYPE_W[ty];if(r<=0){t=ty;break;}}
   // pick the ligand group first, so the many tri- and tetradentate formulas don't crowd out the rest
   const famsAvail=[...Q.fams].filter(f=>BANK.some(c=>fk(c)===f&&quizzable(c)&&Q.geoms.has(c.geom)));
   const fpick=famsAvail.length?famsAvail[Math.floor(Math.random()*famsAvail.length)]:'mb';
-  let pool=BANK.filter(c=>fk(c)===fpick&&quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last); if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom));
+  const suits=c=>t!=='total'||ambLetters(c).length>0;
+  let pool=BANK.filter(c=>fk(c)===fpick&&quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last&&suits(c));
+  if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom)&&suits(c));
+  if(!pool.length){t=types.find(x=>x!=='total')||'stereo';pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom));}
   const c=pool[Math.floor(Math.random()*pool.length)];
-  const types=[...Q.types]; let r=Math.random()*types.reduce((s,t)=>s+TYPE_W[t],0), t=types[0];
-  for(const ty of types){r-=TYPE_W[ty];if(r<=0){t=ty;break;}}
-  const A=ANALYSIS[c.id], answer=t==='stereo'?A.stereo:t==='geometric'?A.geometric:A.pairs;
-  Q.cur={c,t,A,answer}; Q.attempts=0; Q.resolved=false; Q.n++; Q.last=c.id; Q.tried=[];
+  const A=ANALYSIS[c.id];
+  let answer=t==='stereo'?A.stereo:t==='geometric'?A.geometric:A.pairs, cur={c,t,A,answer,explain:summaryHTML(A),entries:A.groups.map(grp=>({grp,skin:null,v:null})),fam:null,ambNote:''};
+  if(t==='total'){
+    // one ligand becomes ambidentate: it can bond through either of two atoms, named like nitrite or left abstract
+    const L=ambLetters(c), X=L[Math.floor(Math.random()*L.length)], keys=Object.keys(AMBIDENTATE), pk=Math.random()<0.5?keys[Math.floor(Math.random()*keys.length)]:null;
+    const donors=pk?AMBIDENTATE[pk].donors:DEFAULT_DONORS, F=structuralFamily({geom:c.geom,mono:c.mono||'',chel:c.chel||[]},[{letter:X,donors}]);
+    const parts=F.variants.map(v=>v.A.stereo);
+    answer=F.tally.stereo;
+    cur={c,t,A,answer,fam:F,X,
+      ambNote:pk?`<b>${X} = ${AMBIDENTATE[pk].name}</b>, an ambidentate ligand: it can bond to M through ${donors[0].html.replace(/<[^>]+>/g,'')} or through ${donors[1].html.replace(/<[^>]+>/g,'')} (${donors.map(d=>d.iupac).join('; ')}). A ligand bonded one way is a different structure from one bonded the other way.`
+        :`<b>${X} is ambidentate</b>: it can bond to M through either of two different atoms (call them ${X}<sup>x</sup> and ${X}<sup>y</sup>). A ligand bonded one way is a different structure from one bonded the other way.`,
+      explain:`${X} can bond ${donors.length} ways, and identical copies are indistinguishable, so there ${F.tally.forms===1?'is':'are'} <b>${F.tally.forms}</b> binding forms (structural isomers): ${F.variants.map(v=>v.desc).join('; ')}. Each is an ordinary stereo formula, with ${parts.join(' + ')} = <b>${answer}</b> stereoisomers. Without ambidentate bonding the formula has ${A.stereo}.`,
+      entries:F.variants.flatMap(v=>v.A.groups.map(grp=>({grp,skin:v.skin,v})))};
+  }
+  Q.cur=cur; Q.attempts=0; Q.resolved=false; Q.n++; Q.last=c.id; Q.tried=[];
   $('#qMeta').innerHTML=`Question ${Q.n} <span class="chip">${GEOMS[c.geom].name} · ${GEOMS[c.geom].sym}</span>`;
-  $('#qText').innerHTML=`${TYPE_TEXT[t]} a <i>${GEOMS[c.geom].name.toLowerCase()}</i> complex with the formula`;
+  $('#qText').innerHTML=`${TYPE_TEXT[t]} ${/^[aeiou]/i.test(GEOMS[c.geom].name)?'an':'a'} <i>${GEOMS[c.geom].name.toLowerCase()}</i> complex with the formula`;
   $('#qFormula').innerHTML=formulaHTML(c);
-  $('#qGloss').innerHTML=gloss(c);
-  const min=t==='pairs'?0:1, cand=[A.geometric,A.stereo,A.pairs,answer+1,answer-1,answer*2,answer+2,A.geometric+A.stereo,answer+3,answer+4];
+  $('#qGloss').innerHTML=(cur.ambNote?cur.ambNote+' · ':'')+gloss(c);
+  const min=t==='pairs'?0:1, cand=t==='total'?[A.stereo,cur.fam.tally.forms,cur.fam.tally.forms*A.stereo,answer+1,answer-1,answer+2,answer-2,answer*2,answer+3]:[A.geometric,A.stereo,A.pairs,answer+1,answer-1,answer*2,answer+2,A.geometric+A.stereo,answer+3,answer+4];
   const opts=[]; for(const x of cand) if(x!==answer&&x>=min&&!opts.includes(x)) opts.push(x);
   const pick=opts.slice(0,2).concat(opts.slice(2).sort(()=>Math.random()-.5)).slice(0,3);
   pick.push(answer); pick.sort((a,b)=>a-b);
@@ -2247,6 +2711,11 @@ function nextQuestion(){
 function hintFor(val){
   const {A,t,answer,c}=Q.cur;
   const caseHint=c.hint||`Fix the rarest ligand first and ask what can sit trans to it; then check each arrangement for a mirror plane.`;
+  if(t==='total'){const F=Q.cur.fam;
+    if(val===A.stereo) return `That is the count when ${Q.cur.X} always bonds through the same atom. Now let ${Q.cur.X} choose its atom: list the binding forms first.`;
+    if(val===F.tally.forms) return `${val} is the number of binding forms (structural isomers). Each of them also has its own stereoisomers: count those and add them up.`;
+    if(val===F.tally.forms*A.stereo&&val!==answer) return `Not simply ${F.tally.forms} × ${A.stereo}: once the ${Q.cur.X} ligands are no longer identical they break symmetry differently, so each binding form has its own count. Work through them one at a time.`;
+    return val<answer?`There are more than that. List the binding forms (how many copies of ${Q.cur.X} bond each way), then count the stereoisomers of each.`:`Too many: check each binding form separately for arrangements that are the same molecule turned around.`;}
   if(t==='stereo'&&val===A.geometric&&A.pairs>0)
     return `So close! ${A.geometric} is the number of <b>geometrical isomers</b> (each enantiomeric pair counted once), but ${A.pairs===1?'one of them has':A.pairs+' of them have'} no mirror plane, inversion centre or S<sub>n</sub> axis, so ${A.pairs===1?'it exists':'each exists'} as two non-superimposable mirror images. Count both hands! ${c.hint?'<br><i>'+c.hint+'</i>':''}`;
   if(t==='geometric'&&val===A.stereo&&A.pairs>0)
@@ -2272,7 +2741,7 @@ function submit(val,btn){
     if(Q.attempts===1){Q.correct++;Q.streak++;if(Q.streak>Q.best){Q.best=Q.streak;try{localStorage.setItem('isoSketchBest',Q.best);}catch(e){}}}
     $('#revealBtn').style.display='none';
     celebrate(Q.attempts===1?(Q.streak>=3?`${Q.streak} in a row!`:'Nailed it!'):'Got there!',Q.attempts===1?`${Q.cur.answer} it is`:'persistence pays');
-    $('#feedback').innerHTML=`<div class="note ok">${Q.cur.answer} is right. ${summaryHTML(Q.cur.A)} All of them are drawn below. Turn them to check.</div>`;
+    $('#feedback').innerHTML=`<div class="note ok">${Q.cur.answer} is right. ${Q.cur.explain} All of them are drawn below. Turn them to check.</div>`;
     showResults();
   } else {
     if(btn){btn.classList.add('wrong');btn.disabled=true;}
@@ -2296,7 +2765,7 @@ function reveal(){
   $$('.choice').forEach(b=>{b.disabled=true;if(+b.dataset.v===Q.cur.answer)b.classList.add('right');});
   const inp=$('#ansInput'); inp.value=Q.cur.answer; inp.disabled=true; inp.classList.remove('wrong'); $('#checkBtn').disabled=true;
   $('#revealBtn').style.display='none';
-  $('#feedback').innerHTML=`<div class="note ok">The answer is <b>${Q.cur.answer}</b>. ${summaryHTML(Q.cur.A)}</div>`;
+  $('#feedback').innerHTML=`<div class="note ok">The answer is <b>${Q.cur.answer}</b>. ${Q.cur.explain}</div>`;
   showResults();
 }
 function updateScore(){
@@ -2308,22 +2777,29 @@ function updateScore(){
 function clearResults(){Q.minis.forEach(v=>v.destroy());Q.minis=[];$('#results').innerHTML='';}
 function showResults(){
   clearResults();
-  const {A,c}=Q.cur, mob=document.body.classList.contains('mobile');
-  const cards=A.groups.map((grp,gi)=>{
-    const iso=grp[0], pair=grp.length===2;
+  const {A,c,entries,fam}=Q.cur, mob=document.body.classList.contains('mobile');
+  const card=(e,gi)=>{
+    const grp=e.grp, iso=grp[0], pair=grp.length===2;
     const minis=pair?`<div class="mini" data-mi="${gi}-0"></div><div class="mini-mirror" title="mirror"></div><div class="mini" data-mi="${gi}-1"></div>`:`<div class="mini" data-mi="${gi}-0"></div>`;
     const reason=pair?`No σ, i or S<sub>n</sub> (only ${iso.sym.proper}), so it exists as two non-superimposable mirror images.`:`Has ${iso.sym.improper.join(', ')}, so it is its own mirror image.`;
     return `<div class="rcard sketch ${pair?'pair':''}" style="animation-delay:${gi*0.06}s"><button class="enlarge" data-gi="${gi}" title="Open full size and turn it">⤢</button><div class="minis">${minis}</div>
       ${pair?`<div class="pairnames"><span>${grp[0].chir}</span><span>${grp[1].chir}</span></div>`:''}
       <div class="cap"><div class="t"><span>${pair?(iso.name||'chiral arrangement'):iso.label}</span> <span class="chip pg">${iso.sym.html}</span>
       <span class="chip ${pair?'chiral':'achiral'}">${pair?'chiral ×2':'achiral'}</span></div>
-      <div>${iso.sym.elements}</div><div>${reason}</div></div></div>`;
-  }).join('');
-  $('#results').innerHTML=`<h3>All ${A.stereo} stereoisomer${A.stereo>1?'s':''} of ${formulaHTML(c)} <span class="chip">${GEOMS[c.geom].name}</span></h3>
-    <p class="explain">${c.insight||summaryHTML(A)}</p><p class="tapnote">${mob?'Tap a drawing to open it full size and turn it.':'Drag a drawing to turn it, or open it full size with ⤢.'}</p><div class="rgrid">${cards}</div>`;
-  A.groups.forEach((grp,gi)=>grp.forEach((iso,k)=>{
+      <div>${iso.sym.elements}</div><div>${reason}</div></div></div>`;};
+  // a structural question draws every isomer of every binding form, one labelled row of cards per form
+  let body='', last=null;
+  entries.forEach((e,gi)=>{
+    if(fam&&e.v!==last){if(last)body+='</div>';last=e.v;body+=`<h4 class="rform">${e.v.title} <small>${e.v.desc?e.v.desc+' · ':''}${e.v.A.stereo} stereoisomer${e.v.A.stereo>1?'s':''}</small></h4><div class="rgrid">`;}
+    else if(!fam&&gi===0) body+='<div class="rgrid">';
+    body+=card(e,gi);});
+  body+='</div>';
+  const n=fam?fam.tally.stereo:A.stereo;
+  $('#results').innerHTML=`<h3>All ${n} ${fam?'isomer':'stereoisomer'}${n>1?'s':''} of ${formulaHTML(c)} <span class="chip">${GEOMS[c.geom].name}</span></h3>
+    <p class="explain">${fam?Q.cur.explain:(c.insight||summaryHTML(A))}</p><p class="tapnote">${mob?'Tap a drawing to open it full size and turn it.':'Drag a drawing to turn it, or open it full size with ⤢.'}</p>${body}`;
+  entries.forEach((e,gi)=>e.grp.forEach((iso,k)=>{
     const el=$(`[data-mi="${gi}-${k}"]`), v=new View(el,{mini:true});
-    v.load(dispOf(iso)); // the second of a pair is drawn as the exact mirror image of the first
+    v.load(dispOf(iso,e.skin)); // the second of a pair is drawn as the exact mirror image of the first
     if(mob){v.interactive=false;v.onTap=()=>openInspector(gi);}   // on phones, small drawings open instead of trapping the scroll
     Q.minis.push(v);
   }));
@@ -2332,10 +2808,10 @@ function showResults(){
 /* full-size viewer for one result card; a mirror pair opens side by side, the right one a live reflection of the left */
 let IN=null;
 function openInspector(gi){
-  const grp=Q.cur.A.groups[gi], pair=grp.length===2, iso=grp[0];
+  const ent=Q.cur.entries[gi], grp=ent.grp, pair=grp.length===2, iso=grp[0];
   $('#inspector').hidden=false; $('#inspector').classList.toggle('pair',pair);
-  $('#iTitle').innerHTML=`${formulaHTML(Q.cur.c)} <span>${pair?(iso.name?iso.name+' · ':'')+grp[0].chir+' / '+grp[1].chir:iso.label}</span>`;
-  const v1=new View($('#iStage1')); v1.load(dispOf(iso));
+  $('#iTitle').innerHTML=`${ent.v?ent.v.title:formulaHTML(Q.cur.c)} <span>${pair?(iso.name?iso.name+' · ':'')+grp[0].chir+' / '+grp[1].chir:iso.label}</span>`;
+  const v1=new View($('#iStage1')); v1.load(dispOf(iso,ent.skin));
   let v2=null; if(pair){v2=new View($('#iStage2')); v2.interactive=false; v2.mirrorOf=v1;}
   IN={v1,v2}; $('#iflag').innerHTML=pair?'Turn the left one; the right one is its mirror image and follows.':'';
 }
@@ -2356,7 +2832,7 @@ function buildFilters(){
   const f=$('#filters');
   f.innerHTML=`<span>ask about:</span>`+['Td','SP','Oh'].map(g=>`<button class="btn ${Q.geoms.has(g)?'on':''}" data-geo="${g}">${GEOMS[g].name}</button>`).join('')+
     `<span class="dot-sep">·</span>`+[['mb','mono- & bidentate'],['tri','tridentate'],['tet','tetradentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join('')+
-    `<span class="dot-sep">·</span>`+[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}">${l}</button>`).join('')+
+    `<span class="dot-sep">·</span>`+[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs'],['total','+ structural: ambidentate ligand']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}" ${k==='total'?'title="Also ask for the total number of isomers when one ligand can bond through either of two atoms (off unless chosen)"':''}>${l}</button>`).join('')+
     `<span class="keyhint">${Q.mode==='mc'?'keys 1–4 answer · Enter = next':'Enter = check, then Enter = next'}</span>`;
 }
 
@@ -2397,7 +2873,7 @@ function setMode(mode){
 }
 /* the phone app re-uses the same live drawings, quiz card and builder: they are moved into its screens */
 const M={tab:'explore',stack:[{t:'home'}],VX:null,homes:new Map(),moved:false,toastT:0};
-const MOVES=[['#stage1','#cHost1'],['#stage2','#cHost2'],['#quizScroll','#qHost'],['#builder .bsheet','#bHost']];
+const MOVES=[['#stage1','#cHost1'],['#stage2','#cHost2'],['#cx','#cxHost'],['#quizScroll','#qHost'],['#builder .bsheet','#bHost']];
 function placeElements(mobile){
   MOVES.forEach(([sel])=>{if(!M.homes.has(sel)){const el=$(sel);M.homes.set(sel,{el,parent:el.parentNode,next:el.nextSibling});}});
   if(mobile===M.moved) return;
@@ -2442,7 +2918,7 @@ function mTop(){
   let title='',back=false,right='';
   if(M.tab==='explore'){
     const top=M.stack[M.stack.length-1]; back=M.stack.length>1;
-    title=top.t==='home'?'Explore':top.t==='case'?formulaHTML(ANALYSIS[top.id].c):(()=>{const i=isoById[top.id];return `${formulaHTML(i.caseRef)} <small>${i.label}</small>`;})();
+    title=top.t==='home'?'Explore':top.t==='case'?formulaHTML(ANALYSIS[top.id].c):(()=>{const i=isoById[top.id];return `${caseTitle(i.caseRef)} <small>${i.label}</small>`;})();
   } else if(M.tab==='compare'){title='Compare';right=`<button class="mtop-btn" id="cHelp" aria-label="How to compare">?</button>`;}
   else if(M.tab==='build'){title='Build from a drawing';}
   else if(M.tab==='quiz'){title='Quiz';
@@ -2477,7 +2953,7 @@ function xListHTML(top){
   const row=iso=>`<button class="xrow iso" data-go="iso:${iso.id}"><span class="xr-main"><span>${iso.label}</span><span class="xchips"><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span></span></span>${chev}</button>`;
   return `<p class="xins">${A.c.insight||summaryHTML(A)}</p>
     <div class="xchips">${ligChips(A.c)}</div><div class="xtally">${countsHTML(A)}</div>`+
-    A.groups.map(g=>g.length===1?row(g[0]):`<div class="xpair"><div class="xpair-h"><span>enantiomeric pair</span><button class="btn" data-cmp="${g[0].id}">Compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+neighbourHTML(A.c);
+    A.groups.map(g=>g.length===1?row(g[0]):`<div class="xpair"><div class="xpair-h"><span>enantiomeric pair</span><button class="btn" data-cmp="${g[0].id}">Compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+neighbourHTML(A.c)+complicateHTML(A.c);
 }
 function xInfoHTML(iso){
   const ch=iso.chiral?`<span class="chip chiral">chiral</span> No σ, i or S<sub>n</sub>; only ${iso.sym.proper}. Its mirror image is ${iso.partner.label}.`
@@ -2507,7 +2983,7 @@ function refreshM(){
   if(!V1||!V2||!isMobile()) return;
   [[V1,1],[V2,2]].forEach(([v,n])=>{
     const iso=v.iso;
-    $('#cHead'+n).innerHTML=`<span class="cbadge">${n}</span><span class="ct">${iso?formulaHTML(iso.caseRef)+' <small>'+iso.label+'</small>':''}</span>${iso?`<span class="chip pg">${iso.sym.html}</span>`:''}${n===2&&app.live?'<span class="chip live">live mirror</span>':''}`;
+    $('#cHead'+n).innerHTML=`<span class="cbadge">${n}</span><span class="ct">${iso?caseTitle(iso.caseRef)+' <small>'+iso.label+'</small>':''}</span>${iso?`<span class="chip pg">${iso.sym.html}</span>`:''}${v.disp&&v.disp.alt&&!v.disp.alt.base?`<span class="chip alt">${v.disp.alt.label}</span>`:''}${n===2&&app.live?'<span class="chip live">live mirror</span>':''}`;
     $('#cSlot'+n).classList.toggle('active',app.active===n);
   });
   const st=$('#rel .stamp'); $('#cStamp').innerHTML=st?st.outerHTML:'';
@@ -2546,7 +3022,7 @@ function mInit(){
     const ng=e.target.closest('[data-case-go]'); if(ng){xPush({t:'case',id:ng.dataset.caseGo});return;}
     const g=e.target.closest('[data-go]'); if(g){const [tt,id]=g.dataset.go.split(/:(.+)/);xPush({t:tt,id});}
   });
-  $('#xInfo').addEventListener('click',e=>{const b=e.target.closest('[data-xact]');if(!b)return;const iso=M.VX.iso,d={iso,cfg:M.VX.disp.cfg,q:M.VX.disp.q.clone()};
+  $('#xInfo').addEventListener('click',e=>{const b=e.target.closest('[data-xact]');if(!b)return;const iso=M.VX.iso,d={iso,cfg:M.VX.disp.cfg,q:M.VX.disp.q.clone(),skin:M.VX.disp.skin};
     if(b.dataset.xact==='withmirror'){setLive(false);mTab('compare');loadInto(1,d);loadInto(2,mirrorDisp(d,mirrorAxisNow()));toast('Slot 2 is the mirror image of slot 1. Try <b>Superimpose</b>.');}
     else{const n=b.dataset.xact==='slot1'?1:2;if(n===2)setLive(false);mTab('compare');app.active=n;loadInto(n,d);toast(`Put in slot ${n}.`);}});
   $('#xFab').addEventListener('click',e=>{const b=e.target.closest('[data-x]');if(!b)return;const v=M.VX,a=b.dataset.x;
@@ -2576,6 +3052,7 @@ function mInit(){
 }
 
 function init(){
+  const startHash=decodeURIComponent(location.hash.slice(1));   // read first: starting the phone layout rewrites the address
   buildSidebar(); buildLegend(); buildFilters(); buildBuilder(); updateScore();
   V1=new View($('#stage1')); V2=new View($('#stage2'));
   V1.onActivate=()=>setActive(1); V2.onActivate=()=>setActive(2);
@@ -2608,6 +3085,7 @@ function init(){
   $('#revealBtn').addEventListener('click',reveal);
   $('#results').addEventListener('click',e=>{const b=e.target.closest('.enlarge');if(b)openInspector(+b.dataset.gi);});
   $('#iClose').addEventListener('click',closeInspector);
+  buildComplicate();
   $('#inspector').addEventListener('click',e=>{if(e.target.id==='inspector')closeInspector();});
   $('#itools').addEventListener('click',e=>{const b=e.target.closest('[data-iact]');if(!b||!IN)return;const a=b.dataset.iact,v=IN.v1;
     if(a==='shuffle'){shuffle(v);$('#iflag').innerHTML='Shuffled: same molecule, new angle.';}
@@ -2632,8 +3110,9 @@ function init(){
   window.addEventListener('resize',()=>{if(!isMobile())setMode($('#study').hidden?'quiz':'study');});
   applyLayout(); if(!isMobile()) setMode('study');
   // deep link: index.html#<formula id> opens that formula
-  const h=decodeURIComponent(location.hash.slice(1));
+  const h=startHash;
   if(h&&ANALYSIS[h]){if(isMobile()){mTab('explore');xPush({t:'case',id:h});}else openCase(h);}
+  else if(h.startsWith('x?')) cxOpenFromHash(h);
   // '/' jumps to the search box
   document.addEventListener('keydown',e=>{if(e.key!=='/'||e.ctrlKey||e.metaKey||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
     const inp=isMobile()?(M.tab==='explore'&&M.stack.length===1?$('#xHome .fq'):null):(!$('#study').hidden&&$('#builder').hidden?$('#side .fq'):null);
