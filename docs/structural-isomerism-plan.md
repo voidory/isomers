@@ -1,14 +1,23 @@
 # Structural isomerism: architecture plan
 
-Status: **phases 0, 1 and 2 are built**, with tests; phases 3 and 4 are not. Numbers below were first produced by a throwaway prototype against the unmodified engine, and are now asserted by `node tests/engine.mjs`.
+Status: **phases 0 to 3 are built**; phase 4 is not. Phases 0 to 2 have headless tests; phase 3 is quiz and Builder UI, checked in a browser. Numbers below were first produced by a throwaway prototype against the unmodified engine, and are now asserted by `node tests/engine.mjs`.
 
 | Phase | State |
 |---|---|
 | 0 Test harness, `rsLabel` hardening, naming hook, skin plumbing | done |
 | 1 Abstract ambidentate letters: solver, lowering, family panel, tagged labels, Compare stamp | done |
 | 2 Ionisation / hydrate pools, named presets (NO₂/ONO, SCN/NCS, CN/NC), typed linkage pairs in the finder, deep links | done (see below for what was narrowed) |
-| 3 Quiz types, Builder status line | not started |
+| 3 Quiz question (total isomers), Builder hook | done |
 | 4 κ¹/κ² modes, ambidentate chelate ends | not started |
+
+### Phase 3: what was built
+
+- **One new quiz question, "how many isomers in total (structural and stereo)?"**, off unless the "+ structural: ambidentate ligand" chip is chosen, like the N–H cases. There is deliberately no "how many linkage isomers?" question: the total is what exams ask, and the explanation after each answer breaks it into binding forms anyway.
+- A question picks a formula with a monodentate ligand that appears at least twice (so mixed binding forms exist), and makes it ambidentate. Half the time it is abstract (x and y), half the time it is named (nitrite, thiocyanate, cyanide) in the gloss. The answer is the family's stereoisomer total.
+- Hints are specific to the likely slips: the base count (always bonded one way), the number of binding forms, and the naive "forms × base count" product.
+- After answering, every isomer is drawn in a row per binding form, with donor atoms marked. The full-size viewer works for these too.
+- **Builder:** its result line gets "Complicate this ⇢", which opens the panel for the drawn formula over the Builder.
+- Checked in a browser over 150 generated questions: the answer equals the engine total, the number of drawn isomers equals the answer, and the answer choices are unique and include it.
 
 ### Phase 2: what was built, and what was narrowed
 

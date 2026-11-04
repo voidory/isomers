@@ -9,7 +9,7 @@ Coordination-compound isomers drawn the way an exam paper draws them, which you 
 - **Compare** two drawings and test whether they superimpose, with a live mirror image.
 - **Build** a structure from an exam drawing and see which isomer it is.
 - **Complicate** a formula: let a ligand bond through more than one atom (linkage isomers, with presets for nitrite, thiocyanate and cyanide), or swap places with a copy outside the sphere (ionisation and hydrate isomers), and see how the structural isomers multiply the stereoisomers. Typing `[Co(NH3)4(NO2)(ONO)]` offers the linkage family.
-- **Quiz** yourself on counting stereoisomers.
+- **Quiz** yourself on counting stereoisomers, and (if you switch it on) on the total number of isomers when one ligand can bond through either of two atoms.
 
 The whole app is the single file `index.html`. It needs no server and works offline once loaded.
 
