@@ -102,6 +102,7 @@ berrySets(A)             // → { sets:[{isos, chiral, racemises}], blocked, rul
 - **Compare:** a new relation between two static isomers of the same formula, alongside "identical", "enantiomers" and "diastereomers": **"interconvert by Berry pseudorotation"** when they share a set, with the diastereomer text kept for the static difference. The existing stamp code branches on `key`/`mirrorKey`, so this is one more branch.
 - **Builder:** TBP as a shape button, with a layout that looks like a textbook axial/equatorial drawing.
 - **Quiz:** unchanged. Berry is not what exams count; leave it out unless the owner asks.
+- **Vocabulary for the five-coordinate shapes:** the static count is called **configurations**, the Berry count **fluxional sets** (observable species), e.g. *20 configurations → 2 fluxional sets*. Isomers are defined by structure, not by how fast they interconvert, so the shapes' configurations are still isomers; the new words just say which count corresponds to something one could observe or separate. The other shapes keep "stereoisomers".
 - **Presentation default:** show both numbers side by side. Leading with the static count alone would repeat the counts that are observably wrong for most TBP formulas; leading with the Berry count alone would hide the shape's real isomers.
 
 ### 4.4 Animation
@@ -121,6 +122,8 @@ A static C₄ᵥ shape with an apex and four basal sites, chelate edges apex–b
 - **The transition frame** in the animation (4.4).
 
 Each SPy configuration joins two TBP isomers (the apical ligand is the pivot; either basal trans pair can open to become axial), giving a bipartite graph between the two shapes, which the Berry layer exposes. As elsewhere, the model says nothing about which is lower in energy, and the panel says so; section 8 shows that either can be the minimum.
+
+**Labelling.** The square pyramid carries a short note wherever the shape is named (shape list, Explore panel, Builder): *an idealised shape, often a transition state or intermediate on the Berry path, but stable in some complexes.* It is deliberately not tagged as less real than the trigonal bipyramid, which is equally idealised: most TBP configurations also collapse into fluxional sets, and real five-coordinate structures lie on a continuum between the two (section 8).
 
 ### 4.6 Coordination-number isomers (what this unlocks)
 
