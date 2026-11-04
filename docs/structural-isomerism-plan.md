@@ -155,16 +155,12 @@ Checks:
 - **Invariants:** family total equals the sum of its variants; the projection is total and single-valued; every lowered formula is a bank formula (372/372 today).
 - **Bound:** mixed N/O counted once; NN and OO counted as two forms though they share one analysis.
 
-## 9. Decisions I have made, and the ones that are yours
+## 9. Decisions
 
-Made, with reasons above: families are a computed view and never added to the bank or finder; two-level counts; recognise typed `NO2`/`ONO` pairs; defer coordination isomerism.
+Made in this plan, with reasons above: families are a computed view and never added to the bank or finder; two-level counts; recognise typed `NO2`/`ONO` pairs; defer coordination isomerism.
 
-Yours:
+Settled with the owner:
 
-1. **Abstract vs named first.** I would build the abstract "make B ambidentate" mode as the core and chemistry names as presets. If you would rather it only ever show real ligands, the catalogue is the whole feature and the abstract mode can be dropped.
-2. **Is a model that counts what connectivity allows enough?** Like the N–H family, this ignores stability and extra structure: nitrito syn/anti rotamers, κ²-O,O nitrito, bent versus linear M–SCN, and the HSAB preference that decides which linkage form actually forms. I would state this in the panel, as the N–H notes already do, rather than model it.
-3. **Vocabulary.** The existing text for square-planar MABCD says these are "often loosely called structural isomers, but strictly they are geometric". Once the app has a real structural layer, that sentence gets more prominent, not less, so the panel should define *structural* (different atom or species bonded to M) against *stereo* (same bonds, different arrangement) up front.
-
-## 10. Aside, unrelated to the feature
-
-The no-JS fallback in `index.html` (line 544) links to `voidoro.github.io/isomers`, while the README and git remote use `voidory`. That looks like a typo and would send anyone using a preview that disables JavaScript to the wrong address. Not changed here.
+1. **Abstract mode is the core.** "Make B ambidentate" (donors shown as B<sub>x</sub> / B<sub>y</sub>) is what the solver, lowering and panel are built around. The chemistry catalogue (NO₂, SCN, ...) is a set of presets and display names on top of it, not a separate path.
+2. **The model counts what connectivity allows, and nothing more.** No HSAB or other stability preference, no nitrito syn/anti rotamers, no κ²-O,O nitrito, no bent-versus-linear M–SCN. The panel says so in one line, as the N–H notes already do.
+3. **Vocabulary is tightened.** *Structural* means a different atom or species is bonded to the metal; *stereo* means the same bonds in a different arrangement. The panel states this up front. The square-planar MABCD note in the app (`sp-mabcd`) has been reworded to match.
