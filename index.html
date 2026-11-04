@@ -13,6 +13,7 @@ b.textContent='The app hit a problem while starting ('+(e.message||'unknown erro
 <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Patrick+Hand&display=swap" rel="stylesheet">
 <style>
 :root{
+  --arr:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 16' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.4 9.6C9 7.3 17.4 8.9 30.2 7.7'/%3E%3Cpath d='M23.2 2.4C25.7 4.7 28 6.3 30.6 7.8C27.9 9.4 25.7 11.5 23.9 14'/%3E%3C/svg%3E");
   --paper:#f7f5f0; --card:#fffdf8; --ink:#1f1d1a; --ink2:#5a554c; --ink3:#8b857a;
   --grid:#e7e2d7; --grid2:#ddd6c8;
   --A:#f0716b; --B:#5aa9e6; --C:#f6c445; --D:#72c47f; --E:#b28fe0; --F:#f4974a; --M:#a7b4bf;
@@ -35,6 +36,11 @@ sub,sup{font-size:.72em;line-height:0}
 .btn:hover{background:var(--hl)}
 .btn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
 .btn.on{background:var(--ink);color:var(--paper)}
+/* the sketch arrow that stands in for → and ⇢: a mask, so it is always the colour of the text beside it */
+.nw{white-space:nowrap}
+.arr{display:inline-block;width:1.9em;height:.9em;margin:0 .08em;vertical-align:-.16em;background:currentColor;-webkit-mask:var(--arr) center/contain no-repeat;mask:var(--arr) center/contain no-repeat;transition:transform .12s}
+small .arr,.nbr-row .arr,.chip .arr{width:1.55em}
+@media (hover:hover){.btn:hover:not(:disabled) .arr,.nbr-row:hover .arr{transform:translateX(3px)}}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:2px 2px 0 var(--ink)}
 .chip{display:inline-block;border:1.5px solid var(--ink);border-radius:9px 3px 8px 4px;padding:0 6px;font-family:var(--hand);font-size:12.5px;background:var(--card);white-space:nowrap}
 .chip.chiral{background:#efe3ff;border-color:var(--violet)}
@@ -606,7 +612,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
             <button class="btn" data-act="shuffle" data-v="1" title="Show the same molecule from a random exam-style angle">Shuffle</button>
             <button class="btn" data-act="reset" data-v="1">Reset</button>
             <button class="btn" data-act="mirror" data-v="1" title="Draw its reflection beside it">Mirror plane</button>
-            <button class="btn" data-act="send" data-v="1">Mirror image → V2</button>
+            <button class="btn" data-act="send" data-v="1">Mirror image <i class="arr" role="img" aria-label="to"></i> V2</button>
           </div>
           <div class="vp-info" id="info1"></div>
         </div>
@@ -621,14 +627,14 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
             <button class="btn" data-act="shuffle" data-v="2" title="Show the same molecule from a random exam-style angle">Shuffle</button>
             <button class="btn" data-act="reset" data-v="2">Reset</button>
             <button class="btn" data-act="mirror" data-v="2" title="Draw its reflection beside it">Mirror plane</button>
-            <button class="btn" data-act="send" data-v="2">Mirror image → V1</button>
+            <button class="btn" data-act="send" data-v="2">Mirror image <i class="arr" role="img" aria-label="to"></i> V1</button>
           </div>
           <div class="vp-info" id="info2"></div>
         </div>
       </div>
       <div class="compare sketch">
         <div class="rel" id="rel"></div>
-        <button class="btn" id="alignBtn"><span class="long">Try to superimpose V2 onto V1</span><span class="short">Superimpose V2 → V1</span></button>
+        <button class="btn" id="alignBtn"><span class="long">Try to superimpose V2 onto V1</span><span class="short">Superimpose V2 <i class="arr" role="img" aria-label="to"></i> V1</span></button>
         <label title="Dragging one molecule turns the other the same way"><input type="checkbox" id="linkChk"> link rotation</label>
         <label title="On release, settle on the nearest textbook/exam-style orientation"><input type="checkbox" id="snapChk" checked> snap to exam views</label>
         <label title="Viewport 2 becomes a live mirror image of Viewport 1"><input type="checkbox" id="liveChk"> mirror between viewports</label>
@@ -659,7 +665,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
           <div class="q-actions">
             <button class="btn" id="revealBtn" style="display:none">Show me the answer</button>
             <span class="spacer"></span>
-            <button class="btn" id="nextBtn">Next question →</button>
+            <button class="btn" id="nextBtn">Next question <i class="arr" role="img" aria-label="to"></i></button>
           </div>
           <div class="filters" id="filters"></div>
         </div>
@@ -704,7 +710,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
     </section>
     <section class="mscreen" data-tab="compare" id="tabCompare" hidden>
       <div class="cslot" id="cSlot1"><div class="cslot-head" id="cHead1"></div><div class="cstage-host" id="cHost1"></div></div>
-      <div class="cmid"><span id="cStamp"></span><button class="btn" id="cAlign">Superimpose 2 → 1</button></div>
+      <div class="cmid"><span id="cStamp"></span><button class="btn" id="cAlign">Superimpose 2 <i class="arr" role="img" aria-label="to"></i> 1</button></div>
       <div class="cslot" id="cSlot2"><div class="cslot-head" id="cHead2"></div><div class="cstage-host" id="cHost2"></div></div>
       <div id="cFab"><button class="fab" data-mact="rv" aria-label="Turn about the axis nearest the vertical">↻<small>vert</small></button><button class="fab" data-mact="rh" aria-label="Turn about the axis nearest the horizontal">↻<small>horiz</small></button><button class="fab" data-mact="rz" aria-label="Turn within the page">⟲<small>page</small></button><button class="fab" data-mact="shuffle" aria-label="Show from another exam-style angle">⤮<small>shuffle</small></button><button class="fab" data-mact="reset" aria-label="Back to the start view">⌂<small>reset</small></button><button class="fab" data-open="more" aria-label="More tools">⋯<small>more</small></button></div>
     </section>
@@ -748,7 +754,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
   <div class="sheet-head"><span class="grab"></span><b>More</b><span style="flex:1"></span><button class="btn" data-close>✕</button></div>
   <div class="more-grid">
     <button class="btn" data-more="mirror">Mirror plane</button>
-    <button class="btn" data-more="send">Mirror image → other viewport</button>
+    <button class="btn" data-more="send">Mirror image <i class="arr" role="img" aria-label="to"></i> other viewport</button>
     <label><input type="checkbox" id="mLive"> mirror between viewports</label>
     <label><input type="checkbox" id="mLink"> link rotation</label>
     <label><input type="checkbox" id="mSnap"> snap to exam views</label>
@@ -1513,11 +1519,11 @@ function neighbours(c){
   const mono=c.mono||'',chel=c.chel||[],NEW='Z',self=speciesKey(mono,chel),out=new Map();
   const consider=(m,ch,desc)=>{const k=speciesKey(m,ch);if(k===self)return;const b=bankKeys[c.geom+':'+k];if(b&&!out.has(b.id))out.set(b.id,{c:b,desc});};
   const monoL=[...new Set(mono)];
-  monoL.forEach(X=>{const i=mono.indexOf(X);monoL.filter(y=>y!==X).concat(NEW).forEach(Y=>consider(mono.slice(0,i)+Y+mono.slice(i+1),chel,`one ${X} → ${Y===NEW?'a new ligand':Y}`));});
+  monoL.forEach(X=>{const i=mono.indexOf(X);monoL.filter(y=>y!==X).concat(NEW).forEach(Y=>consider(mono.slice(0,i)+Y+mono.slice(i+1),chel,`<span class="nw">one ${X} <i class="arr" role="img" aria-label="to"></i> ${Y===NEW?'a new ligand':Y}</span>`));});
   chel.forEach((pr,ci)=>{const {L,mode}=lig(pr),sw=x=>{const ch=chel.slice();ch[ci]=x;return ch;};
     const copies=chel.filter(x=>normItem(x)===normItem(pr)).length, ref=`${copies>1?'one':'the'} ${ligHTML(pr)} ${DENT_WORD[L.length]}`;
     for(let p=0;p<L.length;p++) [NEW].concat([...new Set(L)].filter(y=>y!==L[p])).forEach(Y=>{const nl=L.slice(0,p)+Y+L.slice(p+1);
-      consider(mono,sw(mode?nl+':'+mode:nl),`${ref}: one ${L[p]} donor → ${Y===NEW?'a new donor':Y}`);});
+      consider(mono,sw(mode?nl+':'+mode:nl),`${ref}: <span class="nw">one ${L[p]} donor <i class="arr" role="img" aria-label="to"></i> ${Y===NEW?'a new donor':Y}</span>`);});
     ((MODE_SWAPS[L.length]||{})[mode]||[]).forEach(([md,d])=>consider(mono,sw(L+':'+md),`${ref}: ${d}`));});
   const n=caseLetters(c).size;
   return NB[c.id]=[...out.values()].map(o=>({...o,dir:Math.sign(caseLetters(o.c).size-n)})).sort((a,b)=>a.dir-b.dir);
@@ -1526,7 +1532,7 @@ function neighbourHTML(c){
   const nb=neighbours(c); if(!nb.length) return '';
   const A=ANALYSIS[c.id], lab={'-1':'one fewer ligand type','0':'same number of ligand types','1':'one more ligand type'};
   return `<div class="nbr"><div class="nbr-h">One substitution away</div>`+nb.map(o=>{const B=ANALYSIS[o.c.id];
-    const chg=A.stereo===B.stereo?`still ${B.stereo}`:`${A.stereo} → ${B.stereo}`;
+    const chg=A.stereo===B.stereo?`still ${B.stereo}`:`<span class="nw">${A.stereo} <i class="arr" role="img" aria-label="to"></i> ${B.stereo}</span>`;
     return `<button class="nbr-row" data-case-go="${o.c.id}"><span class="xf">${formulaHTML(o.c)}</span><small>${o.desc} (${lab[o.dir]}) · ${chg} stereoisomer${B.stereo===1?'':'s'}, ${B.pairs?B.pairs+' enantiomeric pair'+(B.pairs>1?'s':''):(B.stereo>1?'all achiral':'achiral')}</small></button>`;}).join('')+'</div>';
 }
 
@@ -2319,7 +2325,7 @@ function renderBuilder(){
   else{
     const I=res.iso;
     st.innerHTML=`<b>${formulaHTML(res.A.c)}</b>: your drawing is <b>${I.label}</b> <span class="chip pg">${I.sym.html}</span> <span class="chip ${I.chiral?'chiral':'achiral'}">${I.chiral?'chiral':'achiral'}</span>,
-      one of ${res.A.stereo} stereoisomer${res.A.stereo>1?'s':''} (${res.A.geometric} geometric${res.A.pairs?`, ${res.A.pairs} enantiomeric pair${res.A.pairs>1?'s':''}`:''}).${monoLetters(res.A.c).length?` <button class="btn" data-bcomplicate title="Let a ligand bond through more than one atom, or swap with a copy outside the sphere">Complicate this ⇢</button>`:''}`;
+      one of ${res.A.stereo} stereoisomer${res.A.stereo>1?'s':''} (${res.A.geometric} geometric${res.A.pairs?`, ${res.A.pairs} enantiomeric pair${res.A.pairs>1?'s':''}`:''}).${monoLetters(res.A.c).length?` <button class="btn" data-bcomplicate title="Let a ligand bond through more than one atom, or swap with a copy outside the sphere">Complicate this <i class="arr" role="img" aria-label="to"></i></button>`:''}`;
   }
 }
 function isRing4(v){ // the component through v is a 4-cycle (every position has two links)
@@ -2466,7 +2472,7 @@ function renderFamily(){
   FAM.cur=F; setHash(famHash());
   if(F.tooMany){$('#fBody').innerHTML=h+`<p class="fwhy">That makes ${F.tooMany} forms, more than the ${F.cap} this panel will analyse. Switch something off, or use two donor atoms.</p>`;return;}
   const T=F.tally, withAmb=spec.amb.length>0, withKap=kap.length>0;
-  h+=`<div class="ftally"><span class="big">${A0.stereo} → ${T.stereo}</span><span>stereoisomers in total</span>${FAM.pool||withKap?`<span><b>${T.spheres}</b> inner-sphere composition${T.spheres>1?'s':''}</span>`:''}${withAmb?`<span><b>${T.forms}</b> binding form${T.forms>1?'s':''}</span>`:''}<span><b>${T.pairs}</b> enantiomeric pair${T.pairs===1?'':'s'}</span></div>`;
+  h+=`<div class="ftally"><span class="big nw">${A0.stereo} <i class="arr" role="img" aria-label="to"></i> ${T.stereo}</span><span>stereoisomers in total</span>${FAM.pool||withKap?`<span><b>${T.spheres}</b> inner-sphere composition${T.spheres>1?'s':''}</span>`:''}${withAmb?`<span><b>${T.forms}</b> binding form${T.forms>1?'s':''}</span>`:''}<span><b>${T.pairs}</b> enantiomeric pair${T.pairs===1?'':'s'}</span></div>`;
   let why=withAmb?`Each binding form is an ordinary stereo formula, analysed like any other. The table counts how many stereoisomers each isomer splits into: it is not simply a multiple, because ligands that are no longer identical break symmetry differently in different arrangements.`:'';
   if(FAM.pool&&Object.values(FAM.out).some(n=>n>0)) why+=` Each inner-sphere composition is a different compound: <b>ionisation</b> isomers where an anion swaps with one outside, <b>hydrate</b> isomers where water does. Its stereoisomers are counted as usual. Charge and conductivity are not modelled.`;
   if(withKap) why+=` <b>Denticity</b> isomers: the same ligands, but a ligand bonded through two atoms (a chelate, κ²) uses two sites where κ¹ uses one, so the rest of the sphere differs. Each composition is analysed as the ordinary chelate formula it is.`;
@@ -2500,7 +2506,7 @@ function famLinkHTML(pf){
     const lk={geom,base:{geom,mono:a.mono,chel:a.chel},letter:a.letter,preset:a.key,mark:JSON.stringify([a.counts])}, k=JSON.stringify(lk);   // one entry per distinct link: both finders render the same ones
     let i=FAMLINKS.findIndex(x=>x.k===k); if(i<0) i=FAMLINKS.push({...lk,k})-1;
     const d=AMBIDENTATE[a.key].donors;
-    out+=`<button class="nbr-row famlink" data-famlink="${i}"><span class="xf">${AMBIDENTATE[a.key].name}: ${d[0].html} or ${d[1].html}${pf.dent===4?` · ${GEOMS[geom].name.toLowerCase()}`:''}</span><small>This ligand can bond through either atom. That formula is one of <b>${F.tally.forms}</b> binding forms (<b>${F.tally.stereo}</b> stereoisomers in all). See the linkage family →</small></button>`;}
+    out+=`<button class="nbr-row famlink" data-famlink="${i}"><span class="xf">${AMBIDENTATE[a.key].name}: ${d[0].html} or ${d[1].html}${pf.dent===4?` · ${GEOMS[geom].name.toLowerCase()}`:''}</span><small>This ligand can bond through either atom. That formula is one of <b>${F.tally.forms}</b> binding forms (<b>${F.tally.stereo}</b> stereoisomers in all). See the linkage family <i class="arr" role="img" aria-label="to"></i></small></button>`;}
   return out?`<div class="fsub">Linkage isomers</div>${out}`:'';
 }
 function buildFamily(){
