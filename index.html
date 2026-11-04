@@ -257,10 +257,6 @@ html.js #nojs{display:none} html:not(.js) .app,html:not(.js) #mapp{display:none!
 #errbox{position:fixed;left:12px;right:12px;bottom:12px;z-index:99;background:#fde0dc;border:2px solid #e0503f;border-radius:10px;padding:10px 12px;font:14px/1.4 -apple-system,Arial,sans-serif;color:#1f1d1a}
 
 /* ---------- categories, ligand badges, substitution links ---------- */
-.side-filter{width:100%;white-space:normal;margin:0 0 4px;font-size:13.5px}
-.cat-head{margin:10px 0 6px;padding:3px 8px;border-left:4px solid var(--violet);display:flex;flex-direction:column;gap:1px}
-.cat-head b{font-family:var(--hand);font-weight:normal;font-size:14.5px}
-.cat-head small{font-size:12.5px;color:var(--ink2);line-height:1.25}
 .chip.lig{background:var(--paper);border-color:var(--ink3);color:var(--ink2);font-size:11.5px}
 .ligchips{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 6px}
 .case-body .tally{display:flex;flex-wrap:wrap;gap:2px 10px}
@@ -271,26 +267,59 @@ html.js #nojs{display:none} html:not(.js) .app,html:not(.js) #mapp{display:none!
 .nbr-row:hover{background:var(--hl)}
 .nbr-row .xf{font-family:var(--hand);font-size:16px}
 .nbr-row small{font-size:12.5px;color:var(--ink2);line-height:1.3}
-.xcat{margin:12px 2px 0;display:flex;flex-direction:column;gap:2px;flex:none}
-.xcat b{font-family:var(--hand);font-weight:normal;font-size:17px;border-left:4px solid var(--violet);padding-left:8px}
-.xcat small{font-size:13.5px;color:var(--ink2);padding-left:12px}
-.xfilter{align-self:flex-start}
 .xtally span{display:inline-block;margin:0 6px 4px 0}
 body.mobile .nbr-row{min-height:54px;padding:8px 10px;border-width:2px;box-shadow:2px 2px 0 var(--ink3)}
 body.mobile .nbr-row .xf{font-size:19px}
 body.mobile .nbr-h{font-size:13px}
 
-details.fam{margin:6px 0 8px}
-details.fam>summary{cursor:pointer;font-family:var(--hand);font-size:15px;padding:5px 8px;border:2px solid var(--ink);border-radius:var(--wob);background:var(--card);list-style:none;display:flex;align-items:center;gap:6px}
-details.fam>summary::-webkit-details-marker{display:none}
-details.fam>summary::before{content:'▶';font-size:11px;transition:transform .2s}
-details.fam[open]>summary::before{transform:rotate(90deg)}
-.famn{margin-left:auto;font-size:12px;color:var(--ink2)}
-.fam-note{font-size:13px;color:var(--ink2);margin:6px 2px}
-.xfams{display:flex;gap:8px;overflow-x:auto;flex:none;padding:2px 2px 6px;scrollbar-width:none}
-.xfams::-webkit-scrollbar{display:none}
-.xfam{flex:none;border:2px solid var(--ink);border-radius:20px 8px 20px 8px;background:var(--card);padding:8px 14px;font-family:var(--hand);font-size:14.5px;min-height:42px}
-.xfam.on{background:var(--ink);color:var(--paper)}
+
+/* ---------- finder: search + facets + one list of formulas ---------- */
+.finder .fhead{display:flex;flex-direction:column;gap:6px}
+.fsearch{display:flex;align-items:center;gap:6px;background:var(--card);border:2px solid var(--ink);border-radius:var(--wob);box-shadow:2px 2px 0 var(--ink);padding:2px 4px 2px 8px}
+.fsearch:focus-within{background:#fffbe6;box-shadow:2px 2px 0 var(--violet);border-color:var(--violet)}
+.fmag{font-size:18px;color:var(--ink3);line-height:1}
+.fq{flex:1;min-width:0;border:0;background:none;font-family:var(--hand);font-size:15px;padding:5px 0;color:var(--ink);outline:none}
+.fq::-webkit-search-cancel-button{display:none}
+.fx{border:0;background:none;color:var(--ink2);font-size:14px;padding:2px 6px}
+.ftoggle{border:1.5px solid var(--ink);border-radius:12px 4px 12px 4px;background:var(--paper);font-family:var(--hand);font-size:14px;padding:4px 10px;white-space:nowrap}
+.ftoggle.on{background:var(--ink);color:var(--paper)}
+.ftoggle b{display:inline-block;min-width:18px;border-radius:9px;background:#ffe27a;color:var(--ink);font-weight:normal;margin-left:3px;text-align:center}
+.ffacets{display:none;flex-direction:column;gap:4px}
+.finder.facets-open .ffacets{display:flex}
+.ffacet{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.fl{font-family:var(--hand);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);width:100%;margin-top:2px}
+.fchip{border:1.5px solid var(--ink3);border-radius:10px 3px 10px 3px;background:var(--card);font-family:var(--hand);font-size:12.5px;padding:1px 7px;display:inline-flex;gap:5px;align-items:baseline}
+.fchip small{font-size:11px;color:var(--ink3)}
+.fchip:hover{background:var(--hl)}
+.fchip.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.fchip.on small{color:#d8d2c6}
+.fchip:disabled{opacity:.4;cursor:default;background:var(--card)}
+.fstat{font-size:12.5px;color:var(--ink2);padding:0 2px}
+.linkbtn{border:0;background:none;padding:0;color:#1b62b0;text-decoration:underline;font:inherit;cursor:pointer}
+.fempty{font-size:14.5px;color:var(--ink2);margin:10px 2px}
+.fgeo-head{display:flex;align-items:center;gap:8px;margin:14px 0 2px;font-family:var(--hand);font-size:19px}
+.fgeo-head svg{width:28px;height:28px;flex:none}
+.fgeo-head small{margin-left:auto;font-size:12px;color:var(--ink3)}
+.fsub{font-family:var(--hand);font-size:12px;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink2);margin:10px 2px 5px;border-bottom:1.5px dashed var(--grid2);padding-bottom:2px}
+.chip.fgeo{background:var(--paper);border-color:var(--ink3);font-size:11.5px;color:var(--ink2)}
+.case-btn .cmain{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0}
+.case-btn:focus-visible,.fchip:focus-visible{outline:3px solid var(--violet);outline-offset:1px}
+.case-body .fam-note{font-size:13px;color:var(--ink2);margin:8px 0 0;font-style:italic}
+/* desktop sidebar: the search head stays put while the list scrolls */
+.side .finder .fhead{position:sticky;top:-12px;z-index:2;background:var(--paper);padding:12px 0 8px;margin-top:-12px;border-bottom:1.5px solid var(--grid2)}
+.side .finder .fres{padding-top:2px}
+.side .case{scroll-margin-top:84px}
+.side .finder.facets-open .case{scroll-margin-top:300px}
+/* phone Explore home */
+#xHome{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0}
+#xHome .fhead{flex:none;padding:10px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));border-bottom:2px solid var(--ink);background:var(--paper)}
+#xHome .fq{font-size:17px;padding:8px 0}
+#xHome .fchip{font-size:15px;padding:5px 11px;min-height:36px}
+#xHome .fres{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px max(16px,env(safe-area-inset-right,0px)) 28px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:8px}
+#xHome .fsub{margin:10px 2px 0}
+#xHome .fgeo-head{margin:12px 0 0}
+#xHome .xrow{min-height:54px;padding:8px 12px}
+#xHome .xf{font-size:20px}
 
 /* ---------- tablets / small laptops: desktop layout, tightened ---------- */
 @media (min-width:768px) and (max-width:1150px){
@@ -516,7 +545,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
 
   <!-- ============ MODE A: STUDY ============ -->
   <main class="study" id="study">
-    <aside class="side" id="side"><button class="btn build-btn" id="openBuilder">✎ Build from an exam drawing</button><h2>Isomer matrix</h2></aside>
+    <aside class="side" id="side"><button class="btn build-btn" id="openBuilder">✎ Build from an exam drawing</button><h2>Find a formula</h2></aside>
     <section class="work">
       <div class="vps">
         <div class="vp sketch" id="vp1">
@@ -614,7 +643,8 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
   <header class="mtop"><button class="mback" id="mBack" aria-label="Back" hidden>‹</button><div class="mtitle" id="mTitle">Explore</div><div class="mtop-right" id="mTopRight"></div></header>
   <div class="mscreens">
     <section class="mscreen" data-tab="explore" id="tabExplore">
-      <div id="xList"></div>
+      <div id="xHome"></div>
+      <div id="xList" hidden></div>
       <div id="xMol" hidden>
         <div class="xstage" id="xStage"></div>
         <div class="xsheet" id="xSheet" data-state="peek">
@@ -1402,10 +1432,10 @@ const ANALYSIS={}, BANK=[];
   const keys=new Set();
   generateAll().forEach(f=>{
     const k=f.geom+':'+speciesKey(f.mono,f.chel);
-    if(!enumerateRaw(GEOMS[f.geom],f.mono,f.chel).length) return;          // the shape cannot hold this combination
     const c=hand[k]||{id:'g-'+f.geom+'-'+f.chel.map(x=>x.replace(':','')).join('_')+'-'+f.mono,geom:f.geom,mono:f.mono,chel:f.chel,study:true,gen:true};
+    const A=analyzeCase(c); if(!A.isomers.length) return;                 // the shape cannot hold this combination
     if(!c.insight&&NOTE_BY_KEY[k]) c.insight=NOTE_BY_KEY[k];
-    ANALYSIS[c.id]=analyzeCase(c); BANK.push(c); keys.add(k);
+    ANALYSIS[c.id]=A; BANK.push(c); keys.add(k);
   });
   HAND.forEach(c=>{const k=c.geom+':'+speciesKey(c.mono||'',c.chel||[]);if(!keys.has(k)){console.warn('hand case outside the generated set',c.id);ANALYSIS[c.id]=analyzeCase(c);BANK.push(c);keys.add(k);}});
   NH_CASES.forEach(c=>{ANALYSIS[c.id]=analyzeCase(c);BANK.push(c);});
@@ -1461,12 +1491,6 @@ function famOf(c){const ks=(c.chel||[]).map(x=>({d:ligDent(x),mode:lig(x).mode})
   const t=ks.filter(k=>k.d===3).length; if(t===2) return 't3'; if(t===1) return ks.some(k=>k.d===2)?'t2b':'t1';
   return ks.length?'b':'m';}
 const ligChips=c=>ligKinds(c).map(k=>`<span class="chip lig">${k}</span>`).join('');
-function casesFor(g,chiralOnly,fam='m'){
-  const key=c=>{const A=ANALYSIS[c.id];return [A.stereo,caseLetters(c).size,(c.chel||[]).length,formulaHTML(c)];};
-  const list=BANK.filter(c=>c.geom===g&&famOf(c)===fam&&(!chiralOnly||ANALYSIS[c.id].pairs>0));
-  list.sort((a,b)=>{const x=key(a),y=key(b);for(let i=0;i<4;i++){if(x[i]<y[i])return -1;if(x[i]>y[i])return 1;}return 0;});
-  return CATS.map(cat=>({cat,cases:list.filter(c=>catOf(ANALYSIS[c.id])===cat.id)})).filter(x=>x.cases.length);
-}
 /* counts, with the geometrical count defined explicitly */
 function countsHTML(A,compact){
   const s=A.stereo,g=A.geometric,p=A.pairs;
@@ -1788,49 +1812,210 @@ const ICONS={
 };
 const isoById={}; Object.values(ANALYSIS).forEach(A=>A.isomers.forEach(i=>isoById[i.id]=i));
 
-const SB={chiralOnly:false,famOpen:new Set(['Td:m','Td:b','SP:m','SP:b','Oh:m','Oh:b'])};
-function fillNbr(caseEl){const slot=caseEl.querySelector('.nbr-slot');if(slot&&!slot.dataset.done){slot.innerHTML=neighbourHTML(BANK.find(c=>c.id===caseEl.dataset.case));slot.dataset.done='1';}}
-function caseHTML(c){
+/* ---------- the finder: one searchable, filterable list of every formula
+   (the sidebar on a desktop, the Explore home on a phone). Both read the same FIND state. ---------- */
+const GEO_ORDER=['Td','SP','Oh'];
+const DENT_FACET=[[1,'monodentate only'],[2,'bidentate'],[3,'tridentate'],[4,'tetradentate']];
+const CAT_SHORT={one:'no isomers',geo:'geometrical only',enan:'enantiomers only',both:'geometrical + enantiomers'};
+const FIND={q:'',geo:new Set(),dent:new Set(),cat:new Set(),open:null,facets:false};
+const maxDent=c=>Math.max(1,...(c.chel||[]).map(ligDent));
+const stripTags=h=>h.replace(/<[^>]+>/g,'');
+const chiralView=()=>FIND.cat.size>0&&[...FIND.cat].every(k=>k==='enan'||k==='both');   // filtering to chiral formulas: open isomers beside their mirror image
+let FIDX=null;
+function findIndex(){
+  if(FIDX) return FIDX;
+  const famPos=Object.fromEntries(FAMS.map((f,i)=>[f.id,i])), sk=c=>{const A=ANALYSIS[c.id];return [A.stereo,caseLetters(c).size,(c.chel||[]).length,formulaHTML(c)];};
+  FIDX=BANK.map(c=>{const A=ANALYSIS[c.id],plain=stripTags(formulaHTML(c)),fam=famOf(c),cat=catOf(A);
+    return {c,A,fam,cat,dent:maxDent(c),plain,key:speciesKey(c.mono||'',c.chel||[]),
+      norm:plain.toLowerCase().replace(/[\[\]\s]/g,''),
+      hay:[plain,GEOMS[c.geom].name,c.geom,FAMS[famPos[fam]].name,CATS.find(x=>x.id===cat).name,...ligKinds(c),
+        ...A.isomers.map(i=>i.label+' '+stripTags(i.sym.html)),A.pairs?'chiral enantiomers':'achiral'].join(' ').toLowerCase()};});
+  FIDX.sort((a,b)=>{if(a.c.geom!==b.c.geom)return GEO_ORDER.indexOf(a.c.geom)-GEO_ORDER.indexOf(b.c.geom);
+    if(a.fam!==b.fam)return famPos[a.fam]-famPos[b.fam];const x=sk(a.c),y=sk(b.c);for(let i=0;i<4;i++){if(x[i]<y[i])return -1;if(x[i]>y[i])return 1;}return 0;});
+  FIDX.forEach((e,i)=>e.ord=i);
+  return FIDX;
+}
+/* --- reading a typed formula: abstract (MA2B2, M(AA)2B2, [M(ABA:m)C3]) or real ([Co(en)2Cl2]+, Pt(NH3)2Cl2, [Co(dien)Cl3]) --- */
+const METALS=new Set('M Sc Ti V Cr Mn Fe Co Ni Cu Zn Y Zr Nb Mo Tc Ru Rh Pd Ag Cd Hf Ta W Re Os Ir Pt Au Hg Al Ga In Sn Pb U'.split(' '));
+const NAMED_MONO=['NH3','H2O','OH2','PPh3','PMe3','PEt3','PR3','NCMe','MeCN','SCN','NCS','ONO','NO2','NO','CO','CN','NC','OH','Cl','Br','py','N3','Me','Ph','F','I','H','O','S','X','L','Y','Z'];
+const NAMED_CHEL={en:'AA',pn:'AA',tmen:'AA',ox:'AA',mal:'AA',acac:'AA',bipy:'AA',bpy:'AA',phen:'AA',dppe:'AA',dmpe:'AA',diars:'AA',co3:'AA',
+  gly:'AB',ala:'AB',pic:'AB',dien:'AAA:x',ida:'ABA:x',terpy:'AAA:m',tpy:'AAA:m',tacn:'AAA:c',
+  trien:['AAAA:x','ABBA:xn'],tren:'AAAA:t',cyclam:['AAAA:r','AAAA:rn'],cyclen:'AAAA:r',porph:'AAAA:rp',por:'AAAA:rp',tpp:'AAAA:rp',pc:'AAAA:rp',salen:'ABBA:x'};
+const MODE_WORD={mer:'m',fac:'f',cyc:'c',planar:'p',folded:'f',tripod:'t'};
+const ANY_MODES={3:['x','m','f','c'],4:['x','p','f','t','r','rp']};
+function parseFormula(q){
+  let s=q.trim().replace(/^(cis|trans|fac|mer|[ΔΛ])-/i,'').replace(/\]\s*\^?\d*[+\-−–⁺⁻]+$/,']').replace(/\s+\d*[+\-−–]+$/,'').replace(/[\s\[\]]/g,'');   // drop a trailing charge, then brackets
+  if(!s) return null;
+  if(/^m[a-h0-9():]*$/i.test(s)&&!/[a-z]{2,}/.test(s.replace(/:[a-z]+/gi,''))) s='M'+s.slice(1).replace(/[a-h](?![a-z])/g,ch=>ch.toUpperCase());   // 'ma2b2' → 'MA2B2'
+  const sp=[];   // [{kind:'mono'|'chel', name, pattern(s)}, count]
+  let i=0; const num=()=>{const m=/^\d+/.exec(s.slice(i));if(!m)return 1;i+=m[0].length;return +m[0];};
+  const first=/^[A-Z][a-z]?/.exec(s); if(first&&METALS.has(first[0])&&s.length>first[0].length){i=first[0].length;}
+  const lookup=t=>{
+    const cl=NAMED_CHEL[t.toLowerCase()]; if(cl) return {kind:'chel',name:t.toLowerCase(),pats:[].concat(cl)};
+    const mo=NAMED_MONO.find(n=>n===t)||NAMED_MONO.find(n=>n.toLowerCase()===t.toLowerCase()); if(mo) return {kind:'mono',name:mo};
+    const ab=/^([A-H]+)(?::([a-z]+))?$/i.exec(t);
+    if(ab&&ab[1]===ab[1].toUpperCase()){if(ab[1].length===1&&!ab[2])return {kind:'mono',name:ab[1],abs:true};
+      return {kind:'chel',name:ab[1],abs:true,pats:[ab[1]+(ab[2]?':'+ab[2].toLowerCase():'')]};}
+    if(/^[A-Z][a-z]?$/.test(t)) return {kind:'mono',name:t};
+    return null;};
+  while(i<s.length){
+    let tok=null;
+    if(s[i]==='('){const j=s.indexOf(')',i);if(j<0)return null;tok=lookup(s.slice(i+1,j));if(!tok)return null;i=j+1;
+      const w=/^(mer|fac|cyc|planar|folded|tripod)/i.exec(s.slice(i));
+      if(w&&tok.kind==='chel'){i+=w[0].length;tok.pats=tok.pats.map(p=>lig(p).L+':'+MODE_WORD[w[0].toLowerCase()]);}}
+    else{const rest=s.slice(i);
+      const n=NAMED_MONO.filter(x=>rest.startsWith(x)).sort((a,b)=>b.length-a.length)[0]
+        ||Object.keys(NAMED_CHEL).filter(x=>rest.toLowerCase().startsWith(x)).sort((a,b)=>b.length-a.length)[0]
+        ||(/^[A-Z][a-z]?/.exec(rest)||[])[0];
+      if(!n) return null; tok=lookup(rest.slice(0,n.length)); if(!tok) return null; i+=n.length;}
+    sp.push([tok,num()]);
+  }
+  if(!sp.length) return null;
+  // give each distinct real ligand its own letters, keeping abstract letters as typed
+  const used=new Set(sp.filter(([t])=>t.abs).flatMap(([t])=>t.name.split(''))), free='ABCDEFGH'.split('').filter(x=>!used.has(x)), names={};
+  const letterFor=(name,pat)=>{const m={};return pat.replace(/[A-H]/g,ch=>m[ch]||(m[ch]=(names[name+'/'+ch]||(names[name+'/'+ch]=free.shift()||'?'))));};
+  let mono=''; const chel=[];
+  for(const [t,n] of sp){
+    if(t.kind==='mono') mono+=(t.abs?t.name:letterFor(t.name,'A')).repeat(n);
+    else for(let k=0;k<n;k++) chel.push(t.pats.flatMap(p=>{const {L,mode}=lig(p),LL=t.abs?L:letterFor(t.name,L);
+      return mode||L.length<3?[LL+(mode?':'+mode:'')]:ANY_MODES[L.length].map(md=>LL+':'+md);}));
+  }
+  if((mono+chel.map(o=>o[0]).join('')).includes('?')) return null;
+  const keys=new Set();(function rec(k,acc){if(k===chel.length){try{keys.add(speciesKey(mono,acc));}catch(e){}return;}chel[k].forEach(o=>rec(k+1,acc.concat([o])));})(0,[]);
+  return {keys,dent:mono.length+chel.reduce((t,o)=>t+ligDent(o[0]),0)};
+}
+/* score every formula against the query (0 = no match) */
+function findMatches(){
+  const idx=findIndex(), q=FIND.q.trim(), facet=e=>(!FIND.geo.size||FIND.geo.has(e.c.geom))&&(!FIND.dent.size||FIND.dent.has(e.dent))&&(!FIND.cat.size||FIND.cat.has(e.cat));
+  if(!q) return {list:idx.filter(facet),exact:0};
+  const pf=parseFormula(q), qn=q.toLowerCase().replace(/[\[\]\s]/g,''), toks=q.toLowerCase().split(/\s+/).filter(Boolean);
+  const scored=idx.map(e=>{let s=0;
+    if(pf&&pf.keys.has(e.key)) s=4;
+    else if(e.norm===qn) s=4; else if(qn.length>1&&e.norm.startsWith(qn)) s=2; else if(qn.length>1&&e.norm.includes(qn)) s=1.5;
+    else if(toks.every(t=>e.hay.includes(t))) s=1;
+    return {e,s};}).filter(x=>x.s&&facet(x.e)).sort((a,b)=>b.s-a.s||a.e.ord-b.e.ord);
+  return {list:scored.map(x=>x.e),exact:scored.filter(x=>x.s===4).length,parsed:pf};
+}
+function facetCounts(dim){   // how many formulas each chip would show, given the query and the other facets
+  const saved=FIND[dim]; FIND[dim]=new Set(); const l=findMatches().list; FIND[dim]=saved;
+  const c={}; l.forEach(e=>{const k=dim==='geo'?e.c.geom:e[dim];c[k]=(c[k]||0)+1;}); return c;
+}
+function finderShellHTML(){
+  return `<div class="fhead"><div class="fsearch"><span class="fmag" aria-hidden="true">⌕</span><input type="search" class="fq" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. MA2B2 or [Co(en)2Cl2]" aria-label="Search formulas: abstract like MA2B2 or real like [Co(en)2Cl2]"><button class="fx" data-fclear aria-label="Clear search" hidden>✕</button><button class="ftoggle" data-ftoggle aria-expanded="false">Filters</button></div>
+    <div class="ffacets"></div><div class="fstat" aria-live="polite"></div></div><div class="fres"></div>`;
+}
+function facetsHTML(){
+  const cg=facetCounts('geo'),cd=facetCounts('dent'),cc=facetCounts('cat');
+  const chip=(dim,v,label,n,title='')=>`<button class="fchip ${FIND[dim].has(v)?'on':''}" data-facet="${dim}" data-v="${v}" aria-pressed="${FIND[dim].has(v)}" ${title?`title="${title}"`:''} ${!n&&!FIND[dim].has(v)?'disabled':''}>${label}<small>${n||0}</small></button>`;
+  return `<div class="ffacet" role="group" aria-label="Shape"><span class="fl">shape</span>${GEO_ORDER.map(g=>chip('geo',g,GEOMS[g].name.toLowerCase(),cg[g])).join('')}</div>
+    <div class="ffacet" role="group" aria-label="Largest ligand"><span class="fl">ligands</span>${DENT_FACET.map(([d,n])=>chip('dent',d,n,cd[d])).join('')}</div>
+    <div class="ffacet" role="group" aria-label="Isomerism"><span class="fl">isomers</span>${CATS.map(k=>chip('cat',k.id,CAT_SHORT[k.id],cc[k.id],k.blurb)).join('')}</div>`;
+}
+function caseBodyHTML(c){
   const A=ANALYSIS[c.id];
   const rows=A.groups.map(grp=>{
-    const row=iso=>`<div class="iso" data-iso="${iso.id}"><span class="nm" title="${SB.chiralOnly?'load with its mirror image':'load into Viewport 1'}">${iso.label}</span>
+    const row=iso=>`<div class="iso" data-iso="${iso.id}"><span class="nm" title="load into Viewport 1">${iso.label}</span>
       <span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span>
       <button class="ld" data-to="1" title="Load into Viewport 1">1</button><button class="ld" data-to="2" title="Load into Viewport 2">2</button></div>`;
     if(grp.length===1) return row(grp[0]);
     return `<div class="pairbox"><div class="pairlab"><span>enantiomeric pair</span><button data-pair="${grp[0].id}">compare ⇄</button></div>${row(grp[0])}${row(grp[1])}</div>`;
   }).join('');
-  return `<div class="case" data-case="${c.id}">
-    <button class="case-btn"><span class="arrow">▶</span><span class="f">${formulaHTML(c)}</span><span class="cnt">${countsHTML(A,true).replace(' · ','<br>')}</span></button>
-    <div class="case-body"><div class="ligchips">${ligChips(c)}</div><p class="insight">${c.insight||summaryHTML(A)}</p>
-      <p class="tally">${countsHTML(A)}</p>${rows}<div class="nbr-slot"></div></div></div>`;
+  const fam=FAMS.find(f=>f.id===famOf(c));
+  return `<div class="ligchips">${ligChips(c)}</div><p class="insight">${c.insight||summaryHTML(A)}</p>
+    <p class="tally">${countsHTML(A)}</p>${rows}${fam.note&&(c.geom==='Oh'||fam.id[0]==='q')?`<p class="fam-note">${fam.note}</p>`:''}${neighbourHTML(c)}`;
 }
-function renderSidebar(){
-  const open=new Set($$('#sideList .case.open').map(e=>e.dataset.case));
-  $$('#sideList details.fam').forEach(d=>{if(d.open)SB.famOpen.add(d.dataset.key);else SB.famOpen.delete(d.dataset.key);});
-  $('#sideList').innerHTML=['Td','SP','Oh'].map(g=>`<div class="geo-head">${ICONS[g]}<span>${GEOMS[g].name}</span><span class="chip">${GEOMS[g].sym}</span></div>`+
-    FAMS.map(f=>{const groups=casesFor(g,SB.chiralOnly,f.id),n=groups.reduce((t,x)=>t+x.cases.length,0);if(!n)return '';const key=g+':'+f.id;
-      return `<details class="fam" data-key="${key}" ${SB.famOpen.has(key)?'open':''}><summary>${f.name} <span class="famn">${n}</span></summary>${f.note&&(g==='Oh'||f.id[0]==='q')?`<p class="fam-note">${f.note}</p>`:''}`+
-        groups.map(({cat,cases})=>`<div class="cat-head"><b>${cat.name}</b><small>${cat.blurb}</small></div>`+cases.map(caseHTML).join('')).join('')+`</details>`;}).join('')).join('');
-  open.forEach(id=>{const e=$(`#sideList .case[data-case="${id}"]`);if(e){e.classList.add('open');fillNbr(e);}});
+function rowHTML(e,mobile,searching){
+  const c=e.c,A=e.A,geo=searching?`<span class="chip fgeo" title="${GEOMS[c.geom].name}">${GEOMS[c.geom].name}</span>`:'';
+  const cnt=countsHTML(A,true);
+  if(mobile) return `<button class="xrow" data-go="case:${c.id}"><span class="xr-main"><span class="xf">${formulaHTML(c)}</span><small>${cnt}</small>${geo?`<span class="xchips">${geo}</span>`:''}</span>${chev}</button>`;
+  const open=FIND.open===c.id;
+  return `<div class="case ${open?'open':''}" data-case="${c.id}"><button class="case-btn" aria-expanded="${open}"><span class="arrow">▶</span><span class="cmain"><span class="f">${formulaHTML(c)}</span>${geo}</span><span class="cnt">${cnt.replace(/ · /g,'<br>')}</span></button>
+    <div class="case-body">${open?caseBodyHTML(c):''}</div></div>`;
 }
-function openCase(id){
-  if(SB.chiralOnly&&!ANALYSIS[id].pairs){SB.chiralOnly=false;$('#sideChiral').classList.remove('on');renderSidebar();}
-  const key=ANALYSIS[id].c.geom+':'+famOf(ANALYSIS[id].c); if(!SB.famOpen.has(key)){SB.famOpen.add(key);renderSidebar();}
-  const el=$(`#sideList .case[data-case="${id}"]`); el.closest('details').open=true; el.classList.add('open'); fillNbr(el); el.scrollIntoView({block:'start',behavior:'smooth'});
-  loadInto(1,dispOf(ANALYSIS[id].isomers[0]));
+function resultsHTML(mobile){
+  const {list,exact,parsed}=findMatches(), q=FIND.q.trim(), total=BANK.length;
+  if(!list.length){
+    const hint=parsed?`No formula in the bank has that combination of ligands${[4,6].includes(parsed.dent)?'':` (it has ${parsed.dent} donor atoms; these shapes need 4 or 6)`}.`
+      :'Nothing matches. Try a formula such as <b>MA2B2</b>, <b>M(AA)2B2</b> or <b>[Co(en)2Cl2]</b>, or a word such as <b>fac</b>, <b>chiral</b> or <b>macrocycle</b>.';
+    return {html:`<p class="fempty">${hint}${FIND.geo.size||FIND.dent.size||FIND.cat.size?' <button class="linkbtn" data-freset>Clear the filters</button>':''}</p>`,stat:`0 of ${total} formulas`};
+  }
+  let html='';
+  if(q){
+    if(exact&&exact<list.length) html+=`<div class="fsub">That formula</div>`+list.slice(0,exact).map(e=>rowHTML(e,mobile,true)).join('')+`<div class="fsub">Close matches</div>`+list.slice(exact).map(e=>rowHTML(e,mobile,true)).join('');
+    else html+=list.map(e=>rowHTML(e,mobile,true)).join('');
+  } else {
+    let g=null,f=null;
+    list.forEach(e=>{
+      if(e.c.geom!==g){g=e.c.geom;f=null;const n=list.filter(x=>x.c.geom===g).length;
+        html+=`<div class="fgeo-head">${ICONS[g]}<span>${GEOMS[g].name}</span><small>${n}</small></div>`;}
+      if(e.fam!==f){f=e.fam;html+=`<div class="fsub">${FAMS.find(x=>x.id===f).name}</div>`;}
+      html+=rowHTML(e,mobile,false);
+    });
+  }
+  const filt=FIND.geo.size||FIND.dent.size||FIND.cat.size;
+  return {html,stat:`${list.length===total?'All':list.length+' of'} ${total} formulas${filt?' · <button class="linkbtn" data-freset>clear filters</button>':''}`};
+}
+const FINDERS=[];
+function renderFinder(F){
+  const r=resultsHTML(F.mobile);
+  F.root.querySelector('.ffacets').innerHTML=facetsHTML();
+  F.root.querySelector('.fstat').innerHTML=r.stat;
+  F.root.querySelector('.fres').innerHTML=r.html;
+  const inp=F.root.querySelector('.fq'); if(document.activeElement!==inp&&inp.value!==FIND.q) inp.value=FIND.q;
+  F.root.querySelector('[data-fclear]').hidden=!FIND.q;
+  F.root.classList.toggle('facets-open',FIND.facets);
+  const n=FIND.geo.size+FIND.dent.size+FIND.cat.size, tg=F.root.querySelector('[data-ftoggle]');
+  if(tg){tg.innerHTML=n?`Filters <b>${n}</b>`:'Filters';tg.setAttribute('aria-expanded',FIND.facets);tg.classList.toggle('on',n>0);}
+}
+function renderFinders(){FINDERS.forEach(renderFinder);}
+function resetFind(){FIND.q='';FIND.geo.clear();FIND.dent.clear();FIND.cat.clear();}
+function mountFinder(root,{mobile,onPick}){
+  root.classList.add('finder'); root.innerHTML=finderShellHTML();
+  const F={root,mobile}; FINDERS.push(F);
+  const inp=root.querySelector('.fq');
+  inp.addEventListener('input',()=>{FIND.q=inp.value;FINDERS.forEach(G=>{renderFinder(G);});root.querySelector('.fres').scrollTop=0;if(!mobile)$('#side').scrollTop=0;});
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&inp.value){e.stopPropagation();FIND.q='';inp.value='';renderFinders();}
+    else if(e.key==='ArrowDown'){const b=root.querySelector('.case-btn,.xrow');if(b){e.preventDefault();b.focus();}}
+    else if(e.key==='Enter'){const r=findMatches().list[0];if(r){e.preventDefault();inp.blur();onPick(r.c.id,true);}}
+  });
+  root.addEventListener('keydown',e=>{
+    if(!['ArrowDown','ArrowUp'].includes(e.key)||!e.target.matches('.case-btn,.xrow')) return;
+    const all=[...root.querySelectorAll('.case-btn,.xrow')],i=all.indexOf(e.target),n=all[i+(e.key==='ArrowDown'?1:-1)];
+    e.preventDefault(); if(n) n.focus(); else if(e.key==='ArrowUp') inp.focus();
+  });
+  root.addEventListener('click',e=>{
+    const fc=e.target.closest('[data-facet]'); if(fc){const set=FIND[fc.dataset.facet],v=fc.dataset.facet==='dent'?+fc.dataset.v:fc.dataset.v;
+      set.has(v)?set.delete(v):set.add(v);renderFinders();return;}
+    if(e.target.closest('[data-fclear]')){FIND.q='';renderFinders();inp.focus();return;}
+    if(e.target.closest('[data-freset]')){FIND.geo.clear();FIND.dent.clear();FIND.cat.clear();renderFinders();return;}
+    if(e.target.closest('[data-ftoggle]')){FIND.facets=!FIND.facets;renderFinders();return;}
+  });
+  renderFinder(F);
+  return F;
+}
+/* desktop: open a formula in the sidebar list (and load its first isomer into Viewport 1) */
+function setHash(id){try{history.replaceState(null,'',id?'#'+id:location.pathname+location.search);}catch(e){}}
+function openCase(id,{load=true,scroll=true}={}){
+  if(!findMatches().list.some(e=>e.c.id===id)) resetFind();     // make sure it is in the list
+  FIND.open=id; renderFinders(); setHash(id);
+  const el=$(`#side .case[data-case="${id}"]`);
+  if(el&&scroll) el.scrollIntoView({block:'start',behavior:'smooth'});
+  if(load){const A=ANALYSIS[id],iso=A.isomers[0];
+    if(chiralView()&&iso.chiral){setLive(false);loadInto(1,dispOf(iso));loadInto(2,mirrorDisp(V1.disp));} else loadInto(1,dispOf(iso));}
 }
 function buildSidebar(){
-  const side=$('#side');
-  side.insertAdjacentHTML('beforeend',`<button class="btn side-filter" id="sideChiral" aria-pressed="false">Show only formulas with enantiomers</button><div id="sideList"></div>`);
-  renderSidebar();
+  const side=$('#side'), host=document.createElement('div'); side.appendChild(host);
+  mountFinder(host,{mobile:false,onPick:(id)=>openCase(id)});
   side.addEventListener('click',e=>{
-    const f=e.target.closest('#sideChiral'); if(f){SB.chiralOnly=!SB.chiralOnly;f.classList.toggle('on',SB.chiralOnly);f.setAttribute('aria-pressed',SB.chiralOnly);renderSidebar();refreshUI();return;}
     const ng=e.target.closest('[data-case-go]'); if(ng){openCase(ng.dataset.caseGo);return;}
-    const cb=e.target.closest('.case-btn'); if(cb){cb.parentElement.classList.toggle('open');fillNbr(cb.parentElement);return;}
+    const cb=e.target.closest('.case-btn'); if(cb){const id=cb.parentElement.dataset.case;
+      if(FIND.open===id){FIND.open=null;renderFinders();setHash(null);} else openCase(id,{scroll:false});
+      const b=$(`#side .case[data-case="${id}"] .case-btn`); if(b) b.focus({preventScroll:true}); return;}
     const pb=e.target.closest('[data-pair]'); if(pb){const a=isoById[pb.dataset.pair];setLive(false);loadInto(1,dispOf(a));loadInto(2,dispOf(a.partner));return;}
     const ld=e.target.closest('.ld'); if(ld){loadInto(+ld.dataset.to,dispOf(isoById[ld.closest('.iso').dataset.iso]));return;}
     const nm=e.target.closest('.nm'); if(nm){const iso=isoById[nm.closest('.iso').dataset.iso];
-      if(SB.chiralOnly&&iso.chiral){setLive(false);loadInto(1,dispOf(iso));loadInto(2,mirrorDisp(V1.disp));}   // filter on: open straight into the mirror comparison
+      if(chiralView()&&iso.chiral){setLive(false);loadInto(1,dispOf(iso));loadInto(2,mirrorDisp(V1.disp));}
       else loadInto(1,dispOf(iso));}
   });
 }
@@ -2276,7 +2461,7 @@ function setMode(mode){
   if(mode==='quiz'&&!Q.cur) nextQuestion();
 }
 /* the phone app re-uses the same live drawings, quiz card and builder: they are moved into its screens */
-const M={chiralOnly:false,fam:'m',tab:'explore',stack:[{t:'home'}],VX:null,homes:new Map(),moved:false,toastT:0};
+const M={tab:'explore',stack:[{t:'home'}],VX:null,homes:new Map(),moved:false,toastT:0};
 const MOVES=[['#stage1','#cHost1'],['#stage2','#cHost2'],['#quizScroll','#qHost'],['#builder .bsheet','#bHost']];
 function placeElements(mobile){
   MOVES.forEach(([sel])=>{if(!M.homes.has(sel)){const el=$(sel);M.homes.set(sel,{el,parent:el.parentNode,next:el.nextSibling});}});
@@ -2322,7 +2507,7 @@ function mTop(){
   let title='',back=false,right='';
   if(M.tab==='explore'){
     const top=M.stack[M.stack.length-1]; back=M.stack.length>1;
-    title=top.t==='home'?'Explore':top.t==='geo'?GEOMS[top.id].name:top.t==='case'?formulaHTML(ANALYSIS[top.id].c):(()=>{const i=isoById[top.id];return `${formulaHTML(i.caseRef)} <small>${i.label}</small>`;})();
+    title=top.t==='home'?'Explore':top.t==='case'?formulaHTML(ANALYSIS[top.id].c):(()=>{const i=isoById[top.id];return `${formulaHTML(i.caseRef)} <small>${i.label}</small>`;})();
   } else if(M.tab==='compare'){title='Compare';right=`<button class="mtop-btn" id="cHelp" aria-label="How to compare">?</button>`;}
   else if(M.tab==='build'){title='Build from a drawing';}
   else if(M.tab==='quiz'){title='Quiz';
@@ -2338,33 +2523,21 @@ function xRender(dir){
   if(top.t==='iso'){
     list.hidden=true; mol.hidden=false;
     const iso=isoById[top.id];
-    if(dir!==null||!M.VX.disp||M.VX.iso!==iso){M.VX.load(dispOf(iso));M.VX.mirrorOn=!!(M.chiralOnly&&iso.chiral);$$('#xFab [data-x="mirror"]').forEach(b=>b.classList.toggle('on',M.VX.mirrorOn));setSheet('peek');}
+    if(dir!==null||!M.VX.disp||M.VX.iso!==iso){M.VX.load(dispOf(iso));M.VX.mirrorOn=!!(chiralView()&&iso.chiral);$$('#xFab [data-x="mirror"]').forEach(b=>b.classList.toggle('on',M.VX.mirrorOn));setSheet('peek');}
     $('#xInfo').innerHTML=xInfoHTML(iso);
+    $('#xHome').hidden=true;
+  } else if(top.t==='home'){
+    mol.hidden=true; list.hidden=true; $('#xHome').hidden=false; setHash(null);
   } else {
-    mol.hidden=true; list.hidden=false;
-    if(dir!==null||!list.innerHTML) {list.innerHTML=xListHTML(top); list.scrollTop=0; const on=list.querySelector('.xfam.on'); if(on) on.parentElement.scrollLeft=on.offsetLeft-16;}
+    mol.hidden=true; $('#xHome').hidden=true; list.hidden=false;
+    if(dir!==null||!list.innerHTML) {list.innerHTML=xListHTML(top); list.scrollTop=0;}
+    setHash(top.id);
   }
-  if(dir){const el=top.t==='iso'?mol:list;el.classList.remove('slide-in','slide-back');void el.offsetWidth;el.classList.add(dir==='pop'?'slide-back':'slide-in');}
+  if(dir){const el=top.t==='iso'?mol:top.t==='home'?$('#xHome'):list;el.classList.remove('slide-in','slide-back');void el.offsetWidth;el.classList.add(dir==='pop'?'slide-back':'slide-in');}
   mTop();
 }
 const chev='<span class="chev" aria-hidden="true">›</span>';
 function xListHTML(top){
-  if(top.t==='home'){
-    return `<p class="xintro">Pick a geometry and a formula to see every isomer, drawn the way an exam paper draws it. Then turn it with your finger.</p>`+
-      ['Oh','SP','Td'].map(g=>{const n=BANK.filter(c=>c.geom===g).length,nt=BANK.filter(c=>c.geom===g&&!['m','b'].includes(famOf(c))).length;
-        return `<button class="xrow big" data-go="geo:${g}">${ICONS[g]}<span class="xr-main"><b>${GEOMS[g].name}</b><small>${n} formulas (${nt} with tri- or tetradentate ligands) · bare shape ${GEOMS[g].sym}</small></span>${chev}</button>`;}).join('')+
-      `<button class="xrow big accent" data-gotab="build"><span class="xr-ico">✎</span><span class="xr-main"><b>Build from an exam drawing</b><small>Copy a structure from your paper and turn it</small></span>${chev}</button>`;
-  }
-  if(top.t==='geo'){
-    const fams=FAMS.filter(f=>BANK.some(c=>c.geom===top.id&&famOf(c)===f.id)); if(!fams.some(f=>f.id===M.fam)) M.fam=fams[0].id;
-    const fnote=FAMS.find(f=>f.id===M.fam).note;
-    return `<div class="xfams" role="group" aria-label="Ligands">${fams.map(f=>`<button class="xfam ${f.id===M.fam?'on':''}" data-fam="${f.id}">${f.name}</button>`).join('')}</div>
-      <div class="seg xfilter" role="group" aria-label="Filter"><button data-filter="all" class="${M.chiralOnly?'':'on'}">All formulas</button><button data-filter="chiral" class="${M.chiralOnly?'on':''}">Has enantiomers</button></div>`+
-      (fnote&&(top.id==='Oh'||M.fam[0]==='q')?`<p class="xins">${fnote}</p>`:'')+
-      casesFor(top.id,M.chiralOnly,M.fam).map(({cat,cases})=>`<div class="xcat"><b>${cat.name}</b><small>${cat.blurb}</small></div>`+
-        cases.map(c=>`<button class="xrow" data-go="case:${c.id}"><span class="xr-main"><span class="xf">${formulaHTML(c)}</span><small>${countsHTML(ANALYSIS[c.id],true)}</small><span class="xchips">${ligChips(c)}</span></span>${chev}</button>`).join('')).join('');
-  }
-
   const A=ANALYSIS[top.id];
   const row=iso=>`<button class="xrow iso" data-go="iso:${iso.id}"><span class="xr-main"><span>${iso.label}</span><span class="xchips"><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span></span></span>${chev}</button>`;
   return `<p class="xins">${A.c.insight||summaryHTML(A)}</p>
@@ -2430,11 +2603,11 @@ function mInit(){
   $('#mTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)mTab(b.dataset.tab);});
   $('#mBack').addEventListener('click',xBack);
   $('#mTopRight').addEventListener('click',e=>{if(e.target.closest('#cHelp'))toast('Turn either molecule with your finger. <b>Superimpose</b> turns slot 2 to match slot 1, and circles anything that still disagrees. <b>⋯</b> has the mirror tools.',6000);});
+  mountFinder($('#xHome'),{mobile:true,onPick:id=>xPush({t:'case',id})});
+  $('#xHome').addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){const [tt,id]=g.dataset.go.split(/:(.+)/);xPush({t:tt,id});}});
   $('#xList').addEventListener('click',e=>{
     const c=e.target.closest('[data-cmp]'); if(c){const a=isoById[c.dataset.cmp];setLive(false);mTab('compare');loadInto(1,dispOf(a));loadInto(2,mirrorDisp(dispOf(a),mirrorAxisNow()));return;}
     const t=e.target.closest('[data-gotab]'); if(t){mTab(t.dataset.gotab);return;}
-    const fm=e.target.closest('[data-fam]'); if(fm){M.fam=fm.dataset.fam;$('#xList').innerHTML='';xRender(null);return;}
-    const fl=e.target.closest('[data-filter]'); if(fl){M.chiralOnly=fl.dataset.filter==='chiral';$('#xList').innerHTML='';xRender(null);return;}
     const ng=e.target.closest('[data-case-go]'); if(ng){xPush({t:'case',id:ng.dataset.caseGo});return;}
     const g=e.target.closest('[data-go]'); if(g){const [tt,id]=g.dataset.go.split(/:(.+)/);xPush({t:tt,id});}
   });
@@ -2472,7 +2645,6 @@ function init(){
   V1=new View($('#stage1')); V2=new View($('#stage2'));
   V1.onActivate=()=>setActive(1); V2.onActivate=()=>setActive(2);
   const start=ANALYSIS['oh-maa3'];
-  $('.case[data-case="oh-maa3"]').classList.add('open'); fillNbr($('.case[data-case="oh-maa3"]'));
   loadInto(1,dispOf(start.isomers[0])); loadInto(2,dispOf(start.isomers[1]));
   setAnswerMode(Q.mode);
 
@@ -2524,6 +2696,13 @@ function init(){
   onMQ(MQ_MOBILE,relayout); onMQ(MQ_LAND,relayout);
   window.addEventListener('resize',()=>{if(!isMobile())setMode($('#study').hidden?'quiz':'study');});
   applyLayout(); if(!isMobile()) setMode('study');
+  // deep link: index.html#<formula id> opens that formula
+  const h=decodeURIComponent(location.hash.slice(1));
+  if(h&&ANALYSIS[h]){if(isMobile()){mTab('explore');xPush({t:'case',id:h});}else openCase(h);}
+  // '/' jumps to the search box
+  document.addEventListener('keydown',e=>{if(e.key!=='/'||e.ctrlKey||e.metaKey||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
+    const inp=isMobile()?(M.tab==='explore'&&M.stack.length===1?$('#xHome .fq'):null):(!$('#study').hidden&&$('#builder').hidden?$('#side .fq'):null);
+    if(inp){e.preventDefault();inp.focus();inp.select();}});
   requestAnimationFrame(frame);
   window.__iso={analyzeCase,ANALYSIS,GEOMS,views,V1,V2,Q,app,M,align,setLive,nextQuestion,B,openBuilder,pickSite,renderBuilder,resetBuilder,openInspector,submit,mTab,xPush};
 }
