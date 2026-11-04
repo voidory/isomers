@@ -879,7 +879,7 @@ function uniquePerms(arr){
    bidentate 'AB'.  tridentate chain 'ABA:x' (donors in chain order; x flexible, m mer only, f fac only),
    face-capping ring 'AAA:c'.  tetradentate chain 'ABBA:x' (x flexible, p planar only, f folded only),
    tripod 'BAAA:t' (first letter = central donor, then the three arms), macrocycle 'AAAA:r' (flexible) or ':rp' (planar only).
-   A trailing n counts N–H configurations: 'ABBA:xn' = trien (the two inner donors are N–H), 'AAAA:rn' = cyclam
+   A trailing n counts N–H configurations: 'NNNN:xn' = trien (the two inner donors are N–H), 'NNNN:rn' = cyclam
    (all four donors N–H; links alternate –CH2CH2– and –CH2CH2CH2–). */
 const lig=s=>{const [L,mode]=s.split(':');return {L,mode:mode||''};};
 const ligDent=s=>lig(s).L.length;
@@ -1028,7 +1028,9 @@ function letterCounts(str){const c={};for(const ch of str)c[ch]=(c[ch]||0)+1;ret
 function transPairs(G,cfg){
   if(G.id==='Td') return '';
   const seen=new Set(), out=[];
-  for(let i=0;i<G.n;i++){if(seen.has(i))continue;const j=G.transOf[i];seen.add(i);seen.add(j);out.push([cfg.labels[i],cfg.labels[j]].sort().join('–'));}
+  // trien/cyclam donors: secondary amine NH (an N–H stereocentre) or terminal NH₂
+  const lab=i=>cfg.h&&cfg.labels[i]==='N'?(i in cfg.h?'NH':'NH₂'):cfg.labels[i];
+  for(let i=0;i<G.n;i++){if(seen.has(i))continue;const j=G.transOf[i];seen.add(i);seen.add(j);out.push([lab(i),lab(j)].sort().join('–'));}
   return out.sort().join(', ');
 }
 function monoParts(G,L,sites,counts){
@@ -1339,25 +1341,25 @@ const EXTRA=[
    (its ring partners trans) can point its H to either face. Where its rings lie on adjacent faces the H direction is
    fixed by the ring geometry. cyclam's links alternate ethylene (5-ring) and propylene (6-ring). */
 const NH_CASES=[
- {id:'nh-oh-trien-c2',geom:'Oh',mono:'CC',chel:['ABBA:xn'],study:true,
+ {id:'nh-oh-trien-c2',geom:'Oh',mono:'AA',chel:['NNNN:xn'],study:true,
   insight:`[Co(trien)Cl<sub>2</sub>]<sup>+</sup> with the N–H groups counted. Each secondary N is a stereocentre (R or S). Flat (trans): the two N–H can point to the same face (R,S: achiral) or opposite faces (R,R / S,S: a chiral C<sub>2</sub> pair), so the single trans form of the idealised model splits in two. cis-α: both secondary N sit where their two rings are on adjacent faces, so the ring geometry fixes them: still one pair. cis-β: one secondary N is fixed, the other sits between coplanar rings and can invert, giving β-(R,R)/(S,S) and β-(R,S)/(S,R): two pairs. 5 geometrical isomers, 9 stereoisomers, against 3 and 5 when N–H is ignored.`,
   hint:`Start from the 5 isomers of the idealised chain. Which secondary N atoms sit between two coplanar rings? Only those can invert.`},
- {id:'nh-oh-trien-cd',geom:'Oh',mono:'CD',chel:['ABBA:xn'],study:true,
-  insight:`With two different free ligands, the meso trans form splits again: both N–H can face C or both face D. Each cis-β form also doubles, because C and D can swap places.`},
- {id:'nh-oh-trien-cc',geom:'Oh',chel:['ABBA:xn','CC'],study:true,
+ {id:'nh-oh-trien-cd',geom:'Oh',mono:'AB',chel:['NNNN:xn'],study:true,
+  insight:`With two different free ligands, the meso trans form splits again: both N–H can face A or both face B. Each cis-β form also doubles, because A and B can swap places.`},
+ {id:'nh-oh-trien-cc',geom:'Oh',chel:['NNNN:xn','AA'],study:true,
   insight:`[Co(trien)(ox)]<sup>+</sup> with N–H counted. The chelate needs two cis positions, so only cis-α (both N fixed: one pair) and cis-β (one N free: β-(R,R)/(S,S) and β-(R,S)/(S,R)) remain: 3 geometrical isomers, 6 stereoisomers. Both cis-β diastereomers are known for amino-acid analogues such as β-[Co(trien)(gly)]<sup>2+</sup> (often called β<sub>1</sub> and β<sub>2</sub>).`},
- {id:'nh-oh-trien-cd2',geom:'Oh',chel:['ABBA:xn','CD'],study:true,
+ {id:'nh-oh-trien-cd2',geom:'Oh',chel:['NNNN:xn','AB'],study:true,
   insight:`An unsymmetrical chelate such as glycinate doubles each cis-β form: its two ends can swap. cis-α stays a single pair, because its C<sub>2</sub> axis makes the two ways round equivalent.`},
- {id:'nh-oh-cyclam-b2',geom:'Oh',mono:'BB',chel:['AAAA:rn'],study:true,
+ {id:'nh-oh-cyclam-b2',geom:'Oh',mono:'AA',chel:['NNNN:rn'],study:true,
   insight:`[M(cyclam)X<sub>2</sub>] with all four N–H counted. Flat, the ring gives Bosnich's five configurations: trans-I (R,S,R,S), trans-II (R,R,R,S, chiral), trans-III (R,R,S,S, centrosymmetric and the most common), trans-IV (R,S,S,R) and trans-V (R,R,R,R, chiral). Folding leaves two N–H fixed and gives the three cis forms cis-I, cis-II and cis-V, all chiral. 8 geometrical isomers, 13 stereoisomers, against 2 when N–H is ignored. Whether each form is stable is a separate question: this model counts what the connectivity allows.`,
   hint:`Flat ring: each of the four N–H points up or down. The ring alternates 5- and 6-membered chelate rings, so which neighbours share a face matters.`},
- {id:'nh-oh-cyclam-bc',geom:'Oh',mono:'BC',chel:['AAAA:rn'],study:true,
-  insight:`Making the axial ligands different splits trans-I (all four N–H toward B, or all toward C) and trans-II, and removes the σ<sub>h</sub>-type symmetry elsewhere.`},
- {id:'nh-oh-cyclam-bb',geom:'Oh',chel:['AAAA:rn','BB'],study:true,
+ {id:'nh-oh-cyclam-bc',geom:'Oh',mono:'AB',chel:['NNNN:rn'],study:true,
+  insight:`Making the axial ligands different splits trans-I (all four N–H toward A, or all toward B) and trans-II, and removes the σ<sub>h</sub>-type symmetry elsewhere.`},
+ {id:'nh-oh-cyclam-bb',geom:'Oh',chel:['NNNN:rn','AA'],study:true,
   insight:`A chelate forces the ring to fold, so only cis-I, cis-II and cis-V remain, each as a pair of enantiomers: 6 stereoisomers.`},
- {id:'nh-sp-trien',geom:'SP',chel:['ABBA:xn'],study:true,
+ {id:'nh-sp-trien',geom:'SP',chel:['NNNN:xn'],study:true,
   insight:`[Pt(trien)]<sup>2+</sup>: the chain lies flat, so both secondary N–H can point to either face: same face (R,S, achiral C<sub>s</sub>) or opposite faces (R,R / S,S, a chiral C<sub>2</sub> pair). 3 stereoisomers, where the idealised model has 1.`},
- {id:'nh-sp-cyclam',geom:'SP',chel:['AAAA:rn'],study:true,
+ {id:'nh-sp-cyclam',geom:'SP',chel:['NNNN:rn'],study:true,
   insight:`[Ni(cyclam)]<sup>2+</sup>: the five Bosnich configurations trans-I to trans-V, of which trans-II and trans-V are chiral: 7 stereoisomers. trans-III is the one usually found.`},
 ];
 /* EVERY formula is generated, not hand-picked. Isomer counts depend only on which ligands are present: a rotation
@@ -1443,7 +1445,8 @@ const ANALYSIS={}, BANK=[];
 
 
 const MODE_TAG={3:{m:'mer',f:'fac',c:'cyc'},4:{p:'planar',f:'folded',t:'tripod',r:'cyc',rp:'cyc, planar',xn:'trien, N–H',rn:'cyclam, N–H'}};
-const ligHTML=x=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];return `(${L})`+(t?`<sup>${t}</sup>`:'');};
+const NAMED_LIG={xn:'trien',rn:'cyclam'};   // tetradentates modelled as the real ligand: written by name, donors drawn as N
+const ligHTML=x=>{const {L,mode}=lig(x),t=(MODE_TAG[L.length]||{})[mode];if(NAMED_LIG[mode])return `(${NAMED_LIG[mode]})`;return `(${L})`+(t?`<sup>${t}</sup>`:'');};
 function formulaHTML(c){
   let f='M'; const cc={};
   (c.chel||[]).forEach(x=>cc[x]=(cc[x]||0)+1);
@@ -1541,7 +1544,7 @@ function neighbourHTML(c){
    orthographically and re-inked ChemDraw-style: wedge = toward you, hash = away,
    plain = roughly in the page, labels always upright.
    ===================================================================== */
-const COLORS={A:'#c8322a',B:'#1b62b0',C:'#9a6b00',D:'#2a7a35',E:'#6b3fb5',F:'#c25d0e'};
+const COLORS={A:'#c8322a',B:'#1b62b0',C:'#9a6b00',D:'#2a7a35',E:'#6b3fb5',F:'#c25d0e',N:'#111111'};
 const INKC='#111111', DRAW_FONT='Arial, Helvetica, sans-serif';
 const drawOpts={color:false,snap:true};
 const S3=[[-1,0,0],[0,1,0],[0,0,1]], S3Y=[[1,0,0],[0,-1,0],[0,0,1]];   // page reflections: x → −x (side by side), y → −y (stacked)
@@ -2271,8 +2274,8 @@ function gloss(c){
   if(bi.some(x=>x[0]!==x[1])) bits.push(`AB = unsymmetrical bidentate ligand (like glycinate), donor ends A and B`);
   if(bi.length) bits.push(`chelates span ${c.geom==='Td'?'an edge':'cis positions'}`);
   const tet=chel.filter(x=>ligDent(x)===4);
-  if(tet.length) bits.push(`four-letter groups = tetradentate ligands: a chain like trien (unmarked = flexible; <sup>planar</sup> = lies flat only; <sup>folded</sup> = folds only), a <sup>tripod</sup> like tren (first letter = central donor), or a macrocycle <sup>cyc</sup> like cyclam (<sup>cyc, planar</sup> = rigid and flat, like a porphyrin)`);
-  if(tet.some(x=>/n$/.test(lig(x).mode))) bits.push(`<sup>N–H</sup> = the real ligand's secondary amine donors are counted as stereocentres (trien: the two inner N; cyclam: all four, with ethylene and propylene links alternating). H drawn on each; a three-carbon bridge marks a 6-membered ring`);
+  if(tet.some(x=>!/n$/.test(lig(x).mode))) bits.push(`four-letter groups = tetradentate ligands: a chain like trien (unmarked = flexible; <sup>planar</sup> = lies flat only; <sup>folded</sup> = folds only), a <sup>tripod</sup> like tren (first letter = central donor), or a macrocycle <sup>cyc</sup> like cyclam (<sup>cyc, planar</sup> = rigid and flat, like a porphyrin)`);
+  if(tet.some(x=>/n$/.test(lig(x).mode))) bits.push(`(trien), (cyclam) = the real ligands, all four donors N. Their secondary-amine N–H groups are counted as stereocentres (trien: the two inner N; cyclam: all four, with ethylene and propylene links alternating). H drawn on each; a three-carbon bridge marks a 6-membered ring`);
   if(tri.length) bits.push(`(ABA), (ABC) = tridentate ligands, donors in chain order (like dien); <sup>mer</sup> = rigid, binds only meridionally (like terpy); <sup>fac</sup> = binds only facially; <sup>cyc</sup> = cyclic or tripodal, caps a face (like tacn); unmarked chains are flexible`);
   return bits.join(' · ')+'. Ligands are idealised as points; chelate-ring conformations are ignored.';
 }
