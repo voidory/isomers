@@ -2476,7 +2476,7 @@ function buildBuilder(){
    Two independent complications, either or both: (1) a ligand may bond through different donor atoms (linkage isomers);
    (2) ligands may swap with spare copies outside the sphere (ionisation and hydrate isomers).
    ===================================================================== */
-const FAM={base:null,caseId:null,letters:new Set(),donors:2,preset:null,pool:false,out:{},swap:new Set(),mark:null,cur:null};
+const FAM={base:null,caseId:null,letters:new Set(),kappa:new Set(),donors:2,preset:null,pool:false,out:{},swap:new Set(),mark:null,cur:null};
 const DONOR_SET=[{id:'x',tag:'x'},{id:'y',tag:'y'},{id:'z',tag:'z'}];
 const monoLetters=c=>[...new Set(c.mono||'')];
 const countOf=(m,l)=>[...m].filter(x=>x===l).length;
@@ -2489,11 +2489,13 @@ function complicateHTML(c){
 function famDefaults(){
   const b=FAM.base, ls=monoLetters(b);
   FAM.letters=new Set([ls.reduce((best,l)=>countOf(b.mono,l)>=countOf(b.mono,best)?l:best)]);   // the most-repeated ligand: that is where mixed binding forms appear
-  Object.assign(FAM,{donors:2,preset:null,pool:false,out:{},swap:new Set(),mark:null});
+  Object.assign(FAM,{kappa:new Set(),donors:2,preset:null,pool:false,out:{},swap:new Set(),mark:null});
 }
-function famPoolOn(){
+function famPoolOn(forKappa=false){
   const b=FAM.base, ls=monoLetters(b), few=ls.reduce((best,l)=>countOf(b.mono,l)<=countOf(b.mono,best)?l:best), S=spareLetter(b);
-  FAM.pool=true; FAM.out=S?{[S]:1}:{}; FAM.swap=new Set(S?[few,S]:[few]);
+  FAM.pool=true;
+  if(forKappa){FAM.out={};FAM.swap=new Set(ls);return;}          // denticity: the ligands already there give way to each other, no new one
+  FAM.out=S?{[S]:1}:{}; FAM.swap=new Set(S?[few,S]:[few]);
 }
 function openFamily(arg,init){
   if(typeof arg==='string'){const c=ANALYSIS[arg].c;FAM.caseId=arg;FAM.base={geom:c.geom,mono:c.mono||'',chel:c.chel||[]};}
@@ -2504,7 +2506,7 @@ function openFamily(arg,init){
 function closeFamily(){if($('#family').hidden)return;$('#family').hidden=true;setHash(FAM.caseId);}
 function famHash(){
   const b=FAM.base,p=new URLSearchParams({g:b.geom,m:b.mono,c:b.chel.join(','),l:[...FAM.letters].join('')});
-  if(FAM.donors!==2)p.set('d',FAM.donors); if(FAM.preset)p.set('p',FAM.preset);
+  if(FAM.donors!==2)p.set('d',FAM.donors); if(FAM.preset)p.set('p',FAM.preset); if(FAM.kappa.size)p.set('k',[...FAM.kappa].join(''));
   if(FAM.pool){p.set('o',Object.entries(FAM.out).filter(e=>e[1]>0).map(e=>e[0]+e[1]).join('.'));p.set('s',[...FAM.swap].join(''));}
   return 'x?'+p;
 }
@@ -2512,6 +2514,7 @@ function openFamilyFromHash(h){
   const p=new URLSearchParams(h.slice(2)), g=p.get('g'), m=p.get('m')||'', c=(p.get('c')||'').split(',').filter(Boolean);
   if(!GEOMS[g]||!/^[A-H]*$/.test(m)||!c.every(x=>/^[A-H]{2,4}(:[a-z]{1,2})?$/.test(x))) return false;
   const init={}; if(p.has('l')) init.letters=new Set(p.get('l').split('').filter(Boolean));
+  if(p.has('k')) init.kappa=new Set(p.get('k').split('').filter(l=>/[A-H]/.test(l)));
   if(p.get('d')==='3') init.donors=3; if(AMBIDENTATE[p.get('p')]) init.preset=p.get('p');
   if(p.has('s')){init.pool=true;init.swap=new Set(p.get('s').split('').filter(Boolean));init.out={};(p.get('o')||'').split('.').filter(Boolean).forEach(t=>init.out[t[0]]=+t.slice(1)||0);}
   openFamily({geom:g,mono:m,chel:c},init); return true;
@@ -2531,7 +2534,7 @@ function matrixHTML(F,g){
     `<tr class="tot"><td class="rowh">stereoisomers</td>${T.map(v=>`<td>${v.A.stereo}</td>`).join('')}<td><b>${T.reduce((t,v)=>t+v.A.stereo,0)}</b></td></tr></tbody></table></div>`;
 }
 function renderFamily(){
-  const b=FAM.base, A0=analysisFor(b.geom,b.mono,b.chel), pl=poolLetters(), sel=[...FAM.letters].filter(l=>pl.includes(l)), S=FAM.pool?spareLetter(b):null;
+  const b=FAM.base, A0=analysisFor(b.geom,b.mono,b.chel), pl=poolLetters(), kap=[...FAM.kappa].filter(l=>pl.includes(l)), sel=[...FAM.letters].filter(l=>pl.includes(l)&&!kap.includes(l)), S=FAM.pool?spareLetter(b):null;
   const slot=isMobile()?'slot':'Viewport', ltr=l=>`${l}${countOf(b.mono,l)>1?`<sub>${countOf(b.mono,l)}</sub>`:''}`;
   $('#fTitle').innerHTML=`${formulaHTML({chel:b.chel,mono:b.mono})} <span>${GEOMS[b.geom].name.toLowerCase()}, with complications</span>`;
   const canPreset=sel.length===1&&FAM.donors===2;
@@ -2549,16 +2552,20 @@ function renderFamily(){
         return `<tr><td class="rowh">${l}</td><td>${countOf(b.mono,l)}</td><td><button class="btn step" data-famout="${l}:-1" ${sw&&o>0?'':'disabled'} aria-label="fewer ${l}">−</button> <b>${o}</b> <button class="btn step" data-famout="${l}:1" ${sw&&o<6?'':'disabled'} aria-label="more ${l}">+</button></td><td><input type="checkbox" data-famswap="${l}" ${sw?'checked':''} aria-label="${l} may swap"></td></tr>`;}).join('')+`</tbody></table></div>
       ${S===null?'':`<small class="fnote">${S} is a new ligand: give it spare copies and let it swap to see it compete for a site.</small>`}`;
   }
-  h+=`</div>`;
-  const spec={amb:sel.map(letter=>({letter,donors:famDonors()})),opts:FAM.pool?{outside:Object.fromEntries(Object.entries(FAM.out).filter(e=>e[1]>0)),mobile:[...FAM.swap]}:{}};
-  if(!spec.amb.length&&!FAM.pool){FAM.cur=null;$('#fBody').innerHTML=h+`<p class="fwhy">Switch a complication on. ${A0.stereo} stereoisomer${A0.stereo>1?'s':''} for now.</p>`;setHash(famHash());return;}
+  h+=`</div>
+    <div class="fsec"><div class="fsec-h">3 · A ligand bonds through one atom or two <small>denticity isomers, κ¹ / κ²</small></div>
+    <div class="fctl"><span class="lab">may bond κ¹ or κ²:</span>${pl.map(l=>`<button class="btn ${kap.includes(l)?'on':''}" data-famkappa="${l}" aria-pressed="${kap.includes(l)}">${ltr(l)}</button>`).join('')}</div>
+    <small class="fnote">A κ² ligand takes two sites and a κ¹ ligand one, and the sphere keeps its ${GEOMS[b.geom].n} sites, so another ligand has to give way: the ones allowed to swap in section 2 do that.${kap.length&&!FAM.pool?' <b>Switch section 2 on first</b>: nothing can make room yet.':''}</small></div>`;
+  const spec={amb:sel.map(letter=>({letter,donors:famDonors()})),opts:FAM.pool?{outside:Object.fromEntries(Object.entries(FAM.out).filter(e=>e[1]>0)),mobile:[...FAM.swap],chelate:kap}:{chelate:kap}};
+  if(!spec.amb.length&&!FAM.pool&&!kap.length){FAM.cur=null;$('#fBody').innerHTML=h+`<p class="fwhy">Switch a complication on. ${A0.stereo} stereoisomer${A0.stereo>1?'s':''} for now.</p>`;setHash(famHash());return;}
   let F; try{F=structuralFamily(b,spec.amb,spec.opts);}catch(e){FAM.cur=null;$('#fBody').innerHTML=h+`<p class="fwhy">${e.message.replace(/^./,x=>x.toUpperCase())}. Adjust the spare copies or what may swap.</p>`;setHash(famHash());return;}
   FAM.cur=F; setHash(famHash());
   if(F.tooMany){$('#fBody').innerHTML=h+`<p class="fwhy">That makes ${F.tooMany} forms, more than the ${F.cap} this panel will analyse. Switch something off, or use two donor atoms.</p>`;return;}
-  const T=F.tally, withAmb=spec.amb.length>0;
-  h+=`<div class="ftally"><span class="big">${A0.stereo} → ${T.stereo}</span><span>stereoisomers in total</span>${FAM.pool?`<span><b>${T.spheres}</b> inner-sphere composition${T.spheres>1?'s':''}</span>`:''}${withAmb?`<span><b>${T.forms}</b> binding form${T.forms>1?'s':''}</span>`:''}<span><b>${T.pairs}</b> enantiomeric pair${T.pairs===1?'':'s'}</span></div>`;
+  const T=F.tally, withAmb=spec.amb.length>0, withKap=kap.length>0;
+  h+=`<div class="ftally"><span class="big">${A0.stereo} → ${T.stereo}</span><span>stereoisomers in total</span>${FAM.pool||withKap?`<span><b>${T.spheres}</b> inner-sphere composition${T.spheres>1?'s':''}</span>`:''}${withAmb?`<span><b>${T.forms}</b> binding form${T.forms>1?'s':''}</span>`:''}<span><b>${T.pairs}</b> enantiomeric pair${T.pairs===1?'':'s'}</span></div>`;
   let why=withAmb?`Each binding form is an ordinary stereo formula, analysed like any other. The table counts how many stereoisomers each isomer splits into: it is not simply a multiple, because ligands that are no longer identical break symmetry differently in different arrangements.`:'';
-  if(FAM.pool) why+=` Each inner-sphere composition is a different compound: <b>ionisation</b> isomers where an anion swaps with one outside, <b>hydrate</b> isomers where water does. Its stereoisomers are counted as usual. Charge and conductivity are not modelled.`;
+  if(FAM.pool&&Object.values(FAM.out).some(n=>n>0)) why+=` Each inner-sphere composition is a different compound: <b>ionisation</b> isomers where an anion swaps with one outside, <b>hydrate</b> isomers where water does. Its stereoisomers are counted as usual. Charge and conductivity are not modelled.`;
+  if(withKap) why+=` <b>Denticity</b> isomers: the same ligands, but a ligand bonded through two atoms (a chelate, κ²) uses two sites where κ¹ uses one, so the rest of the sphere differs. Each composition is analysed as the ordinary chelate formula it is.`;
   if(F.newChiral.length){const names=[...new Set(F.newChiral.map(x=>x.parent.label))].join(', ');
     why+=` <b>New chirality:</b> where the donor atoms differ, the mirror plane of the achiral isomer (${names}) is lost, so it now exists as an enantiomeric pair.`;}
   else if(b.geom==='SP'&&withAmb) why+=` A square-planar complex stays achiral however the ligands bond: the molecular plane is always a mirror.`;
@@ -2566,7 +2573,7 @@ function renderFamily(){
   if(F.groups.length>1){
     h+=`<div class="fmat-wrap"><table class="fmat"><thead><tr><th>inside the sphere</th><th>outside</th>${withAmb?'<th>binding forms</th>':''}<th>geometrical</th><th>enantiomeric pairs</th><th>stereoisomers</th></tr></thead><tbody>`+
       F.groups.map(g=>{const s=g.variants.reduce((t,v)=>[t[0]+v.A.geometric,t[1]+v.A.pairs,t[2]+v.A.stereo],[0,0,0]);
-        return `<tr><td class="rowh">${formulaHTML({chel:g.parent.c.chel,mono:g.parent.c.mono},l=>l)}</td><td>${g.outer||'—'}</td>${withAmb?`<td>${g.variants.length}</td>`:''}<td>${s[0]}</td><td>${s[1]}</td><td><b>${s[2]}</b></td></tr>`;}).join('')+`</tbody></table></div>`;
+        return `<tr><td class="rowh">${g.innerFormula}</td><td>${g.outer||'—'}</td>${withAmb?`<td>${g.variants.length}</td>`:''}<td>${s[0]}</td><td>${s[1]}</td><td><b>${s[2]}</b></td></tr>`;}).join('')+`</tbody></table></div>`;
   }
   F.groups.forEach(g=>{
     if(withAmb) h+=(F.groups.length>1?`<div class="fgroup-h"><span class="xf">${g.innerTitle}</span></div>`:'')+matrixHTML(F,g);
@@ -2602,10 +2609,12 @@ function buildFamily(){
     if(e.target.id==='family'){closeFamily();return;}
     const t=e.target;
     let x;
-    if(x=t.closest('[data-famletter]')){const l=x.dataset.famletter;FAM.letters.has(l)?FAM.letters.delete(l):FAM.letters.add(l);if(FAM.letters.size!==1)FAM.preset=null;FAM.mark=null;renderFamily();return;}
+    if(x=t.closest('[data-famkappa]')){const l=x.dataset.famkappa;if(FAM.kappa.has(l))FAM.kappa.delete(l);else{if(!FAM.kappa.size&&!FAM.pool){FAM.letters=new Set();FAM.preset=null;famPoolOn(true);}   // first use: show denticity on its own
+        FAM.kappa.add(l);FAM.letters.delete(l);if(FAM.letters.size!==1)FAM.preset=null;if(!FAM.pool)famPoolOn(true);}FAM.mark=null;renderFamily();return;}
+    if(x=t.closest('[data-famletter]')){const l=x.dataset.famletter;if(FAM.letters.has(l))FAM.letters.delete(l);else{FAM.letters.add(l);FAM.kappa.delete(l);}if(FAM.letters.size!==1)FAM.preset=null;FAM.mark=null;renderFamily();return;}
     if(x=t.closest('[data-famdon]')){FAM.donors=+x.dataset.famdon;if(FAM.donors===3)FAM.preset=null;FAM.mark=null;renderFamily();return;}
     if(x=t.closest('[data-fampreset]')){if(x.disabled)return;FAM.preset=FAM.preset===x.dataset.fampreset?null:x.dataset.fampreset;FAM.mark=null;renderFamily();return;}
-    if(t.closest('[data-fampool]')){if(FAM.pool){FAM.pool=false;FAM.out={};FAM.swap=new Set();FAM.letters=new Set([...FAM.letters].filter(l=>monoLetters(FAM.base).includes(l)));}else famPoolOn();FAM.mark=null;renderFamily();return;}
+    if(t.closest('[data-fampool]')){if(FAM.pool){FAM.pool=false;FAM.out={};FAM.swap=new Set();FAM.letters=new Set([...FAM.letters].filter(l=>monoLetters(FAM.base).includes(l)));FAM.kappa=new Set([...FAM.kappa].filter(l=>monoLetters(FAM.base).includes(l)));}else famPoolOn();FAM.mark=null;renderFamily();return;}
     if(x=t.closest('[data-famout]')){const [l,d]=x.dataset.famout.split(':');FAM.out[l]=Math.max(0,Math.min(6,(FAM.out[l]||0)+ +d));FAM.mark=null;renderFamily();return;}
     if(x=t.closest('[data-famswap]')){const l=x.dataset.famswap;if(x.checked)FAM.swap.add(l);else{FAM.swap.delete(l);FAM.out[l]=0;}FAM.mark=null;renderFamily();return;}
     if(x=t.closest('[data-fl]')){const [vi,ii,to]=x.dataset.fl.split(':').map(Number);famLoad(vi,ii,to,false);return;}

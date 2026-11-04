@@ -1,6 +1,6 @@
 # Structural isomerism: architecture plan
 
-Status: **phases 0 to 3 are built**; phase 4 is not. Phases 0 to 2 have headless tests; phase 3 is quiz and Builder UI, checked in a browser. Numbers below were first produced by a throwaway prototype against the unmodified engine, and are now asserted by `node tests/engine.mjs`.
+Status: **all four phases are built**; phase 4 is only the denticity half (see below). Phases 0 to 2 have headless tests; phase 3 is quiz and Builder UI, checked in a browser. Numbers below were first produced by a throwaway prototype against the unmodified engine, and are now asserted by `node tests/engine.mjs`.
 
 | Phase | State |
 |---|---|
@@ -8,7 +8,15 @@ Status: **phases 0 to 3 are built**; phase 4 is not. Phases 0 to 2 have headless
 | 1 Abstract ambidentate letters: solver, lowering, family panel, tagged labels, Compare stamp | done |
 | 2 Ionisation / hydrate pools, named presets (NO₂/ONO, SCN/NCS, CN/NC), typed linkage pairs in the finder, deep links | done (see below for what was narrowed) |
 | 3 Quiz question (total isomers), Builder hook | done |
-| 4 κ¹/κ² modes, ambidentate chelate ends | not started |
+| 4 κ¹/κ² denticity within the sphere model | done |
+| 4b Ambidentate chelate ends; true coordination-number change (5-coordinate shapes) | not planned |
+
+### Phase 4: denticity, what was built
+
+- **Inside the existing sphere model.** A ligand marked "may bond κ¹ or κ²" bonds through one atom (one site) or two (a symmetric chelate, two sites). The pool solver now counts, per ligand, how many copies are κ¹ and how many κ²; the sphere must still total the shape's sites, so another ligand has to give way. `structuralFamily(base, amb, {outside, mobile, chelate})`.
+- **Worked example, tested:** [M(X)₂(NH₃)₄] on an octahedron, X κ¹ or κ², NH₃ allowed to give way: 4 inner spheres (2 + 2 + 3 + 1 = 8 stereoisomers): [MA₄X₂], [M(κ²-X)A₃X], [M(κ²-X)₂A₂] (trans, Δ, Λ), [M(κ²-X)A₄].
+- κ¹ and κ² donors are treated as different environments (a κ¹ ligand has a free arm), as ambidentate donors are. A ligand is either ambidentate or κ¹/κ² in one run, not both.
+- **Not done, deliberately:** a κ¹→κ² change that adds a bond with nothing leaving changes the coordination number. That needs 5-coordinate shapes, which the app does not have, and is a separate tool. Ambidentate chelate ends are also not covered.
 
 ### Phase 3: what was built
 
