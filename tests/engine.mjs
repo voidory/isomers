@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEngine} from './load-engine.mjs';
 
-const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL','famOf','skillsOf','itemDiff','classifyError','skillState','masteryOf','pickCandidate','candidateWeight','famLocked','validateProgress','mergeEvents','PRACTICE','TYPE_W','ionChoice']);
+const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL','famOf','skillsOf','itemDiff','classifyError','skillState','masteryOf','pickCandidate','candidateWeight','famLocked','validateProgress','mergeEvents','PRACTICE','TYPE_W','ionChoice','SX_SALTS','SX_DIMERS','sxComplex','sxSaltInfo','sxDimerInfo']);
 let fails=0;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   // arrays from the vm context have another prototype
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
@@ -284,6 +284,17 @@ test('ionisation question: a choice exists for every formula with a spare letter
   assert.ok(n>100,'only '+n);
   assert.equal(E.classifyError('ion',E.ANALYSIS['oh-maa2b2'],E.ANALYSIS['oh-maa2b2'].stereo,20,3),'ion-forgot-swaps');
   assert.equal(E.classifyError('ion',E.ANALYSIS['oh-maa2b2'],3.5,20,3.5),'ion-spheres-only');
+});
+test('salts and dimers: ions are neutral together, charges of dimers add up, and the counts are what the textbook says',()=>{
+  const want={'co-cr-nh3-cn':2,'co-cr-en-ox':8,'cu-pt':2,'pt-pt':1};
+  for(const f of E.SX_SALTS){const I=E.sxSaltInfo(f); assert.equal(I.total,want[f.id],f.id);
+    for(const x of I.salts) assert.equal(x.charge[0]+x.charge[1],0,'not neutral: '+x.title);}
+  const w={'co-oh':1,'ru-o':1,'ru-pz':1,'co-oh-cl':3,'co-en-oh':6,'co-en-nh3':3};
+  for(const f of E.SX_DIMERS){const D=E.sxDimerInfo(f); assert.equal(D.total,w[f.id],f.id);
+    const [a,b]=f.halves; let q=0; for(const h of f.halves) q+=h.l.reduce((t,x)=>t+({NH3:0,CN:-1,Cl:-1,H2O:0,OH:-1,O:-2,NH2:-1,pz:0,en:0,ox:-2})[x[0]]*x[1],0);
+    const ox={'co-oh':6,'ru-o':8,'ru-pz':5,'co-oh-cl':6,'co-en-oh':6,'co-en-nh3':6}[f.id], bridges=f.halves[0].l.filter(x=>x[2]).map(x=>({OH:-1,O:-2,pz:0})[x[0]]).reduce((t,x)=>t+x,0);
+    assert.equal(ox+q-bridges,f.charge,'charge of '+f.id);}
+  assert.equal(E.sxComplex(E.SX_SALTS[1].members[0][0]).stereo,2); assert.equal(E.sxComplex(E.SX_SALTS[1].members[0][0]).A.pairs,1);
 });
 test('selection: a weak skill is practised more, at a comparable difficulty, and the pick is never degenerate',()=>{
   // strong on everything except chiral pairs
