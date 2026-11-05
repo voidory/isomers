@@ -1,5 +1,7 @@
 # Phone UI: progressive disclosure plan
 
+Status: implemented (see **Outcome** at the end for what changed from this plan).
+
 Goal: on a phone, show what the student needs *now* and put the rest one tap away, so each screen needs little or no scrolling. Desktop and tablet are untouched: every change is scoped to `body.mobile`.
 
 Measured at 390×844 (iPhone-class), Chromium, with the top bar (54px) and tab bar (60px) already taking 114px. The viewport left for content is about 730px.
@@ -108,3 +110,28 @@ Options for the list screen:
 - (c) Leave open (today). Costs about 105px on every formula.
 
 Remove it from the molecule sheet in all cases.
+
+## Outcome
+
+Implemented in `index.html`, all scoped to `body.mobile`. Measured at 390×844 in Chromium:
+
+| Screen | Before | After |
+|---|---|---|
+| Quiz, fresh question | 1096px | 730px for a monodentate-only question (fits); 730–773px when the ligand notes exist and are opened |
+| Quiz, after answering | 1606px, Next at the very bottom | collapsed card, Next pinned above the tab bar |
+| M(AA)₂B₂ isomer list | 892px | 730px (fits one screen) |
+| Build step 2 (hint closed) | n/a (fit tightly) | 730px (fits), with the stage 20px shorter |
+| Molecule sheet at `half` | turn buttons covered the molecule | drawing re-centres above the sheet; no overlap |
+
+Desktop and tablet layouts were checked at 1280×800 and are unchanged. `node tests/engine.mjs` passes.
+
+### Where the implementation differs from the plan above
+
+- **Insight paragraph:** stays open on the list screen (decision: the formula is meant to carry this explanation). Only the duplicate in the molecule sheet was removed.
+- **"Complicate this"** stays a visible row. It is a single button, so collapsing it would cost two taps to reach one action. Only "One substitution away (n)" is collapsed, and its open state is remembered.
+- **Answer by** moved into the Practice settings sheet and was removed from More, instead of being deleted from the card and left in More.
+- **Compare "More" sheet:** only *snap to exam views* and *colour labels* were removed (they are global and live in More). *Mirror between viewports* and *link rotation* stay, because they belong to the Compare screen and are used while looking at it.
+- **Ligand gloss** is collapsed on the phone only (the desktop quiz is unchanged). The ambidentate-ligand note in "total" questions stays visible, because it says which ligand is ambidentate, and the question cannot be answered without it. The open/closed state is remembered for the session, not across visits.
+- **Build:** the step-2 hint is open the first time and closed afterwards, and the choice is remembered if the student toggles it.
+- **Turn-button row on the molecule screen:** not changed (it was marked optional).
+- **README:** not changed. These are behaviours, not features someone would search for.
