@@ -1,0 +1,100 @@
+# Phone UI: progressive disclosure plan
+
+Goal: on a phone, show what the student needs *now* and put the rest one tap away, so each screen needs little or no scrolling. Desktop and tablet are untouched: every change is scoped to `body.mobile`.
+
+Measured at 390×844 (iPhone-class), Chromium, with the top bar (54px) and tab bar (60px) already taking 114px. The viewport left for content is about 730px.
+
+## What is already good (keep)
+
+- Explore home is three rows. Nothing to hide.
+- The molecule sheet already has `peek / half / full` states (`#xSheet`).
+- Compare fits one screen in portrait. Build fits one screen.
+- The skill map is hidden until asked for.
+
+So this is not a "hide everything" job. Three screens are the problem.
+
+## Where the scroll actually is
+
+| Screen | Content height vs ~730px visible | What is eating it |
+|---|---|---|
+| Learn → quiz, fresh question | 1096px (1.5 screens) | `#filters` block alone is 258px (about 20 chips), sitting under the keypad |
+| Learn → quiz, after answering | 1606px (2.2 screens) | question card stays at full size above the results; filters still there; "Next question" is at the very bottom |
+| Explore → isomer list (e.g. M(AA)₂B₂) | 892px | 5-line insight paragraph + ligand chips + tally pills push the first isomer row down to y≈290; "one substitution away" and "complicate" sections follow |
+| Explore → molecule, `half` | n/a | stage does not shrink with the sheet, so the FAB row covers the molecule |
+
+Two redundancies found on the way:
+- The case insight paragraph is shown on the list screen **and again** in the molecule sheet (`xInfoHTML` → `iso.caseRef.insight`).
+- Settings are duplicated: "Answer by" is in the quiz card and in More; the Compare "More tools" sheet repeats four toggles (link rotation, live mirror, snap, colour labels) that live in More.
+
+## Rule for what gets hidden
+
+Hide if it is **configuration**, **reference read once per formula**, or **a duplicate**.
+Never hide: the thing needed to answer a question, the feedback after answering, the isomer drawings, or the primary next action.
+
+This matters because the explanations are the teaching payload. Hiding them saves scroll but costs a tap and some discoverability, so they get collapsed (one line stays visible), not removed.
+
+## Three mechanisms (reuse what exists)
+
+1. **Sheet** for settings. The code already has `.msheet`, `openSheet()` and `closeSheets()`, and `placeElements()` / `MOVES` already moves shared desktop elements into phone hosts. Add `['#filters', '#qSettingsBody']` to `MOVES` and the quiz filters follow the same path. Desktop is unaffected.
+2. **Inline disclosure** for reading material: native `<details class="dis">` styled in the sketch look. No new JS needed for open/close. Persist the open/closed choice per section in `localStorage` (same try/catch pattern as `seen()` / `markSeen()`), so a student who opens a section keeps it open.
+3. **Sticky action bar** for the one primary action when it would otherwise be below the fold.
+
+## Changes, by screen
+
+### Learn → quiz (biggest win)
+- **Filters → "Practice settings" sheet.** One summary chip row in the card ("Octahedral · stereoisomers · real ligands ✎") opens the sheet. Saves about 258px; fresh question drops from 1096px to roughly 830px.
+- **Remove "Answer by" from the card**, or move it into the same sheet. It already exists in More.
+- **After answering, collapse the question card** to one line (formula, your answer, ✓/✗). Results start at the top with no scrolling.
+- **Pin "Next question →"** above the tab bar once answered, so it is never below the fold.
+- **Ligand gloss** (e.g. the terpy line): show name and denticity, rest behind a tap. See open question 1.
+- Keep the keypad. It is the input, and 240px is its honest cost.
+
+### Explore → isomer list
+- **Insight paragraph:** clamp to 2 lines with a "more" toggle.
+- **Ligand chips + tally pills → one summary line** ("2 geometric · 1 enantiomeric pair · 3 total").
+- **"One substitution away" and "Complicate this" → collapsed disclosures** with counts in the header ("Related formulas (4) ▾").
+- Effect: isomer rows start near y≈150 instead of 290, and the list should fit about one screen. Estimate, to be measured.
+
+### Explore → molecule
+- **Bug fix first:** make `#xStage` end where the sheet starts (or recentre the molecule above the sheet) so the FAB row never covers the molecule in `half`.
+- **Drop the duplicated insight** from `xInfoHTML`, or collapse it.
+- FAB row: six buttons with labels is about 70px over the drawing. Lower priority and less certain: icon-only after first use, and let double-tap reset (already in the tour) replace the reset button. Do this last, and only if testing shows the row still gets in the way.
+
+### Compare
+- Remove the four duplicated toggles from the "More tools" sheet. Leave its actions (Mirror plane, mirror image to other viewport, Gesture help). Settings live in More only.
+
+### Build
+- Step hints (4 lines at step 2) → first-run only, or behind a ⓘ.
+- Chelate link / eraser / clear all: three rows → one row of three. Gives the stage about 100px more.
+
+## What I would not do
+
+- **Auto-hide the tab bar on scroll.** It buys 60px but makes navigation unpredictable, and the molecule sheet already uses vertical drags. A permanent 60px bar is the known cost of five destinations.
+- **Accordions on quiz feedback.** After a wrong answer the explanation is what the student came for.
+- **Hide the keypad behind a tap.** It would turn every answer into two taps.
+
+## Order of work
+
+1. Molecule stage/FAB overlap fix; remove duplicated insight (bugs, small).
+2. Quiz: filters sheet, collapse-after-answer, sticky Next.
+3. Explore list disclosures.
+4. Build hint and palette compaction; Compare/More dedupe.
+5. FAB row (optional). Add one line to the README feature list.
+
+## How to check it worked
+
+A throwaway Playwright script (Chromium is available in the environment; not a repo dependency, so the dependency-free promise in the README holds) loading `index.html` at 390×844 and asserting scroll budgets:
+
+| Screen | Now | Target |
+|---|---|---|
+| Quiz, fresh | 1096px | ≤ ~850px |
+| Quiz, after answer, Next visible without scrolling | no | yes |
+| M(AA)₂B₂ list | 892px | fits ~730px |
+| Molecule `half`, FABs over molecule | overlap | none |
+
+Re-run at 360×640 (small Android) and in landscape, where `body.land` has its own layout and some of these rules need an override. `node tests/engine.mjs` should be unaffected, but run it.
+
+## Open questions
+
+1. **Quiz ligand gloss** (e.g. "terpy … rigid and flat: mer only"). It currently sits above the answer and partly hints at it. Collapse it by default, or keep it open? Collapsing makes the quiz harder as well as shorter.
+2. **Insight paragraph default.** Two lines with "more" (my pick), fully collapsed, or open only on the first visit to each formula?
