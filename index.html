@@ -538,7 +538,7 @@ body.mobile .cx-x{margin-left:0}
 #bHost .lay{padding:6px;font-size:13px}
 #bHost .lay-c{width:100%;height:110px}
 #bHost .bmain{grid-template-columns:1fr;gap:10px}
-#bHost .bstage{height:min(48vh,400px)}
+#bHost .bstage{height:min(45vh,380px)}
 #bHost .btools .btn{min-height:48px;min-width:48px;flex:1}
 #bHost .bload .btn{flex:1;min-height:48px}
 /* Quiz */
@@ -622,6 +622,53 @@ body.mobile.land .xstage{bottom:90px}
 body.mobile.land #bHost .bmain{grid-template-columns:1.2fr 1fr}
 body.mobile.land #bHost .bstage{height:62vh}
 body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
+
+/* ---------- phone: progressive disclosure (see docs/phone-disclosure-plan.md) ---------- */
+.dis{flex:none;border-top:2px dashed var(--grid2);padding-top:2px}
+.dis>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;font-family:var(--hand);font-size:14px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink2)}
+.dis>summary::-webkit-details-marker{display:none}
+.dis>summary::after{content:'▾';font-size:16px;transition:transform .2s}
+.dis[open]>summary::after{transform:rotate(180deg)}
+.dis>summary:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
+.dis>.nbr{margin-top:0;padding-top:0;border-top:0}
+.dis>.nbr>.nbr-h{display:none}
+.xtally1{margin:0;font-size:14px;color:var(--ink2);text-wrap:balance}
+.xtally1 b{font-family:var(--hand);font-size:17px;font-weight:normal;color:var(--ink)}
+/* molecule screen: the drawing re-centres above the sheet when it opens, so the turn buttons never cover it */
+body.mobile:not(.land) #xMol[data-sheet="half"] .xstage,body.mobile:not(.land) #xMol[data-sheet="full"] .xstage{bottom:calc(48% + 70px)}
+/* quiz: settings live in a sheet; a solved question collapses; Next stays pinned */
+#qSetBtn,#qNextBar{display:none}
+body.mobile #qSetBtn:not([hidden]){display:inline-block}
+#qSheet .filters{margin:0;padding:0;border:0;display:flex;flex-direction:column;align-items:stretch;gap:10px}
+.fgroup{display:contents}
+.fl,.fl-d{display:none}
+body.mobile #qSheet .fgroup{display:flex;flex-wrap:wrap;gap:6px}
+body.mobile #qSheet .fl{display:block;width:100%;font-family:var(--hand);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink2)}
+body.mobile #qSheet .dot-sep,body.mobile #qSheet .keyhint{display:none}
+#qSheet .qs-note{margin:0 0 10px;font-size:13px;color:var(--ink2)}
+#qSheet .ansmode{margin:0 0 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#qSheet .ansmode .btn{min-height:36px}
+.gloss-tg{display:none}
+body.mobile .gloss-tg{display:inline-block;min-height:36px;padding:4px 12px;border:1.5px solid var(--ink3);border-radius:var(--wob);background:var(--card);font-family:var(--hand);font-size:14px;color:var(--ink2)}
+body.mobile #qGloss:not(.gl-open) .gloss-body,body.mobile .gloss-sep{display:none}
+body.mobile #qGloss.gl-open .gloss-tg{margin-bottom:6px}
+body.mobile #qGloss.gl-open .gloss-body{display:block}
+.fb-lbl{display:none}
+body.mobile .fb-lbl{display:inline}
+body.mobile .qcard.resolved .q-text,body.mobile .qcard.resolved .q-gloss,body.mobile .qcard.resolved #typed,body.mobile .qcard.resolved #choices,body.mobile .qcard.resolved .q-actions,body.mobile .qcard.resolved .fb-explain{display:none}
+body.mobile #learnQuiz.resolved #qNextBar{display:block;position:sticky;bottom:0;z-index:5;padding:10px 0 4px;background:linear-gradient(to top,var(--paper) 72%,rgba(247,245,240,0))}
+body.mobile #qNextBar .btn{width:100%;min-height:50px}
+body.mobile .keypad button{min-height:48px}
+/* build: the step-2 hint is a one-line disclosure; chelate / eraser / clear share one row under the letters */
+#bHint2{font-size:15px}
+#bHint2>summary{text-transform:none;letter-spacing:0;font-size:15px;min-height:40px}
+#bHint2>p{margin:0 0 8px}
+#bHost .bside{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+#bHost .btools{display:contents}
+#bHost .btools .btn{min-width:0;padding-inline:0}
+#bHost .btools .btn:not(.letter),#bHost #bClear{grid-column:span 2}
+#bHost .bmsg,#bHost .bstatus,#bHost .bload{grid-column:1 / -1}
+@media (prefers-reduced-motion:reduce){.dis>summary::after{transition:none}}
 </style>
 </head>
 <body>
@@ -702,7 +749,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
     <div class="quiz-scroll" id="quizScroll">
       <div class="quiz-inner">
         <div class="learn-bar"><div class="learn-nav seg" id="learnNav" role="tablist" aria-label="Learn"><button data-lview="quiz" role="tab" class="on">Quiz</button><button data-lview="lessons" role="tab">Lessons</button></div>
-          <button class="btn" id="smToggle" aria-expanded="false" aria-controls="smap">Skill map</button></div>
+          <button class="btn" id="qSetBtn" aria-haspopup="dialog">⚙ Practice</button><button class="btn" id="smToggle" aria-expanded="false" aria-controls="smap">Skill map</button></div>
         <div id="learnQuiz">
         <div class="smap sketch" id="smap" hidden></div>
         <div class="qcard sketch" id="qcard">
@@ -727,6 +774,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
           <div class="filters" id="filters"></div>
         </div>
         <div class="results" id="results"></div>
+        <div class="q-nextbar" id="qNextBar"><button class="btn" id="nextBtn2">Next question <i class="arr" role="img" aria-label="to"></i></button></div>
         </div>
         <div class="lessons" id="learnLessons" hidden></div>
       </div>
@@ -777,7 +825,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
     <section class="mscreen" data-tab="build" id="tabBuild" hidden>
       <div class="bsteps seg" id="bSteps"><button data-step="1">1 · Shape</button><button data-step="2">2 · Ligands</button></div>
       <p class="bstep-hint s1">Choose the shape, then the layout that looks like the drawing on your paper.</p>
-      <p class="bstep-hint s2">Tap each position to place a ligand. ⌒ joins two neighbouring positions into a chelate ring. Linking more positions builds tri- and tetradentate ligands: chains, tripods or rings.</p>
+      <details class="bstep-hint s2 dis" id="bHint2" data-dis="bhint2"><summary>How to place ligands</summary><p>Tap each position to place a ligand. ⌒ joins two neighbouring positions into a chelate ring. Linking more positions builds tri- and tetradentate ligands: chains, tripods or rings.</p></details>
       <div id="bHost"></div>
     </section>
     <section class="mscreen" data-tab="quiz" id="tabQuiz" hidden><div id="qHost"></div></section>
@@ -788,8 +836,6 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
       <div class="sgroup">Compare</div>
       <label class="srow" for="sLink"><span>Link rotation<small>Turning one molecule turns the other the same way.</small></span><input type="checkbox" class="tgl" id="sLink"></label>
       <label class="srow" for="sLive"><span>Live mirror<small>Slot 2 always shows the mirror image of slot 1.</small></span><input type="checkbox" class="tgl" id="sLive"></label>
-      <div class="sgroup">Quiz</div>
-      <div class="srow"><span>Answer by</span><div class="seg" id="sAns"><button data-am="type">typing</button><button data-am="mc">choices</button></div></div>
       <div class="sgroup">Help</div>
       <button class="srow" id="sTour"><span>Show the gesture tour</span><span class="chev">›</span></button>
       <p class="sabout">Ligands are idealised as points and chelate rings as symmetric bridges. Every isomer count is worked out from the symmetry of the shape, not typed in by hand. R/S labels for tetrahedral [MABCD] assume the made-up priority order A &gt; B &gt; C &gt; D.</p>
@@ -810,6 +856,12 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
   <div class="tour-foot"><button id="tourSkip">Skip</button><div class="tour-dots" id="tourDots"><span></span><span></span><span></span></div><button class="btn" id="tourNext">Next</button></div>
 </div>
 <div class="backdrop" id="backdrop"></div>
+<div class="msheet" id="qSheet">
+  <div class="sheet-head"><span class="grab"></span><b>Practice settings</b><span style="flex:1"></span><button class="btn" data-close>✕</button></div>
+  <p class="qs-note">Shape, ligand-type and question-type choices apply from the next question.</p>
+  <div id="qAnsHost"></div>
+  <div id="qSettingsBody"></div>
+</div>
 <div class="msheet" id="moreSheet">
   <div class="sheet-head"><span class="grab"></span><b>More</b><span style="flex:1"></span><button class="btn" data-close>✕</button></div>
   <div class="more-grid">
@@ -817,8 +869,6 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
     <button class="btn" data-more="send">Mirror image <i class="arr" role="img" aria-label="to"></i> other viewport</button>
     <label><input type="checkbox" id="mLive"> mirror between viewports</label>
     <label><input type="checkbox" id="mLink"> link rotation</label>
-    <label><input type="checkbox" id="mSnap"> snap to exam views</label>
-    <label><input type="checkbox" id="mColor"> colour labels</label>
     <button class="btn" data-more="help">Gesture help</button>
   </div>
 </div>
@@ -2891,8 +2941,15 @@ function setAnswerMode(m){
   $('#choices').hidden=m!=='mc'; $('#typed').hidden=m!=='type';
   buildFilters();
 }
+function setGloss(open){
+  Q.glossOpen=open; const g=$('#qGloss'), t=g.querySelector('.gloss-tg');
+  g.classList.toggle('gl-open',open);
+  if(t){t.setAttribute('aria-expanded',open);t.textContent=open?'Hide ligand notes ▴':'About the ligands ▾';}
+}
+function setResolved(r){$('#qcard').classList.toggle('resolved',r);$('#learnQuiz').classList.toggle('resolved',r);}
+const TYPE_LBL={stereo:'stereoisomers',geometric:'geometrical isomers',pairs:'enantiomeric pairs',total:'isomers in total'};
 function nextQuestion(){
-  clearResults(); hidePop();
+  clearResults(); hidePop(); setResolved(false);
   const quizzable=c=>caseLetters(c).size>1;   // [MA6]-type formulas are too trivial to ask about
   const fk=c=>{const f=famOf(c);return f==='m'||f==='b'?'mb':f[0]==='t'?'tri':'tet';};
   // which question next: from how the answers have been going (see 1f), within the filters chosen below the question
@@ -2930,7 +2987,9 @@ function nextQuestion(){
   $('#qMeta').innerHTML=`Question ${Q.n} <span class="chip">${GEOMS[c.geom].name} · ${GEOMS[c.geom].sym}</span>`;
   $('#qText').innerHTML=`${TYPE_TEXT[t]} ${/^[aeiou]/i.test(GEOMS[c.geom].name)?'an':'a'} <i>${GEOMS[c.geom].name.toLowerCase()}</i> complex with the formula`;
   $('#qFormula').innerHTML=fHTML;
-  $('#qGloss').innerHTML=(cur.ambNote?cur.ambNote+' · ':'')+(R?realGloss(R,c):gloss(c));
+  const gl=R?realGloss(R,c):gloss(c);   // on the phone the ligand notes sit behind a tap, so people who know the ligands can test themselves
+  $('#qGloss').innerHTML=(cur.ambNote||'')+(gl?`<button type="button" class="gloss-tg" aria-expanded="false"></button><span class="gloss-body"><span class="gloss-sep">${cur.ambNote?' · ':''}</span>${gl}</span>`:'');
+  setGloss(!!Q.glossOpen);
   const min=t==='pairs'?0:1, cand=t==='total'?[A.stereo,cur.fam.tally.forms,cur.fam.tally.forms*A.stereo,answer+1,answer-1,answer+2,answer-2,answer*2,answer+3]:[A.geometric,A.stereo,A.pairs,answer+1,answer-1,answer*2,answer+2,A.geometric+A.stereo,answer+3,answer+4];
   const opts=[]; for(const x of cand) if(x!==answer&&x>=min&&!opts.includes(x)) opts.push(x);
   const pick=opts.slice(0,2).concat(opts.slice(2).sort(()=>Math.random()-.5)).slice(0,3);
@@ -2968,13 +3027,13 @@ function submit(val,btn){
   if(Q.attempts===1) Q.answered++;
   const inp=$('#ansInput');
   if(val===Q.cur.answer){
-    Q.resolved=true; if(btn) btn.classList.add('right'); logAttempt(Q.attempts===1?'first':'retry');
+    Q.resolved=true; setResolved(true); if(btn) btn.classList.add('right'); logAttempt(Q.attempts===1?'first':'retry');
     inp.classList.remove('wrong'); inp.classList.add('right'); inp.value=val; inp.disabled=true; $('#checkBtn').disabled=true;
     $$('.choice').forEach(b=>{b.disabled=true;if(+b.dataset.v===val)b.classList.add('right');});
     if(Q.attempts===1){Q.correct++;Q.streak++;if(Q.streak>Q.best){Q.best=Q.streak;try{localStorage.setItem('isoSketchBest',Q.best);}catch(e){}}}
     $('#revealBtn').style.display='none';
     celebrate(Q.attempts===1?(Q.streak>=3?`${Q.streak} in a row!`:'Nailed it!'):'Got there!',Q.attempts===1?`${Q.cur.answer} it is`:'persistence pays');
-    $('#feedback').innerHTML=`<div class="note ok">${Q.cur.answer} is right. ${Q.cur.explain} All of them are drawn below. Turn them to check.</div>`;
+    $('#feedback').innerHTML=`<div class="note ok"><b>${Q.cur.answer}</b> is right<span class="fb-lbl"> (${TYPE_LBL[Q.cur.t]})</span>. <span class="fb-explain">${Q.cur.explain} All of them are drawn below. Turn them to check.</span></div>`;
     showResults();
   } else {
     if(btn){btn.classList.add('wrong');btn.disabled=true;}
@@ -2994,11 +3053,11 @@ function submitTyped(){
   submit(parseInt(raw,10),null);
 }
 function reveal(){
-  if(Q.resolved) return; Q.resolved=true; logAttempt('reveal');
+  if(Q.resolved) return; Q.resolved=true; setResolved(true); logAttempt('reveal');
   $$('.choice').forEach(b=>{b.disabled=true;if(+b.dataset.v===Q.cur.answer)b.classList.add('right');});
   const inp=$('#ansInput'); inp.value=Q.cur.answer; inp.disabled=true; inp.classList.remove('wrong'); $('#checkBtn').disabled=true;
   $('#revealBtn').style.display='none';
-  $('#feedback').innerHTML=`<div class="note ok">The answer is <b>${Q.cur.answer}</b>. ${Q.cur.explain}</div>`;
+  $('#feedback').innerHTML=`<div class="note ok">The answer is <b>${Q.cur.answer}</b><span class="fb-lbl"> (${TYPE_LBL[Q.cur.t]})</span>. <span class="fb-explain">${Q.cur.explain}</span></div>`;
   showResults();
 }
 function updateScore(){
@@ -3046,7 +3105,8 @@ function showResults(){
     if(mob){v.interactive=false;v.onTap=()=>openInspector(gi);}   // on phones, small drawings open instead of trapping the scroll
     Q.minis.push(v);
   }));
-  setTimeout(()=>{const r=$('#results');if(r.firstChild)r.scrollIntoView({behavior:'smooth',block:'start'});},700);
+  // on the phone the solved card is a short summary: scroll to it so the verdict and the first drawings share the screen
+  setTimeout(()=>{const r=$('#results');if(r.firstChild)(mob?$('#qcard'):r).scrollIntoView({behavior:'smooth',block:'start'});},700);
 }
 /* full-size viewer for one result card; a mirror pair opens side by side, the right one a live reflection of the left */
 let IN=null;
@@ -3091,11 +3151,15 @@ function celebrate(title,subtitle){
 }
 function hidePop(){$('#pop').classList.remove('show');}
 function buildFilters(){
-  const f=$('#filters');
-  f.innerHTML=`<span>ask about:</span>`+['Td','SP','Oh'].map(g=>`<button class="btn ${Q.geoms.has(g)?'on':''}" data-geo="${g}">${GEOMS[g].name}</button>`).join('')+
-    `<span class="dot-sep">·</span>`+[['mb','mono- & bidentate'],['tri','tridentate'],['tet','tetradentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join('')+
-    `<span class="dot-sep">·</span>`+[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs'],['total','+ structural: ambidentate ligand']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}" ${k==='total'?'title="Also ask for the total number of isomers when one ligand can bond through either of two atoms (off unless chosen)"':''}>${l}</button>`).join('')+
-    `<span class="dot-sep">·</span><span>ligands:</span>`+[['real','real (exam style)'],['abstract','abstract letters (MA₄B₂)']].map(([k,l])=>`<button class="btn ${Q.lig===k?'on':''}" data-lig="${k}">${l}</button>`).join('')+
+  const f=$('#filters'), G=(label,html)=>`<div class="fgroup"><span class="fl">${label}</span>${html}</div>`;
+  f.innerHTML=`<span class="fl-d">ask about:</span>`+
+    G('Shape',['Td','SP','Oh'].map(g=>`<button class="btn ${Q.geoms.has(g)?'on':''}" data-geo="${g}">${GEOMS[g].name}</button>`).join(''))+
+    `<span class="dot-sep">·</span>`+
+    G('Ligand type',[['mb','mono- & bidentate'],['tri','tridentate'],['tet','tetradentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join(''))+
+    `<span class="dot-sep">·</span>`+
+    G('Question type',[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs'],['total','+ structural: ambidentate ligand']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}" ${k==='total'?'title="Also ask for the total number of isomers when one ligand can bond through either of two atoms (off unless chosen)"':''}>${l}</button>`).join(''))+
+    `<span class="dot-sep">·</span><span class="fl-d">ligands:</span>`+
+    G('Ligands',[['real','real (exam style)'],['abstract','abstract letters (MA₄B₂)']].map(([k,l])=>`<button class="btn ${Q.lig===k?'on':''}" data-lig="${k}">${l}</button>`).join(''))+
     `<span class="keyhint">${Q.mode==='mc'?'keys 1–4 answer · Enter = next':'Enter = check, then Enter = next'}</span>`;
 }
 
@@ -3149,7 +3213,7 @@ const learnModule=m=>{LEARN.modules.push({status:'ready',...m});};
 function setLearnView(v,id=null){
   LEARN.view=v; LEARN.open=v==='lessons'?id:null;
   $$('#learnNav [data-lview]').forEach(b=>{b.classList.toggle('on',b.dataset.lview===v);b.setAttribute('aria-selected',b.dataset.lview===v);});
-  $('#learnQuiz').hidden=v!=='quiz'; $('#learnLessons').hidden=v!=='lessons'; $('#smToggle').hidden=v!=='quiz';
+  $('#learnQuiz').hidden=v!=='quiz'; $('#learnLessons').hidden=v!=='lessons'; $('#smToggle').hidden=v!=='quiz'; $('#qSetBtn').hidden=v!=='quiz';
   if(v==='lessons') renderLessons();
   else if(!Q.cur) nextQuestion();
   setHash(v==='lessons'?'learn'+(id?'/'+id:''):null);
@@ -3226,7 +3290,7 @@ function setMode(mode){
 }
 /* the phone app re-uses the same live drawings, quiz card and builder: they are moved into its screens */
 const M={tab:'explore',stack:[{t:'home'}],VX:null,homes:new Map(),moved:false,toastT:0};
-const MOVES=[['#stage1','#cHost1'],['#stage2','#cHost2'],['#cx','#cxHost'],['#quizScroll','#qHost'],['#builder .bsheet','#bHost']];
+const MOVES=[['#stage1','#cHost1'],['#stage2','#cHost2'],['#cx','#cxHost'],['#quizScroll','#qHost'],['#builder .bsheet','#bHost'],['#filters','#qSettingsBody'],['#ansMode','#qAnsHost']];
 function placeElements(mobile){
   MOVES.forEach(([sel])=>{if(!M.homes.has(sel)){const el=$(sel);M.homes.set(sel,{el,parent:el.parentNode,next:el.nextSibling});}});
   if(mobile===M.moved) return;
@@ -3265,7 +3329,9 @@ function ensureBuilder(){
   if(!$('#tabBuild').dataset.step) setBStep(1);
   renderBuilder();
 }
-function setBStep(n){$('#tabBuild').dataset.step=n;$$('#bSteps button').forEach(b=>b.classList.toggle('on',+b.dataset.step===n));}
+function setBStep(n){
+  if(n===2){const h=$('#bHint2');if(!h.dataset.disDef){const first=!seen('bhint2');h.dataset.disDef=first?'1':'0';h.open=disOpen('bhint2',first);markSeen('bhint2');}}
+  $('#tabBuild').dataset.step=n;$$('#bSteps button').forEach(b=>b.classList.toggle('on',+b.dataset.step===n));}
 function mTop(){
   if(!isMobile()) return;
   let title='',back=false,right='';
@@ -3304,10 +3370,19 @@ const chev='<span class="chev" aria-hidden="true">›</span>';
 function xListHTML(top){
   const A=ANALYSIS[top.id];
   const row=iso=>`<button class="xrow iso" data-go="iso:${iso.id}"><span class="xr-main"><span>${iso.label}</span><span class="xchips"><span class="chip pg">${iso.sym.html}</span><span class="chip ${iso.chiral?'chiral':'achiral'}">${iso.chiral?'chiral':'achiral'}</span></span></span>${chev}</button>`;
+  const {stereo:s,geometric:g,pairs:p}=A, nb=neighbours(A.c).length;
+  const tally=`<p class="xtally1"><b>${s}</b> stereoisomer${s===1?'':'s'} · <b>${g}</b> ${g===1?'arrangement':'geometrical'}${g>1&&p?' (pairs counted once)':''} · <b>${p}</b> enantiomeric pair${p===1?'':'s'}</p>`;
   return `<p class="xins">${A.c.insight||summaryHTML(A)}</p>
-    <div class="xchips">${ligChips(A.c)}</div><div class="xtally">${countsHTML(A)}</div>`+
-    A.groups.map(g=>g.length===1?row(g[0]):`<div class="xpair"><div class="xpair-h"><span>enantiomeric pair</span><button class="btn" data-cmp="${g[0].id}">Compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+neighbourHTML(A.c)+complicateHTML(A.c);
+    <div class="xchips">${ligChips(A.c)}</div>${tally}`+
+    A.groups.map(g=>g.length===1?row(g[0]):`<div class="xpair"><div class="xpair-h"><span>enantiomeric pair</span><button class="btn" data-cmp="${g[0].id}">Compare ⇄</button></div>${row(g[0])}${row(g[1])}</div>`).join('')+complicateHTML(A.c)+(nb?disHTML('nbr',`One substitution away (${nb})`,neighbourHTML(A.c),false):'');
 }
+/* disclosure rows: native <details>, with the open/closed choice remembered between visits */
+const disGet=id=>{try{const v=localStorage.getItem('isoDis_'+id);return v===null?null:v==='1';}catch(e){return null;}};
+const disSet=(id,o)=>{try{localStorage.setItem('isoDis_'+id,o?'1':'0');}catch(e){}};
+const disOpen=(id,def)=>{const v=disGet(id);return v===null?def:v;};
+const disHTML=(id,label,html,def)=>`<details class="dis" data-dis="${id}" data-dis-def="${def?1:0}"${disOpen(id,def)?' open':''}><summary>${label}</summary>${html}</details>`;
+function disSave(e){const d=e.target;if(!d||!d.matches||!d.matches('details[data-dis]'))return;
+  if(d.open!==disOpen(d.dataset.dis,d.dataset.disDef==='1'))disSet(d.dataset.dis,d.open);}
 function xInfoHTML(iso){
   const ch=iso.chiral?`<span class="chip chiral">chiral</span> No σ, i or S<sub>n</sub>; only ${iso.sym.proper}. Its mirror image is ${iso.partner.label}.`
     :`<span class="chip achiral">achiral</span> Contains ${iso.sym.improper.join(', ')}, so it is its own mirror image.`;
@@ -3315,10 +3390,9 @@ function xInfoHTML(iso){
     <div class="xi-btns"><button class="btn" data-xact="slot1">Compare: slot 1</button><button class="btn" data-xact="slot2">Compare: slot 2</button><button class="btn" data-xact="withmirror">Compare with its mirror image</button></div>
     <div class="xi-line">${ch}</div>
     <div class="xi-line"><b>Symmetry elements</b> ${iso.sym.elements}</div>
-    ${iso.trans?`<div class="xi-line"><b>trans pairs</b> ${iso.trans}</div>`:''}
-    <div class="xi-line xi-ins">${iso.caseRef.insight||''}</div>`;
+    ${iso.trans?`<div class="xi-line"><b>trans pairs</b> ${iso.trans}</div>`:''}`;
 }
-function setSheet(state){const s=$('#xSheet');s.dataset.state=state;s.style.height='';}
+function setSheet(state){const s=$('#xSheet');s.dataset.state=state;s.style.height='';$('#xMol').dataset.sheet=state;}
 function sheetDrag(){
   const s=$('#xSheet'),h=$('#xHandle');let y0=0,h0=0,moved=0,id=null;
   h.addEventListener('pointerdown',e=>{id=e.pointerId;h.setPointerCapture(id);y0=e.clientY;h0=s.getBoundingClientRect().height;moved=0;s.classList.add('dragging');});
@@ -3347,7 +3421,6 @@ function refreshM(){
   $('#cAlign').disabled=app.live;
   const vals={Live:app.live,Link:app.link,Snap:drawOpts.snap,Color:drawOpts.color};
   Object.keys(vals).forEach(k=>{['m','s'].forEach(p=>{const el=$('#'+p+k);if(el)el.checked=vals[k];});const d=$('#'+k.toLowerCase()+'Chk');if(d)d.checked=vals[k];});
-  $$('#sAns button').forEach(b=>b.classList.toggle('on',b.dataset.am===Q.mode));
 }
 function keypad(k){
   const inp=$('#ansInput');
@@ -3369,6 +3442,7 @@ function mInit(){
   $('#mTopRight').addEventListener('click',e=>{if(e.target.closest('#cHelp'))toast('Turn either molecule with your finger. <b>Superimpose</b> turns slot 2 to match slot 1, and circles anything that still disagrees. <b>⋯</b> has the mirror tools.',6000);});
   mountFinder($('#xHome'),{mobile:true,onPick:id=>xPush({t:'case',id})});
   $('#xHome').addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){const [tt,id]=g.dataset.go.split(/:(.+)/);xPush({t:tt,id});}});
+  document.addEventListener('toggle',disSave,true);
   $('#xList').addEventListener('click',e=>{
     const c=e.target.closest('[data-cmp]'); if(c){const a=isoById[c.dataset.cmp];setLive(false);mTab('compare');loadInto(1,dispOf(a));loadInto(2,mirrorDisp(dispOf(a),mirrorAxisNow()));return;}
     const t=e.target.closest('[data-gotab]'); if(t){mTab(t.dataset.gotab);return;}
@@ -3394,7 +3468,6 @@ function mInit(){
   $('#sColor').addEventListener('change',e=>{drawOpts.color=e.target.checked;views.forEach(v=>v.dirty=true);refreshM();});
   $('#sLink').addEventListener('change',e=>{app.link=e.target.checked;refreshM();});
   $('#sLive').addEventListener('change',e=>{setLive(e.target.checked);refreshM();});
-  $('#sAns').addEventListener('click',e=>{const b=e.target.closest('[data-am]');if(b){setAnswerMode(b.dataset.am);refreshM();}});
   $('#sTour').addEventListener('click',openTour);
   // tour
   $('#tourSlides').addEventListener('scroll',tourDots,{passive:true});
@@ -3420,8 +3493,6 @@ function init(){
     viewAction(app.active,m); closeSheets();});
   $('#mLive').addEventListener('change',e=>setLive(e.target.checked));
   $('#mLink').addEventListener('change',e=>{app.link=e.target.checked;refreshM();});
-  $('#mSnap').addEventListener('change',e=>{drawOpts.snap=e.target.checked;if(drawOpts.snap)views.forEach(v=>v.interactive&&v.snap());refreshM();});
-  $('#mColor').addEventListener('change',e=>{drawOpts.color=e.target.checked;views.forEach(v=>v.dirty=true);refreshM();});
   $$('[data-close]').forEach(b=>b.addEventListener('click',closeSheets));
   $('#backdrop').addEventListener('click',closeSheets);
   $('#colorChk').addEventListener('change',e=>{drawOpts.color=e.target.checked;views.forEach(v=>v.dirty=true);refreshM();});
@@ -3435,6 +3506,9 @@ function init(){
   $('#typed').addEventListener('submit',e=>{e.preventDefault();submitTyped();});
   $('#ansMode').addEventListener('click',e=>{const b=e.target.closest('[data-am]');if(b){setAnswerMode(b.dataset.am);refreshM();}});
   $('#nextBtn').addEventListener('click',nextQuestion);
+  $('#nextBtn2').addEventListener('click',nextQuestion);
+  $('#qSetBtn').addEventListener('click',()=>openSheet('qSheet'));
+  $('#qGloss').addEventListener('click',e=>{if(e.target.closest('.gloss-tg'))setGloss(!Q.glossOpen);});
   $('#revealBtn').addEventListener('click',reveal);
   $('#results').addEventListener('click',e=>{const t=e.target.closest('[data-qto]');if(t){const [gi,to]=t.dataset.qto.split(':');qToCompare(+gi,to==='pair'?'pair':+to);return;}
     const b=e.target.closest('.enlarge');if(b)openInspector(+b.dataset.gi);});
