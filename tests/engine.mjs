@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEngine} from './load-engine.mjs';
 
-const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL']);
+const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL','famOf','skillsOf','itemDiff','classifyError','skillState','masteryOf','pickCandidate','candidateWeight','famLocked','validateProgress','mergeEvents','PRACTICE','TYPE_W']);
 let fails=0;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   // arrays from the vm context have another prototype
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
@@ -236,6 +236,80 @@ test('real ligands: a ligand keeps its symmetry type, and unknown types are left
   assert.equal(E.realize({geom:'Oh',mono:'DDD',chel:['ABC:x']}),null);
   const R=E.realize({geom:'Oh',mono:'AAAABB',chel:[]},Math.random,{B:{key:'NO2',html:'NO<sub>2</sub>',text:'NO₂',charge:-1,donors:['N'],w:1}});
   assert.ok(/NO<sub>2<\/sub>/.test(R.html)&&R.names.B.text==='NO₂');
+});
+
+
+/* ---- adaptive practice ---- */
+const DAY=86400000, NOW=Date.UTC(2026,10,5);
+const cases=E.BANK.filter(c=>new Set((c.mono||'')+(c.chel||[]).map(x=>E.lig(x).L).join('')).size>1);
+const ev=(c,o,over={})=>({t:NOW,c:c.id,ty:'stereo',o,m:'type',e:'',l:'real',...over});
+const cand=(c,t='stereo')=>{const A=E.ANALYSIS[c.id];return {c,t,fam:E.famOf(c),skills:E.skillsOf(c,A,t),diff:E.itemDiff(A,t)};};
+const rng=seed=>()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+test('skills: every question exercises four skills, and difficulty grows with structure',()=>{
+  for(const c of cases.slice(0,40)){const s=E.skillsOf(c,E.ANALYSIS[c.id],'stereo'); assert.equal(s.length,4); assert.ok(/^geom:/.test(s[0])&&/^lig:/.test(s[1])&&/^chir:(yes|no)$/.test(s[2])&&s[3]==='type:stereo');}
+  const easy=E.ANALYSIS['sp-ma2b2'], hard=E.ANALYSIS['oh-mabcdef'];
+  assert.ok(E.itemDiff(hard,'stereo')>E.itemDiff(easy,'stereo')+0.2);
+  for(const c of cases) for(const t of ['stereo','geometric','pairs','total']){const d=E.itemDiff(E.ANALYSIS[c.id],t); assert.ok(d>=0&&d<=1);}
+});
+test('mastery: successes raise it, failures lower it, no evidence is neutral, and evidence is weighted by how the answer went',()=>{
+  const c=cases[0], m=evs=>E.masteryOf(E.skillState(evs,NOW)['geom:'+c.geom]);
+  assert.equal(E.masteryOf(undefined),0.5);
+  const good=m([ev(c,'first'),ev(c,'first'),ev(c,'first')]), bad=m([ev(c,'reveal'),ev(c,'reveal'),ev(c,'reveal')]);
+  assert.ok(good>0.7&&bad<0.3);
+  assert.ok(m([ev(c,'retry')])<m([ev(c,'first')])&&m([ev(c,'retry')])>m([ev(c,'reveal')]));
+  assert.ok(m([ev(c,'first',{m:'mc'})])<m([ev(c,'first')]),'a multiple-choice hit counts for a little less (guessing)');
+});
+test('forgetting: evidence halves each half-life, so an old success fades towards neutral',()=>{
+  const c=cases[0], k='geom:'+c.geom, e0=ev(c,'first',{t:NOW});
+  const now=E.skillState([e0],NOW)[k], later=E.skillState([e0],NOW+7*DAY)[k], far=E.skillState([e0],NOW+70*DAY)[k];
+  assert.ok(Math.abs(later.s-now.s/2)<1e-9);
+  assert.ok(E.masteryOf(far)<E.masteryOf(later)&&E.masteryOf(later)<E.masteryOf(now)&&E.masteryOf(far)>0.5);
+});
+test('misconceptions: the wrong answer is named, and chirality mistakes also count against the chirality skill',()=>{
+  const A=E.ANALYSIS['oh-maa2b2'];   // 2 geometric, 3 stereo, 1 pair
+  assert.equal(E.classifyError('stereo',A,A.geometric,A.stereo),'geo-for-stereo');
+  assert.equal(E.classifyError('geometric',A,A.stereo,A.geometric),'stereo-for-geo');
+  assert.equal(E.classifyError('stereo',A,A.stereo-2,A.stereo),'low'); assert.equal(E.classifyError('stereo',A,A.stereo+2,A.stereo),'high');
+  assert.equal(E.classifyError('pairs',A,A.pairs+1,A.pairs),'pairs-high'); assert.equal(E.classifyError('pairs',A,0,A.pairs),'pairs-low');
+  assert.equal(E.classifyError('total',A,A.stereo,20,4),'total-forgot-forms'); assert.equal(E.classifyError('total',A,4,20,4),'total-forms-only');
+  const c=E.BANK.find(x=>x.id==='oh-maa2b2'), plain=E.skillState([ev(c,'retry')],NOW)['chir:yes'], diag=E.skillState([ev(c,'retry',{e:'geo-for-stereo'})],NOW)['chir:yes'];
+  assert.ok(E.masteryOf(diag)<E.masteryOf(plain));
+});
+test('selection: a weak skill is practised more, at a comparable difficulty, and the pick is never degenerate',()=>{
+  // strong on everything except chiral pairs
+  const S={}; const strong=()=>({s:8,f:0,t:NOW}), weak=()=>({s:0.5,f:5,t:NOW});
+  for(const g of ['Oh','Td','SP']) S['geom:'+g]=strong(); for(const f of Object.keys({m:1,b:1,t1:1,t2b:1,t3:1,qc:1,qt:1,qr:1})) S['lig:'+f]=strong();
+  for(const t of ['stereo','geometric','pairs','total']) S['type:'+t]=strong(); S['chir:no']=strong(); S['chir:yes']=weak();
+  const cs=cases.filter(c=>E.ANALYSIS[c.id].stereo<=12).map(c=>cand(c)); const r=rng(5); let chir=0, n=600;
+  for(let i=0;i<n;i++){const p=E.pickCandidate(cs,S,{recent:[]},r); if(E.ANALYSIS[p.c.id].pairs>0) chir++;}
+  const base=cs.filter(x=>E.ANALYSIS[x.c.id].pairs>0).length/cs.length;
+  assert.ok(chir/n>base+0.15,'chiral share '+(chir/n).toFixed(2)+' vs '+base.toFixed(2)+' in the bank');
+  assert.ok(chir/n<0.97,'other questions still appear');
+});
+test('selection: a new learner meets simple families first; unlocking follows evidence; one family is not repeated once known',()=>{
+  const empty={}; assert.ok(!E.famLocked('m',empty),'monodentate is never locked');
+  assert.ok(E.famLocked('b',empty)&&E.famLocked('t1',empty)&&E.famLocked('qc',empty));
+  const ok={'lig:m':{s:6,f:1,t:NOW}}; assert.ok(!E.famLocked('b',ok)&&E.famLocked('t1',ok));
+  const ok2={...ok,'lig:b':{s:6,f:1,t:NOW}}; assert.ok(!E.famLocked('t1',ok2)&&E.famLocked('qc',ok2));
+  // a beginner's draw is dominated by monodentate and bidentate formulas
+  const cs=cases.map(c=>cand(c)), r=rng(9); let simple=0; for(let i=0;i<400;i++){const f=E.pickCandidate(cs,{},{recent:[]},r).fam; if(f==='m'||f==='b') simple++;}
+  assert.ok(simple/400>0.55,'beginner simple share '+simple/400);
+  // interleaving: after two questions of a family that is known, that family is drawn less often
+  const known={'lig:b':{s:6,f:1,t:NOW}}, sameFam=cs.filter(x=>x.fam==='b'), mixed=cs.filter(x=>x.fam==='b'||x.fam==='t1');
+  const w1=E.candidateWeight(mixed.find(x=>x.fam==='b'),known,{recent:[]}), w2=E.candidateWeight(mixed.find(x=>x.fam==='b'),known,{recent:['b','b']});
+  assert.ok(w2<w1*0.5);
+  const unseen={}, w3=E.candidateWeight(mixed.find(x=>x.fam==='b'),unseen,{recent:['b','b']}), w4=E.candidateWeight(mixed.find(x=>x.fam==='b'),unseen,{recent:[]});
+  assert.ok(Math.abs(w3-w4)<1e-12,'a brand-new family is met in a block');
+});
+test('progress files: validated field by field, merged by union, duplicates dropped',()=>{
+  const c=cases[0], good=ev(c,'first',{t:NOW-5*DAY});
+  const v=E.validateProgress({app:'isomer-sketchbook',v:1,events:[good,{...good,t:NOW-4*DAY,e:'low'}]},NOW); assert.ok(v.ok); assert.equal(v.events.length,2); assert.equal(v.rejected,0);
+  const bad=[null,5,'x',{...good,c:'nope'},{...good,ty:'weird'},{...good,o:'maybe'},{...good,t:'soon'},{...good,t:NOW+30*DAY},{...good,e:'<img src=x onerror=alert(1)>'},{...good,m:'telepathy'},{...good,c:{toString:1}}];
+  const w=E.validateProgress({events:bad},NOW); assert.equal(w.events.length,0); assert.equal(w.rejected,bad.length);
+  assert.ok(!E.validateProgress({events:'x'},NOW).ok&&!E.validateProgress(null,NOW).ok&&!E.validateProgress({app:'other',events:[good]},NOW).ok);
+  assert.equal(JSON.stringify(Object.keys(v.events[0]).sort()),JSON.stringify(['c','e','l','m','o','t','ty']),'only known fields survive');
+  const m=E.mergeEvents(v.events,[v.events[1],{...good,t:NOW-9*DAY}]); assert.equal(m.length,3); assert.ok(m[0].t<m[1].t&&m[1].t<m[2].t);
+  const many=Array.from({length:E.PRACTICE.maxEvents+50},(_,i)=>({...good,t:NOW-i*1000})); assert.equal(E.mergeEvents(many,[]).length,E.PRACTICE.maxEvents);
 });
 
 console.log(fails?`\n${fails} failed`:'\nall passed'); process.exit(fails?1:0);

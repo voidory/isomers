@@ -34,6 +34,7 @@ Place the ligands on a drawn octahedron, square plane or tetrahedron. The app id
 
 ### Learn: an isomer-counting quiz and lessons
 - **Quiz:** "How many stereoisomers does … have?", plus geometric isomers, enantiomer pairs, and optionally total isomers including linkage isomers.
+- **Adaptive practice:** the quiz follows how you have been answering. Each question exercises four skills (shape, ligand family, chiral pairs, question type); evidence about each fades over about a week, so skills you have not practised come back, and ones you keep missing come up more, at a difficulty where you should get roughly three in four right. New ligand families are introduced in order, and a wrong answer is diagnosed (for example, counting geometric instead of stereoisomers also counts against the chirality skill). A **Skill map** button shows where you stand; it is hidden until you ask. **Save progress** downloads a small `isomer-progress.json` and **Load progress** merges one back in, so you can move between devices. Everything stays on your device.
 - Questions use **real, exam-style complexes** with real ligands and charges, such as [Co(en)₂Cl₂]⁺, [Pt(NH₃)₂Cl₂] or [Co(trien)(gly)]²⁺. You can switch to **abstract formulas** (MA₄B₂, M(AA)₂B₂) instead.
 - After each answer, every isomer is drawn and explained. You can send any of them to the Compare viewports.
 - **Lessons:** a ligand glossary (en, ox, bipy, phen, acac, gly, dien, terpy, tacn, trien, tren, cyclam, porphyrin and more) and a guide to reading abstract formulas. More lessons are planned.

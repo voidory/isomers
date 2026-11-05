@@ -186,8 +186,25 @@ main[hidden]{display:none!important}
 .quiz{min-height:0}
 .quiz-scroll{height:100%;overflow-y:auto;padding:18px 18px 60px}
 .quiz-inner{max-width:1100px;margin:0 auto}
-.seg.learn-nav{display:inline-flex;margin:0 0 12px}
-body.mobile .seg.learn-nav{display:flex}body.mobile .seg.learn-nav button{flex:1}
+.learn-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+.seg.learn-nav{display:inline-flex;margin:0}
+#smToggle[aria-expanded="true"]{background:var(--hl);box-shadow:inset 0 0 0 2px var(--ink),2px 2px 0 var(--ink)}
+body.mobile .seg.learn-nav{flex:1}body.mobile .seg.learn-nav button{flex:1}
+.smap{padding:12px 16px;margin:0 0 12px;display:flex;flex-direction:column;gap:8px}
+.smap[hidden]{display:none}
+.smap h3{font-family:var(--hand);font-size:19px;margin:0}
+.sm-sub{font-size:13px;color:var(--ink2);margin:0}
+.sm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:4px 22px}
+.sm-g h4{font-family:var(--hand);font-weight:normal;font-size:12px;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink3);margin:6px 0 3px}
+.smr{display:grid;grid-template-columns:minmax(0,1.5fr) 74px 74px;gap:6px;align-items:center;font-size:13.5px;padding:1px 0}
+.smb{height:9px;border:1.5px solid var(--ink);border-radius:5px;background:#fff;overflow:hidden;display:block}
+.smb i{display:block;height:100%}.smb i.lo{background:#e98a8a}.smb i.mid{background:#f6d365}.smb i.hi{background:#72c47f}
+.smb.none{border-style:dashed;border-color:var(--ink3)}
+.smv{color:var(--ink2);font-size:12.5px;white-space:nowrap}
+.sm-focus{font-size:14px}
+.sm-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1.5px dashed var(--grid2);padding-top:8px}
+.sm-tools .btn{font-size:13px;padding:2px 10px}
+.sm-msg{font-size:13px;color:var(--ink2)}
 .lessons{display:flex;flex-direction:column;gap:12px}
 .lessons h2{font-family:var(--hand);font-size:24px;margin:0}
 .lessons .lintro{color:var(--ink2);margin:0}
@@ -684,8 +701,10 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
   <main class="quiz" id="quiz" hidden>
     <div class="quiz-scroll" id="quizScroll">
       <div class="quiz-inner">
-        <div class="learn-nav seg" id="learnNav" role="tablist" aria-label="Learn"><button data-lview="quiz" role="tab" class="on">Quiz</button><button data-lview="lessons" role="tab">Lessons</button></div>
+        <div class="learn-bar"><div class="learn-nav seg" id="learnNav" role="tablist" aria-label="Learn"><button data-lview="quiz" role="tab" class="on">Quiz</button><button data-lview="lessons" role="tab">Lessons</button></div>
+          <button class="btn" id="smToggle" aria-expanded="false" aria-controls="smap">Skill map</button></div>
         <div id="learnQuiz">
+        <div class="smap sketch" id="smap" hidden></div>
         <div class="qcard sketch" id="qcard">
           <div class="q-meta" id="qMeta"></div>
           <div class="q-text" id="qText"></div>
@@ -1807,6 +1826,102 @@ function realize(c,rand=Math.random,force={}){
   return {metal,ox,charge,html:realFormula(metal,parts,charge),parts,byChel,skin,lbl:l=>lbl[l]||l,names:Object.fromEntries([...new Set(mono)].map(l=>[l,{html:lbl[l],text:skin[l].text}]))};
 }
 
+/* =====================================================================
+   1f. ADAPTIVE PRACTICE — which question next, from how someone has been answering
+   Small on purpose: one person answers dozens of questions, not thousands, so this is a count-based estimate per skill
+   (a Beta(1,1) prior, evidence that decays with a half-life) and a scorer, not a fitted model. The pieces, and why:
+   - SKILLS, not formulas: 239 formulas are far too many to learn about one by one. Each question is tagged with four skills
+     the engine already knows (shape, ligand family, whether chiral pairs are involved, question type).
+   - The record is a list of ATTEMPTS (events). State is recomputed from them, so two records merge by union and the
+     method can change later without invalidating anyone's history.
+   - Forgetting: evidence halves every 7 days, so a skill not practised for a while looks shakier and comes back (spacing).
+   - Difficulty fit: aim near 78% expected success, inside the 70–85% band the optimal-error-rate work suggests (a heuristic:
+     that result is theoretical, for gradient-learning models).
+   - Interleaving once a ligand family is no longer new; new families are met in blocks first, and unlocked in order
+     (monodentate, then bidentate, then tri-, then tetradentate) by weighting, never by hiding anything.
+   - Wrong answers are diagnosed: counting geometric for stereo isomers (or the reverse) and pair mistakes also count against
+     the chirality skill, because that is the misconception they show.
+   ===================================================================== */
+const PRACTICE={halfLifeDays:7,target:0.78,tolerance:0.18,maxEvents:4000,prior:[1,1]};
+const DAY_MS=86400000;
+const OUTCOME_W={first:[1,0],retry:[0.4,0.6],reveal:[0,1]};              // [success, failure] weight of one question
+const PRACTICE_TYPES=['stereo','geometric','pairs','total'];
+const TYPE_W={stereo:3,geometric:1.4,pairs:1,total:2};                  // how often each question type is asked, before skills are considered
+const CHIR_ERRORS=new Set(['geo-for-stereo','stereo-for-geo','pairs-high','pairs-low']);
+const ERROR_KINDS=new Set([...CHIR_ERRORS,'low','high','total-forgot-forms','total-forms-only','']);
+const FAM_TIER={m:0,b:1,t1:2,t2b:2,t3:2,qc:3,qt:3,qr:3};
+const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
+/* the four skills a question exercises */
+const skillsOf=(c,A,t)=>['geom:'+c.geom,'lig:'+famOf(c),'chir:'+(A.pairs>0?'yes':'no'),'type:'+t];
+/* how hard a question is, from its structure alone (0 to 1), so a new learner needs no data first */
+const itemDiff=(A,t)=>clamp(0.12*Math.log2(Math.max(1,A.stereo))+(A.pairs>0?0.18:0)+0.05*Math.min((A.c.chel||[]).length,4)+({stereo:0,geometric:0.05,pairs:0.1,total:0.25}[t]||0),0,1);
+/* what an answer says about the person: the first wrong answer, as a misconception */
+function classifyError(t,A,val,answer,forms=0){
+  if(t==='stereo') return val===A.geometric&&A.pairs>0?'geo-for-stereo':val<answer?'low':'high';
+  if(t==='geometric') return val===A.stereo&&A.pairs>0?'stereo-for-geo':val<answer?'low':'high';
+  if(t==='pairs') return val>answer?'pairs-high':'pairs-low';
+  if(t==='total') return val===A.stereo?'total-forgot-forms':val===forms?'total-forms-only':val<answer?'low':'high';
+  return val<answer?'low':'high';
+}
+/* replay the attempts into one {s,f,t} per skill, evidence decayed to `now` */
+function skillState(events,now=Date.now()){
+  const S={}, decay=(e,t)=>{if(t>e.t){const d=Math.pow(0.5,(t-e.t)/(PRACTICE.halfLifeDays*DAY_MS));e.s*=d;e.f*=d;}e.t=Math.max(e.t,t);};
+  const add=(k,t,ws,wf)=>{const e=S[k]||(S[k]={s:0,f:0,t});decay(e,t);e.s+=ws;e.f+=wf;};
+  for(const ev of events){
+    const A=ANALYSIS[ev.c]; if(!A) continue;
+    let [ws,wf]=OUTCOME_W[ev.o]; if(ev.o==='first'&&ev.m==='mc'){ws=0.85;wf=0.15;}     // a multiple-choice hit can be a guess
+    for(const k of skillsOf(A.c,A,ev.ty)) add(k,ev.t,ws,wf);
+    if(CHIR_ERRORS.has(ev.e)) add('chir:yes',ev.t,0,0.5);
+  }
+  for(const k of Object.keys(S)) decay(S[k],now);
+  return S;
+}
+const masteryOf=e=>(((e&&e.s)||0)+PRACTICE.prior[0])/(((e&&e.s)||0)+((e&&e.f)||0)+PRACTICE.prior[0]+PRACTICE.prior[1]);
+const evidenceOf=e=>e?e.s+e.f:0;
+/* a tier is established when its families have enough evidence and look solid; the next tier is weighted down until then */
+function tierEstablished(tier,S){
+  let s=0,f=0; for(const [fam,t] of Object.entries(FAM_TIER)) if(t===tier&&S['lig:'+fam]){s+=S['lig:'+fam].s;f+=S['lig:'+fam].f;}
+  return s+f>=4&&(s+1)/(s+f+2)>=0.6;
+}
+const famLocked=(fam,S)=>FAM_TIER[fam]>0&&!tierEstablished(FAM_TIER[fam]-1,S);
+/* weight of one candidate {c,t,fam,skills,diff}; ctx.recent = ligand families of the last questions */
+function candidateWeight(cand,S,ctx){
+  const sk=cand.skills.map(k=>S[k]), ms=sk.map(masteryOf), mbar=ms.reduce((a,b)=>a+b,0)/ms.length;
+  const need=sk.reduce((a,e,i)=>a+(1-ms[i])*0.75+0.25/(1+evidenceOf(e)),0)/sk.length;       // weak, or not yet known
+  const phat=clamp(mbar-(cand.diff-0.3)*0.5,0.05,0.95), fit=Math.exp(-Math.pow((phat-PRACTICE.target)/PRACTICE.tolerance,2));
+  let w=(0.1+need)*(0.2+fit)*Math.sqrt(TYPE_W[cand.t]||1);
+  if(ctx.recent.slice(-2).includes(cand.fam)&&evidenceOf(S['lig:'+cand.fam])>=2) w*=0.4;     // interleave, once the family is no longer brand new
+  if(famLocked(cand.fam,S)) w*=0.2;
+  return w;
+}
+/* choose one: a ligand family first (so the many tri- and tetradentate formulas do not crowd the rest), then a candidate in it */
+function pickCandidate(cands,S,ctx,rand=Math.random){
+  if(!cands.length) return null;
+  const ws=cands.map(c=>candidateWeight(c,S,ctx)), byFam={};
+  cands.forEach((c,i)=>{(byFam[c.fam]=byFam[c.fam]||[]).push(i);});
+  const fams=Object.keys(byFam), fw=fams.map(f=>Math.pow(byFam[f].reduce((a,i)=>a+ws[i],0)/byFam[f].length,1.5));
+  const draw=(w,r)=>{let x=r*w.reduce((a,b)=>a+b,0);for(let i=0;i<w.length;i++){x-=w[i];if(x<=0)return i;}return w.length-1;};
+  const fam=fams[draw(fw,rand())], idx=byFam[fam];
+  return cands[idx[draw(idx.map(i=>Math.pow(ws[i],1.5)),rand())]];
+}
+/* a record on disk or in storage: validated field by field, never trusted */
+function validateProgress(raw,now=Date.now()){
+  const out=[]; let rejected=0;
+  const list=raw&&typeof raw==='object'&&Array.isArray(raw.events)?raw.events.slice(0,20000):null;
+  if(!list||(raw.app!==undefined&&raw.app!=='isomer-sketchbook')) return {events:[],rejected:list?list.length:0,ok:false};
+  for(const e of list){
+    const good=e&&typeof e==='object'&&Number.isFinite(e.t)&&e.t>0&&e.t<=now+DAY_MS&&typeof e.c==='string'&&ANALYSIS[e.c]&&PRACTICE_TYPES.includes(e.ty)
+      &&OUTCOME_W[e.o]&&(e.m==='mc'||e.m==='type')&&(e.e===undefined||ERROR_KINDS.has(e.e))&&(e.l===undefined||e.l==='real'||e.l==='abstract');
+    if(!good){rejected++;continue;}
+    out.push({t:Math.round(e.t),c:e.c,ty:e.ty,o:e.o,m:e.m,e:e.e||'',l:e.l||'real'});}
+  return {events:out,rejected,ok:true};
+}
+/* union of two records, duplicates dropped, oldest first, capped */
+function mergeEvents(a,b){
+  const m=new Map(); for(const e of [...a,...b]) m.set(e.t+'|'+e.c+'|'+e.ty,e);
+  return [...m.values()].sort((x,y)=>x.t-y.t).slice(-PRACTICE.maxEvents);
+}
+
 /*ENGINE-END*/
 /* =====================================================================
    2. LIVE EXAM-STYLE DRAWING OF A ROTATABLE 3-D MOLECULE
@@ -2739,7 +2854,7 @@ function buildComplicate(){
    4. QUIZ UI
    ===================================================================== */
 const Q={fams:new Set(['mb','tri','tet']),
-lig:'real',cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
+lig:'real',recent:[],cur:null,attempts:0,answered:0,correct:0,streak:0,best:0,geoms:new Set(['Td','SP','Oh']),types:new Set(['stereo','geometric','pairs']),last:null,n:0,resolved:false,minis:[],tried:[],mode:'type'};
 try{Q.best=+localStorage.getItem('isoSketchBest')||0;if(localStorage.getItem('isoQuizLig')==='abstract')Q.lig='abstract';const m=localStorage.getItem('isoAnsMode');if(m==='mc'||m==='type')Q.mode=m;}catch(e){}
 const TYPE_TEXT={
   stereo:`How many <b>stereoisomers</b> (counting each enantiomer separately) are possible for`,
@@ -2747,7 +2862,6 @@ const TYPE_TEXT={
   pairs:`How many <b>pairs of enantiomers</b> are possible for`,
   total:`How many <b>isomers in total</b> (structural and stereo, counting each enantiomer separately) are possible for`,
 };
-const TYPE_W={stereo:3,geometric:1.4,pairs:1,total:2};
 /* the ligands a question can make ambidentate: a monodentate that appears at least twice, so mixed binding forms exist */
 const ambLetters=c=>monoLetters(c).filter(l=>countOf(c.mono,l)>=2);
 function gloss(c){
@@ -2781,18 +2895,14 @@ function nextQuestion(){
   clearResults(); hidePop();
   const quizzable=c=>caseLetters(c).size>1;   // [MA6]-type formulas are too trivial to ask about
   const fk=c=>{const f=famOf(c);return f==='m'||f==='b'?'mb':f[0]==='t'?'tri':'tet';};
-  const types=[...Q.types]; let r=Math.random()*types.reduce((s,t)=>s+TYPE_W[t],0), t=types[0];
-  for(const ty of types){r-=TYPE_W[ty];if(r<=0){t=ty;break;}}
-  // pick the ligand group first, so the many tri- and tetradentate formulas don't crowd out the rest
-  const famsAvail=[...Q.fams].filter(f=>BANK.some(c=>fk(c)===f&&quizzable(c)&&Q.geoms.has(c.geom)));
-  const fpick=famsAvail.length?famsAvail[Math.floor(Math.random()*famsAvail.length)]:'mb';
-  const real=Q.lig==='real', fits=c=>!real||realizable(c);           // real ligands: only formulas that have a real version
-  const suits=c=>t!=='total'||(ambLetters(c).length>0&&(!real||!(c.chel||[]).length));
-  let pool=BANK.filter(c=>fk(c)===fpick&&quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last&&suits(c)&&fits(c));
-  if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom)&&suits(c)&&fits(c));
-  if(!pool.length){t=types.find(x=>x!=='total')||'stereo';pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom)&&fits(c));}
-  if(!pool.length) pool=BANK.filter(c=>quizzable(c)&&Q.geoms.has(c.geom));   // nothing real in this selection: fall back to letters
-  const c=pool[Math.floor(Math.random()*pool.length)];
+  // which question next: from how the answers have been going (see 1f), within the filters chosen below the question
+  const types=[...Q.types], real=Q.lig==='real';
+  const ok=(c,ty)=>quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last&&Q.fams.has(fk(c))&&(!real||realizable(c))&&(ty!=='total'||(ambLetters(c).length>0&&(!real||!(c.chel||[]).length)));
+  const mk=(c,ty)=>{const A=ANALYSIS[c.id];return {c,t:ty,fam:famOf(c),skills:skillsOf(c,A,ty),diff:itemDiff(A,ty)};};
+  let cands=[]; for(const ty of types) for(const c of BANK) if(ok(c,ty)) cands.push(mk(c,ty));
+  if(!cands.length){const ty=types.find(x=>x!=='total')||'stereo'; for(const c of BANK) if(quizzable(c)&&Q.geoms.has(c.geom)) cands.push(mk(c,ty));}   // nothing matches the filters: ask anything
+  const picked=pickCandidate(cands,skillState(PROG.events),{recent:Q.recent}), c=picked.c, t=picked.t;
+  Q.recent=[...Q.recent,picked.fam].slice(-3);
   // a total question picks its ambidentate ligand first, so a real formula can name it (nitrite, thiocyanate, cyanide)
   const L0=t==='total'?ambLetters(c):[], X0=L0.length?L0[Math.floor(Math.random()*L0.length)]:null;
   const useReal=Q.lig==='real'&&realizable(c)&&(t!=='total'||!(c.chel||[]).length);
@@ -2858,7 +2968,7 @@ function submit(val,btn){
   if(Q.attempts===1) Q.answered++;
   const inp=$('#ansInput');
   if(val===Q.cur.answer){
-    Q.resolved=true; if(btn) btn.classList.add('right');
+    Q.resolved=true; if(btn) btn.classList.add('right'); logAttempt(Q.attempts===1?'first':'retry');
     inp.classList.remove('wrong'); inp.classList.add('right'); inp.value=val; inp.disabled=true; $('#checkBtn').disabled=true;
     $$('.choice').forEach(b=>{b.disabled=true;if(+b.dataset.v===val)b.classList.add('right');});
     if(Q.attempts===1){Q.correct++;Q.streak++;if(Q.streak>Q.best){Q.best=Q.streak;try{localStorage.setItem('isoSketchBest',Q.best);}catch(e){}}}
@@ -2869,7 +2979,7 @@ function submit(val,btn){
   } else {
     if(btn){btn.classList.add('wrong');btn.disabled=true;}
     inp.classList.remove('wrong'); void inp.offsetWidth; inp.classList.add('wrong'); if(!isMobile())inp.select();
-    if(Q.attempts===1) Q.streak=0;
+    if(Q.attempts===1){Q.streak=0;Q.cur.err1=classifyError(Q.cur.t,Q.cur.A,val,Q.cur.answer,Q.cur.fam?Q.cur.fam.tally.forms:0);}
     $('#tried').innerHTML='tried: '+Q.tried.map(v=>`<s>${v}</s>`).join(' ');
     $('#feedback').innerHTML=`<div class="note">${hintFor(val)}</div>`;
     if(Q.attempts>=2) $('#revealBtn').style.display='';
@@ -2884,7 +2994,7 @@ function submitTyped(){
   submit(parseInt(raw,10),null);
 }
 function reveal(){
-  if(Q.resolved) return; Q.resolved=true;
+  if(Q.resolved) return; Q.resolved=true; logAttempt('reveal');
   $$('.choice').forEach(b=>{b.disabled=true;if(+b.dataset.v===Q.cur.answer)b.classList.add('right');});
   const inp=$('#ansInput'); inp.value=Q.cur.answer; inp.disabled=true; inp.classList.remove('wrong'); $('#checkBtn').disabled=true;
   $('#revealBtn').style.display='none';
@@ -2959,6 +3069,15 @@ function openInspector(gi){
   IN={v1,v2,gi}; $('#iflag').innerHTML=pair?'Turn the left one; the right one is its mirror image and follows.':'';
 }
 function closeInspector(){if(!IN)return;IN.v1.destroy();IN.v2&&IN.v2.destroy();IN=null;$('#inspector').hidden=true;}
+/* ---- the record of attempts (see 1f): kept in this browser, and saved to or loaded from a file on request ---- */
+const PROG={events:[],ok:true};
+try{const raw=JSON.parse(localStorage.getItem('isoProgress')||'null'); if(raw) PROG.events=validateProgress(raw).events.slice(-PRACTICE.maxEvents);}catch(e){}
+function saveProg(){try{localStorage.setItem('isoProgress',JSON.stringify({app:'isomer-sketchbook',v:1,events:PROG.events}));PROG.ok=true;}catch(e){PROG.ok=false;}}
+function logAttempt(o){
+  const cur=Q.cur; if(!cur) return;
+  PROG.events=mergeEvents(PROG.events,[{t:Date.now(),c:cur.c.id,ty:cur.t,o,m:Q.mode==='mc'?'mc':'type',e:cur.err1||'',l:cur.R?'real':'abstract'}]);
+  saveProg(); if(!$('#smap').hidden) renderSkillMap();
+}
 let popTimer=null;
 function celebrate(title,subtitle){
   const pop=$('#pop'); const colors=['#f0716b','#5aa9e6','#f6c445','#72c47f','#b28fe0'];
@@ -2980,6 +3099,46 @@ function buildFilters(){
     `<span class="keyhint">${Q.mode==='mc'?'keys 1–4 answer · Enter = next':'Enter = check, then Enter = next'}</span>`;
 }
 
+/* ---- the skill map (hidden until asked for) and the progress file ---- */
+const SK_TYPE={stereo:'Stereoisomers',geometric:'Geometric isomers',pairs:'Enantiomer pairs',total:'Total, with structural'};
+const SK_LIG=Object.fromEntries(FAMS.map(f=>[f.id,f.name]));
+function skillLabel(k){const [g,v]=k.split(':');
+  return g==='geom'?GEOMS[v].name:g==='lig'?SK_LIG[v]:g==='type'?SK_TYPE[v]:v==='yes'?'Counting chiral pairs':'Counting achiral arrangements';}
+function renderSkillMap(){
+  const el=$('#smap'), S=skillState(PROG.events), n=PROG.events.length;
+  const row=k=>{const e=S[k],ev=evidenceOf(e),m=masteryOf(e);
+    return `<div class="smr"><span>${skillLabel(k)}</span>${ev<1?'<span class="smb none"></span>':`<span class="smb"><i class="${m<0.5?'lo':m<0.75?'mid':'hi'}" style="width:${Math.round(m*100)}%"></i></span>`}<span class="smv">${ev<1?'not tried yet':ev<3?'few answers':Math.round(m*100)+'%'}</span></div>`;};
+  const grp=(t,keys)=>`<div class="sm-g"><h4>${t}</h4>${keys.map(row).join('')}</div>`;
+  const known=Object.keys(S).filter(k=>evidenceOf(S[k])>=2).sort((a,b)=>masteryOf(S[a])-masteryOf(S[b])).slice(0,2);
+  const focus=n<5?'Answer a few questions and the questions will start to follow what you find hard.':
+    known.length?`Next focus: <b>${known.map(skillLabel).join('</b> and <b>')}</b>.`:'Keep going: not enough answers yet to tell what to focus on.';
+  el.innerHTML=`<h3>Your skill map</h3><p class="sm-sub">The estimated chance of getting a question on this skill right first time. It fades if you stop practising it, and the quiz leans towards what is low or long unseen.</p>
+    <div class="sm-grid">${grp('Shape',['Oh','SP','Td'].map(g=>'geom:'+g))}${grp('Ligands',['m','b','t1','t2b','t3','qc','qt','qr'].map(f=>'lig:'+f))}${grp('Chirality',['chir:yes','chir:no'])}${grp('Question',PRACTICE_TYPES.map(t=>'type:'+t))}</div>
+    <p class="sm-focus">${focus}</p>
+    <div class="sm-tools"><button class="btn" id="smSave">Save progress</button><button class="btn" id="smLoad">Load progress</button><button class="btn" id="smReset">Reset</button>
+      <input type="file" id="smFile" accept=".json,application/json" hidden><span class="sm-msg" id="smMsg" role="status">${n} answer${n===1?'':'s'} recorded${PROG.ok?' in this browser':', but this browser will not keep them: use Save progress'}. The file stays on your device.</span></div>`;
+}
+const smSay=t=>{const m=$('#smMsg');if(m)m.textContent=t;};
+function buildSkillMap(){
+  $('#smToggle').addEventListener('click',()=>{const open=$('#smap').hidden;$('#smap').hidden=!open;$('#smToggle').setAttribute('aria-expanded',open);if(open)renderSkillMap();});
+  $('#smap').addEventListener('click',e=>{
+    if(e.target.closest('#smSave')){
+      const blob=new Blob([JSON.stringify({app:'isomer-sketchbook',v:1,saved:Date.now(),events:PROG.events})],{type:'application/json'}), a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download='isomer-progress.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      smSay(`Saved ${PROG.events.length} answers to isomer-progress.json.`); return;}
+    if(e.target.closest('#smLoad')){$('#smFile').click();return;}
+    if(e.target.closest('#smReset')){if(confirm('Forget all recorded answers in this browser? A saved file is not affected.')){PROG.events=[];saveProg();renderSkillMap();}}
+  });
+  $('#smap').addEventListener('change',async e=>{
+    if(e.target.id!=='smFile') return;
+    const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    if(f.size>3e6){smSay('That file is too large to be a progress file.');return;}
+    let raw; try{raw=JSON.parse(await f.text());}catch(err){smSay('That is not a progress file (it is not valid JSON).');return;}
+    const v=validateProgress(raw); if(!v.ok){smSay('That does not look like an Isomer Sketchbook progress file.');return;}
+    const before=PROG.events.length; PROG.events=mergeEvents(PROG.events,v.events); saveProg(); renderSkillMap();
+    smSay(`Loaded ${v.events.length} answers (${PROG.events.length-before} new)${v.rejected?`, ${v.rejected} skipped as unreadable`:''}. They were merged with what was already here.`);
+  });
+}
 /* =====================================================================
    4b. LEARN — the quiz plus lessons. A lesson is a module: {id, title, blurb, status:'ready'|'planned', render(el)}.
    Add one with learnModule({...}); 'planned' ones are listed but cannot be opened. The view and an open lesson go in the
@@ -2990,7 +3149,7 @@ const learnModule=m=>{LEARN.modules.push({status:'ready',...m});};
 function setLearnView(v,id=null){
   LEARN.view=v; LEARN.open=v==='lessons'?id:null;
   $$('#learnNav [data-lview]').forEach(b=>{b.classList.toggle('on',b.dataset.lview===v);b.setAttribute('aria-selected',b.dataset.lview===v);});
-  $('#learnQuiz').hidden=v!=='quiz'; $('#learnLessons').hidden=v!=='lessons';
+  $('#learnQuiz').hidden=v!=='quiz'; $('#learnLessons').hidden=v!=='lessons'; $('#smToggle').hidden=v!=='quiz';
   if(v==='lessons') renderLessons();
   else if(!Q.cur) nextQuestion();
   setHash(v==='lessons'?'learn'+(id?'/'+id:''):null);
@@ -3281,7 +3440,7 @@ function init(){
     const b=e.target.closest('.enlarge');if(b)openInspector(+b.dataset.gi);});
   document.addEventListener('click',e=>{if(e.target.closest('[data-backlearn]')){if(isMobile())mTab('quiz');else setMode('quiz');}});
   $('#iClose').addEventListener('click',closeInspector);
-  buildComplicate(); buildLearn();
+  buildComplicate(); buildLearn(); buildSkillMap();
   $('#inspector').addEventListener('click',e=>{if(e.target.id==='inspector')closeInspector();});
   $('#itools').addEventListener('click',e=>{const b=e.target.closest('[data-iact]');if(!b||!IN)return;const a=b.dataset.iact,v=IN.v1;
     if(a==='cmp'){if(v.anim){v.disp.q.copy(v.anim.q1);v.anim=null;}qToCompare(IN.gi,IN.v2?'pair':1,v.disp.q);return;}
