@@ -252,6 +252,9 @@ button.lcard{cursor:pointer}button.lcard:hover{background:var(--hl)}
 .keypad{display:none}
 .dot-sep{margin:0 2px}.keyhint{margin-left:auto;font-size:12.5px}
 .rcard{position:relative}
+.rto{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px;font-size:12.5px;color:var(--ink2)}
+.rto .btn{font-size:12.5px;padding:1px 8px}
+body.mobile .rto .btn{min-height:34px}
 .enlarge{position:absolute;top:4px;right:6px;z-index:1;border:1.5px solid var(--ink);background:#fff;border-radius:6px;width:30px;height:30px;font-size:15px;line-height:1;padding:0}
 .enlarge:hover{background:var(--hl)}
 .tapnote{font-size:14px;color:var(--ink3);margin:-8px 0 10px}
@@ -790,7 +793,7 @@ body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
     <div class="mtools" id="itools">
       <button class="btn" data-iact="rv">↻<small>vert</small></button><button class="btn" data-iact="rh">↻<small>horiz</small></button>
       <button class="btn" data-iact="rz">⟲<small>page</small></button><button class="btn" data-iact="shuffle">⤮<small>shuffle</small></button>
-      <button class="btn" data-iact="reset">⌂<small>reset</small></button>
+      <button class="btn" data-iact="reset">⌂<small>reset</small></button><button class="btn" data-iact="cmp" title="Open it in the Compare viewports">⧉<small>compare</small></button>
     </div>
   </div>
 </div>
@@ -2777,7 +2780,7 @@ function nextQuestion(){
   const useReal=Q.lig==='real'&&realizable(c)&&(t!=='total'||!(c.chel||[]).length);
   const pk0=t==='total'&&(useReal||Math.random()<0.5)?VETTED.link[Math.floor(Math.random()*VETTED.link.length)]:null;
   const R=useReal?realize(c,Math.random,pk0?{[X0]:(d=>({key:pk0,html:d.html,text:d.text,charge:-1,donors:[d.id],w:1}))(AMBIDENTATE[pk0].donors[0])}:{}):null;
-  const A=R?analyzeCase({...c,id:'real:'+c.id+':'+Q.n},R.lbl):ANALYSIS[c.id];   // same counts; names and drawings use the real ligands
+  const A=R?analyzeCase({...c,id:'real:'+c.id+':'+Q.n,titleHTML:R.html},R.lbl):ANALYSIS[c.id];   // same counts; names and drawings use the real ligands
   const fHTML=R?R.html:formulaHTML(c);
   let answer=t==='stereo'?A.stereo:t==='geometric'?A.geometric:A.pairs, cur={c,t,A,R,fHTML,answer,explain:summaryHTML(A),entries:A.groups.map(grp=>({grp,skin:R?R.skin:null,v:null})),fam:null,ambNote:''};
   if(t==='total'){
@@ -2794,7 +2797,8 @@ function nextQuestion(){
       explain:`${R?'The '+Xn:X} can bond ${donors.length} ways, and identical copies are indistinguishable, so there ${F.tally.forms===1?'is':'are'} <b>${F.tally.forms}</b> binding forms (structural isomers): ${F.variants.map(v=>v.desc).join('; ')}. Each is an ordinary stereo formula, with ${parts.join(' + ')} = <b>${answer}</b> stereoisomers. Without ambidentate bonding the formula has ${A.stereo}.`,
       entries:F.variants.flatMap(v=>v.A.groups.map(grp=>({grp,skin:v.skin,v})))};
   }
-  Q.cur=cur; Q.attempts=0; Q.resolved=false; Q.n++; Q.last=c.id; Q.tried=[];
+  Q.cur=cur; if(cur.R&&cur.fam) cur.fam.variants.forEach(v=>{v.A.c.titleHTML=qTitle(v);});
+  Q.attempts=0; Q.resolved=false; Q.n++; Q.last=c.id; Q.tried=[];
   $('#qMeta').innerHTML=`Question ${Q.n} <span class="chip">${GEOMS[c.geom].name} · ${GEOMS[c.geom].sym}</span>`;
   $('#qText').innerHTML=`${TYPE_TEXT[t]} ${/^[aeiou]/i.test(GEOMS[c.geom].name)?'an':'a'} <i>${GEOMS[c.geom].name.toLowerCase()}</i> complex with the formula`;
   $('#qFormula').innerHTML=fHTML;
@@ -2896,7 +2900,8 @@ function showResults(){
       ${pair?`<div class="pairnames"><span>${grp[0].chir}</span><span>${grp[1].chir}</span></div>`:''}
       <div class="cap"><div class="t"><span>${pair?(iso.name||'chiral arrangement'):iso.label}</span> <span class="chip pg">${iso.sym.html}</span>
       <span class="chip ${pair?'chiral':'achiral'}">${pair?'chiral ×2':'achiral'}</span></div>
-      <div>${iso.sym.elements}</div><div>${reason}</div></div></div>`;};
+      <div>${iso.sym.elements}</div><div>${reason}</div>
+      <div class="rto"><span>view in Compare:</span><button class="btn" data-qto="${gi}:1">${mob?'slot':'Viewport'} 1</button><button class="btn" data-qto="${gi}:2">${mob?'slot':'Viewport'} 2</button>${pair?`<button class="btn" data-qto="${gi}:pair">both, as mirror images</button>`:''}</div></div></div>`;};
   // a structural question draws every isomer of every binding form, one labelled row of cards per form
   let body='', last=null;
   entries.forEach((e,gi)=>{
@@ -2917,13 +2922,23 @@ function showResults(){
 }
 /* full-size viewer for one result card; a mirror pair opens side by side, the right one a live reflection of the left */
 let IN=null;
+/* a structure from the answer section, into the Compare viewports (to: 1, 2, or 'pair' = it and its mirror image) */
+function qToCompare(gi,to,q=null){
+  const e=Q.cur&&Q.cur.entries[gi]; if(!e) return;
+  const d=dispOf(e.grp[0],e.skin); if(q) d.q=q.clone();
+  closeInspector(); if(CX.open) cxClose(); if(app.live) setLive(false);
+  if(to==='pair'&&e.grp.length===2){loadInto(1,d);loadInto(2,mirrorDisp(d,mirrorAxisNow()));}
+  else loadInto(to,d);
+  if(isMobile()){mTab('compare');toast('From the quiz. The Learn tab keeps your question.');}
+  else{setMode('study');setFlag(to==='pair'?1:to,`From the quiz. <button class="linkbtn" data-backlearn>Back to Learn</button>`);}
+}
 function openInspector(gi){
   const ent=Q.cur.entries[gi], grp=ent.grp, pair=grp.length===2, iso=grp[0];
   $('#inspector').hidden=false; $('#inspector').classList.toggle('pair',pair);
   $('#iTitle').innerHTML=`${ent.v?qTitle(ent.v):Q.cur.fHTML} <span>${pair?(iso.name?iso.name+' · ':'')+grp[0].chir+' / '+grp[1].chir:iso.label}</span>`;
   const v1=new View($('#iStage1')); v1.load(dispOf(iso,ent.skin));
   let v2=null; if(pair){v2=new View($('#iStage2')); v2.interactive=false; v2.mirrorOf=v1;}
-  IN={v1,v2}; $('#iflag').innerHTML=pair?'Turn the left one; the right one is its mirror image and follows.':'';
+  IN={v1,v2,gi}; $('#iflag').innerHTML=pair?'Turn the left one; the right one is its mirror image and follows.':'';
 }
 function closeInspector(){if(!IN)return;IN.v1.destroy();IN.v2&&IN.v2.destroy();IN=null;$('#inspector').hidden=true;}
 let popTimer=null;
@@ -3244,11 +3259,14 @@ function init(){
   $('#ansMode').addEventListener('click',e=>{const b=e.target.closest('[data-am]');if(b){setAnswerMode(b.dataset.am);refreshM();}});
   $('#nextBtn').addEventListener('click',nextQuestion);
   $('#revealBtn').addEventListener('click',reveal);
-  $('#results').addEventListener('click',e=>{const b=e.target.closest('.enlarge');if(b)openInspector(+b.dataset.gi);});
+  $('#results').addEventListener('click',e=>{const t=e.target.closest('[data-qto]');if(t){const [gi,to]=t.dataset.qto.split(':');qToCompare(+gi,to==='pair'?'pair':+to);return;}
+    const b=e.target.closest('.enlarge');if(b)openInspector(+b.dataset.gi);});
+  document.addEventListener('click',e=>{if(e.target.closest('[data-backlearn]')){if(isMobile())mTab('quiz');else setMode('quiz');}});
   $('#iClose').addEventListener('click',closeInspector);
   buildComplicate(); buildLearn();
   $('#inspector').addEventListener('click',e=>{if(e.target.id==='inspector')closeInspector();});
   $('#itools').addEventListener('click',e=>{const b=e.target.closest('[data-iact]');if(!b||!IN)return;const a=b.dataset.iact,v=IN.v1;
+    if(a==='cmp'){if(v.anim){v.disp.q.copy(v.anim.q1);v.anim=null;}qToCompare(IN.gi,IN.v2?'pair':1,v.disp.q);return;}
     if(a==='shuffle'){shuffle(v);$('#iflag').innerHTML='Shuffled: same molecule, new angle.';}
     else if(a==='reset'){v.zoom=1;v.rotateTo(v.G.baseQ,{dur:0.6});$('#iflag').innerHTML='';}
     else{const r=v.step(a[1]);if(r)$('#iflag').innerHTML=STEP_TEXT(r,a[1]);}});
