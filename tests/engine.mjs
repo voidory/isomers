@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEngine} from './load-engine.mjs';
 
-const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL','famOf','skillsOf','itemDiff','classifyError','skillState','masteryOf','pickCandidate','candidateWeight','famLocked','validateProgress','mergeEvents','PRACTICE','TYPE_W']);
+const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL','famOf','skillsOf','itemDiff','classifyError','skillState','masteryOf','pickCandidate','candidateWeight','famLocked','validateProgress','mergeEvents','PRACTICE','TYPE_W','ionChoice']);
 let fails=0;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   // arrays from the vm context have another prototype
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
@@ -249,7 +249,7 @@ test('skills: every question exercises four skills, and difficulty grows with st
   for(const c of cases.slice(0,40)){const s=E.skillsOf(c,E.ANALYSIS[c.id],'stereo'); assert.equal(s.length,4); assert.ok(/^geom:/.test(s[0])&&/^lig:/.test(s[1])&&/^chir:(yes|no)$/.test(s[2])&&s[3]==='type:stereo');}
   const easy=E.ANALYSIS['sp-ma2b2'], hard=E.ANALYSIS['oh-mabcdef'];
   assert.ok(E.itemDiff(hard,'stereo')>E.itemDiff(easy,'stereo')+0.2);
-  for(const c of cases) for(const t of ['stereo','geometric','pairs','total']){const d=E.itemDiff(E.ANALYSIS[c.id],t); assert.ok(d>=0&&d<=1);}
+  for(const c of cases) for(const t of ['stereo','geometric','pairs','total','ion']){const d=E.itemDiff(E.ANALYSIS[c.id],t); assert.ok(d>=0&&d<=1);}
 });
 test('mastery: successes raise it, failures lower it, no evidence is neutral, and evidence is weighted by how the answer went',()=>{
   const c=cases[0], m=evs=>E.masteryOf(E.skillState(evs,NOW)['geom:'+c.geom]);
@@ -275,11 +275,21 @@ test('misconceptions: the wrong answer is named, and chirality mistakes also cou
   const c=E.BANK.find(x=>x.id==='oh-maa2b2'), plain=E.skillState([ev(c,'retry')],NOW)['chir:yes'], diag=E.skillState([ev(c,'retry',{e:'geo-for-stereo'})],NOW)['chir:yes'];
   assert.ok(E.masteryOf(diag)<E.masteryOf(plain));
 });
+test('ionisation question: a choice exists for every formula with a spare letter, and the total is the sum over its spheres',()=>{
+  let n=0; let seed=7; const rnd=()=>(seed=(seed*1103515245+12345)%2147483648)/2147483648;
+  for(const c of E.BANK){ if(!E.monoLetters(c).length||!E.spareLetter(c)) continue;
+    const q=E.ionChoice(c,rnd); if(!q) continue; n++;
+    assert.ok(q.F.groups.length>1); assert.equal(q.F.tally.stereo,q.F.variants.reduce((t,v)=>t+v.A.stereo,0));
+    assert.ok(q.F.groups.some(g=>E.cxBaseGroup(q.F,c)===g),'the base sphere is one of them: '+c.id);}
+  assert.ok(n>100,'only '+n);
+  assert.equal(E.classifyError('ion',E.ANALYSIS['oh-maa2b2'],E.ANALYSIS['oh-maa2b2'].stereo,20,3),'ion-forgot-swaps');
+  assert.equal(E.classifyError('ion',E.ANALYSIS['oh-maa2b2'],3.5,20,3.5),'ion-spheres-only');
+});
 test('selection: a weak skill is practised more, at a comparable difficulty, and the pick is never degenerate',()=>{
   // strong on everything except chiral pairs
   const S={}; const strong=()=>({s:8,f:0,t:NOW}), weak=()=>({s:0.5,f:5,t:NOW});
   for(const g of ['Oh','Td','SP']) S['geom:'+g]=strong(); for(const f of Object.keys({m:1,b:1,t1:1,t2b:1,t3:1,qc:1,qt:1,qr:1})) S['lig:'+f]=strong();
-  for(const t of ['stereo','geometric','pairs','total']) S['type:'+t]=strong(); S['chir:no']=strong(); S['chir:yes']=weak();
+  for(const t of ['stereo','geometric','pairs','total','ion']) S['type:'+t]=strong(); S['chir:no']=strong(); S['chir:yes']=weak();
   const cs=cases.filter(c=>E.ANALYSIS[c.id].stereo<=12).map(c=>cand(c)); const r=rng(5); let chir=0, n=600;
   for(let i=0;i<n;i++){const p=E.pickCandidate(cs,S,{recent:[]},r); if(E.ANALYSIS[p.c.id].pairs>0) chir++;}
   const base=cs.filter(x=>E.ANALYSIS[x.c.id].pairs>0).length/cs.length;

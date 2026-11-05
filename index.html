@@ -1818,6 +1818,19 @@ function cxPlan(kind,base,sel){
   }
   throw new Error('Unknown complication');
 }
+/* a random ionisation (or hydrate) question for a formula: which ligand may leave, which free ion takes its place, how many spare.
+   Returns {sel, plan, F} (F is the structuralFamily), or null when this formula makes no sensible one. */
+function ionChoice(c,rand=Math.random){
+  const base={geom:c.geom,mono:c.mono||'',chel:c.chel||[]}, ls=monoLetters(base), pool=[...VETTED.ion,VETTED.water];
+  if(!ls.length||!spareLetter(base)) return null;
+  const pick=a=>a[Math.floor(rand()*a.length)%a.length];
+  for(let i=0;i<12;i++){
+    const x=pick(pool), sel={letter:pick(ls),ident:x.key,spare:pick(ionPartners(x.key)),n:rand()<0.7?1:2};
+    try{const plan=cxPlan('ion',base,sel), F=structuralFamily(base,plan.amb,plan.opts);
+      if(!F.tooMany&&F.groups.length>1) return {sel,plan,F};}catch(e){}
+  }
+  return null;
+}
 /* the inner-sphere group that is the original formula (same ligands, all bonded through one atom, nothing swapped) */
 const cxBaseGroup=(F,base)=>F.groups.find(g=>F.letters.every(l=>g.inner[l].k1===countOf(base.mono||'',l)&&g.inner[l].k2===0))||null;
 
@@ -1901,22 +1914,23 @@ function realize(c,rand=Math.random,force={}){
 const PRACTICE={halfLifeDays:7,target:0.78,tolerance:0.18,maxEvents:4000,prior:[1,1]};
 const DAY_MS=86400000;
 const OUTCOME_W={first:[1,0],retry:[0.4,0.6],reveal:[0,1]};              // [success, failure] weight of one question
-const PRACTICE_TYPES=['stereo','geometric','pairs','total'];
-const TYPE_W={stereo:3,geometric:1.4,pairs:1,total:2};                  // how often each question type is asked, before skills are considered
+const PRACTICE_TYPES=['stereo','geometric','pairs','total','ion'];
+const TYPE_W={stereo:3,geometric:1.4,pairs:1,total:2,ion:2};                  // how often each question type is asked, before skills are considered
 const CHIR_ERRORS=new Set(['geo-for-stereo','stereo-for-geo','pairs-high','pairs-low']);
-const ERROR_KINDS=new Set([...CHIR_ERRORS,'low','high','total-forgot-forms','total-forms-only','']);
+const ERROR_KINDS=new Set([...CHIR_ERRORS,'low','high','total-forgot-forms','total-forms-only','ion-forgot-swaps','ion-spheres-only','']);
 const FAM_TIER={m:0,b:1,t1:2,t2b:2,t3:2,qc:3,qt:3,qr:3};
 const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
 /* the four skills a question exercises */
 const skillsOf=(c,A,t)=>['geom:'+c.geom,'lig:'+famOf(c),'chir:'+(A.pairs>0?'yes':'no'),'type:'+t];
 /* how hard a question is, from its structure alone (0 to 1), so a new learner needs no data first */
-const itemDiff=(A,t)=>clamp(0.12*Math.log2(Math.max(1,A.stereo))+(A.pairs>0?0.18:0)+0.05*Math.min((A.c.chel||[]).length,4)+({stereo:0,geometric:0.05,pairs:0.1,total:0.25}[t]||0),0,1);
+const itemDiff=(A,t)=>clamp(0.12*Math.log2(Math.max(1,A.stereo))+(A.pairs>0?0.18:0)+0.05*Math.min((A.c.chel||[]).length,4)+({stereo:0,geometric:0.05,pairs:0.1,total:0.25,ion:0.25}[t]||0),0,1);
 /* what an answer says about the person: the first wrong answer, as a misconception */
 function classifyError(t,A,val,answer,forms=0){
   if(t==='stereo') return val===A.geometric&&A.pairs>0?'geo-for-stereo':val<answer?'low':'high';
   if(t==='geometric') return val===A.stereo&&A.pairs>0?'stereo-for-geo':val<answer?'low':'high';
   if(t==='pairs') return val>answer?'pairs-high':'pairs-low';
   if(t==='total') return val===A.stereo?'total-forgot-forms':val===forms?'total-forms-only':val<answer?'low':'high';
+  if(t==='ion') return val===A.stereo?'ion-forgot-swaps':val===forms?'ion-spheres-only':val<answer?'low':'high';
   return val<answer?'low':'high';
 }
 /* replay the attempts into one {s,f,t} per skill, evidence decayed to `now` */
@@ -2917,6 +2931,7 @@ const TYPE_TEXT={
   geometric:`How many <b>geometrical isomers</b> (each enantiomeric pair counted once) are possible for`,
   pairs:`How many <b>pairs of enantiomers</b> are possible for`,
   total:`How many <b>isomers in total</b> (structural and stereo, counting each enantiomer separately) are possible for`,
+  ion:`How many <b>isomers in total</b> (ionisation or hydrate isomers, with all their stereoisomers, counting each enantiomer separately) are possible for`,
 };
 /* the ligands a question can make ambidentate: a monodentate that appears at least twice, so mixed binding forms exist */
 const ambLetters=c=>monoLetters(c).filter(l=>countOf(c.mono,l)>=2);
@@ -2953,26 +2968,32 @@ function setGloss(open){
   if(t){t.setAttribute('aria-expanded',open);t.textContent=open?'Hide ligand notes ▴':'About the ligands ▾';}
 }
 function setResolved(r){$('#qcard').classList.toggle('resolved',r);$('#learnQuiz').classList.toggle('resolved',r);}
-const TYPE_LBL={stereo:'stereoisomers',geometric:'geometrical isomers',pairs:'enantiomeric pairs',total:'isomers in total'};
+const TYPE_LBL={stereo:'stereoisomers',geometric:'geometrical isomers',pairs:'enantiomeric pairs',total:'isomers in total',ion:'isomers in total'};
 function nextQuestion(){
   clearResults(); hidePop(); setResolved(false);
   const quizzable=c=>caseLetters(c).size>1;   // [MA6]-type formulas are too trivial to ask about
   const fk=c=>{const f=famOf(c);return f==='m'||f==='b'?'mb':f[0]==='t'?'tri':'tet';};
   // which question next: from how the answers have been going (see 1f), within the filters chosen below the question
   const types=[...Q.types], real=Q.lig==='real';
-  const ok=(c,ty)=>quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last&&Q.fams.has(fk(c))&&(!real||realizable(c))&&(ty!=='total'||(ambLetters(c).length>0&&(!real||!(c.chel||[]).length)));
+  const ok=(c,ty)=>quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last&&Q.fams.has(fk(c))&&(!real||realizable(c))&&(ty!=='total'||(ambLetters(c).length>0&&(!real||!(c.chel||[]).length)))&&(ty!=='ion'||(monoLetters(c).length>0&&!!spareLetter(c)&&(!real||!(c.chel||[]).length)));
   const mk=(c,ty)=>{const A=ANALYSIS[c.id];return {c,t:ty,fam:famOf(c),skills:skillsOf(c,A,ty),diff:itemDiff(A,ty)};};
   let cands=[]; for(const ty of types) for(const c of BANK) if(ok(c,ty)) cands.push(mk(c,ty));
-  if(!cands.length){const ty=types.find(x=>x!=='total')||'stereo'; for(const c of BANK) if(quizzable(c)&&Q.geoms.has(c.geom)) cands.push(mk(c,ty));}   // nothing matches the filters: ask anything
-  const picked=pickCandidate(cands,skillState(PROG.events),{recent:Q.recent}), c=picked.c, t=picked.t;
+  if(!cands.length){const ty=types.find(x=>x!=='total'&&x!=='ion')||'stereo'; for(const c of BANK) if(quizzable(c)&&Q.geoms.has(c.geom)) cands.push(mk(c,ty));}   // nothing matches the filters: ask anything
+  const picked=pickCandidate(cands,skillState(PROG.events),{recent:Q.recent}), c=picked.c; let t=picked.t;
+  const IC=t==='ion'?ionChoice(c):null; if(t==='ion'&&!IC) t='stereo';   // no sensible swap for this formula: ask the plain question
   Q.recent=[...Q.recent,picked.fam].slice(-3);
   // a total question picks its ambidentate ligand first, so a real formula can name it (nitrite, thiocyanate, cyanide)
   const L0=t==='total'?ambLetters(c):[], X0=L0.length?L0[Math.floor(Math.random()*L0.length)]:null;
-  const useReal=Q.lig==='real'&&realizable(c)&&(t!=='total'||!(c.chel||[]).length);
+  let useReal=Q.lig==='real'&&realizable(c)&&((t!=='total'&&t!=='ion')||!(c.chel||[]).length);
+  let ionX=null, ionY=null, ionR=null;
+  if(t==='ion'){   // real ions: the leaving ligand is forced onto its letter; no other ligand may be the same ion as the spare one
+    ionX=ionLig(vettedIon(IC.sel.ident)); ionY=ionLig(vettedIon(IC.sel.spare));
+    if(useReal){ionR=null;for(let i=0;i<25&&!ionR;i++){const r=realize(c,Math.random,{[IC.sel.letter]:ionX});if(r&&!r.parts.some(p=>p.r.key===ionY.key))ionR=r;} if(!ionR) useReal=false;}
+  }
   const pk0=t==='total'&&(useReal||Math.random()<0.5)?VETTED.link[Math.floor(Math.random()*VETTED.link.length)]:null;
-  const R=useReal?realize(c,Math.random,pk0?{[X0]:(d=>({key:pk0,html:d.html,text:d.text,charge:-1,donors:[d.id],w:1}))(AMBIDENTATE[pk0].donors[0])}:{}):null;
+  const R=t==='ion'?ionR:useReal?realize(c,Math.random,pk0?{[X0]:(d=>({key:pk0,html:d.html,text:d.text,charge:-1,donors:[d.id],w:1}))(AMBIDENTATE[pk0].donors[0])}:{}):null;
   const A=R?analyzeCase({...c,id:'real:'+c.id+':'+Q.n,titleHTML:R.html},R.lbl):ANALYSIS[c.id];   // same counts; names and drawings use the real ligands
-  const fHTML=R?R.html:formulaHTML(c);
+  let fHTML=R?R.html:formulaHTML(c);
   let answer=t==='stereo'?A.stereo:t==='geometric'?A.geometric:A.pairs, cur={c,t,A,R,fHTML,answer,explain:summaryHTML(A),entries:A.groups.map(grp=>({grp,skin:R?R.skin:null,v:null})),fam:null,ambNote:''};
   if(t==='total'){
     // one ligand becomes ambidentate: it can bond through either of two atoms, named like nitrite or left abstract
@@ -2988,6 +3009,21 @@ function nextQuestion(){
       explain:`${R?'The '+Xn:X} can bond ${donors.length} ways, and identical copies are indistinguishable, so there ${F.tally.forms===1?'is':'are'} <b>${F.tally.forms}</b> binding forms (structural isomers): ${F.variants.map(v=>v.desc).join('; ')}. Each is an ordinary stereo formula, with ${parts.join(' + ')} = <b>${answer}</b> stereoisomers. Without ambidentate bonding the formula has ${A.stereo}.`,
       entries:F.variants.flatMap(v=>v.A.groups.map(grp=>({grp,skin:v.skin,v})))};
   }
+  if(t==='ion'){
+    const base={geom:c.geom,mono:c.mono||'',chel:c.chel||[]}, {sel,plan}=IC, L=sel.letter, S=spareLetter(base), x=vettedIon(sel.ident), y=vettedIon(sel.spare);
+    const names=R?{...R.names,[L]:{html:x.html,text:x.text},[S]:{html:y.html,text:y.text}}:plan.names;
+    const F=structuralFamily(base,[],{...plan.opts,names});
+    let ctx=null;
+    if(R){const lr={}; monoLetters(base).forEach(l=>{lr[l]=l===L?ionX:R.parts.find(p=>p.r.html===R.names[l].html).r;}); lr[S]=ionY; ctx={R,lr,N:F.N};}
+    const titleOf=v=>ctx?ionTitleReal(ctx,v.inner):v.title;
+    const g0=cxBaseGroup(F,base), baseInner=Object.fromEntries(monoLetters(base).map(l=>[l,{k1:countOf(base.mono,l)}]));
+    fHTML=ctx?ionTitleReal(ctx,baseInner):(g0?g0.innerTitle:fHTML);
+    const hyd=plan.kind==='hydrate', parts=F.variants.map(v=>v.A.stereo), n=sel.n, yn=y.name;
+    cur={c,t,A,R,fHTML,answer:F.tally.stereo,fam:F,ionR:ctx,
+      ambNote:`<b>${n>1?n+' × ':''}${y.html}</b> (free ${yn}${n>1?' ions':' ion'}) sit${n>1?'':'s'} outside the sphere. A ${x.name} ligand can leave the sphere as a free ion while a free ${yn} takes its place, so long as the sphere stays full. The other ligands stay put. Count every isomer of every possible sphere.`,
+      explain:`The ${x.name} in the sphere and the free ${yn} can trade places, so there ${F.tally.spheres===1?'is':'are'} <b>${F.tally.spheres}</b> possible coordination spheres (${hyd?'hydrate':'ionisation'} isomers): ${F.variants.map(v=>titleOf(v)+' ('+v.A.stereo+')').join('; ')}. Each is an ordinary stereo formula, so the total is ${parts.join(' + ')} = <b>${F.tally.stereo}</b>. The base sphere alone has ${A.stereo}.`,
+      entries:F.variants.flatMap(v=>v.A.groups.map(grp=>({grp,skin:R?{...v.skin,__M:R.skin.__M}:v.skin,v})))};
+  }
   Q.cur=cur; if(cur.R&&cur.fam) cur.fam.variants.forEach(v=>{v.A.c.titleHTML=qTitle(v);});
   Q.attempts=0; Q.resolved=false; Q.n++; Q.last=c.id; Q.tried=[];
   $('#qMeta').innerHTML=`Question ${Q.n} <span class="chip">${GEOMS[c.geom].name} · ${GEOMS[c.geom].sym}</span>`;
@@ -2996,7 +3032,7 @@ function nextQuestion(){
   const gl=R?realGloss(R,c):gloss(c);   // on the phone the ligand notes sit behind a tap, so people who know the ligands can test themselves
   $('#qGloss').innerHTML=(cur.ambNote||'')+(gl?`<button type="button" class="gloss-tg" aria-expanded="false"></button><span class="gloss-body"><span class="gloss-sep">${cur.ambNote?' · ':''}</span>${gl}</span>`:'');
   setGloss(!!Q.glossOpen);
-  const min=t==='pairs'?0:1, cand=t==='total'?[A.stereo,cur.fam.tally.forms,cur.fam.tally.forms*A.stereo,answer+1,answer-1,answer+2,answer-2,answer*2,answer+3]:[A.geometric,A.stereo,A.pairs,answer+1,answer-1,answer*2,answer+2,A.geometric+A.stereo,answer+3,answer+4];
+  const min=t==='pairs'?0:1, cand=(t==='total'||t==='ion')?[A.stereo,cur.fam.tally.forms,cur.fam.tally.forms*A.stereo,answer+1,answer-1,answer+2,answer-2,answer*2,answer+3]:[A.geometric,A.stereo,A.pairs,answer+1,answer-1,answer*2,answer+2,A.geometric+A.stereo,answer+3,answer+4];
   const opts=[]; for(const x of cand) if(x!==answer&&x>=min&&!opts.includes(x)) opts.push(x);
   const pick=opts.slice(0,2).concat(opts.slice(2).sort(()=>Math.random()-.5)).slice(0,3);
   pick.push(answer); pick.sort((a,b)=>a-b);
@@ -3009,6 +3045,10 @@ function nextQuestion(){
 function hintFor(val){
   const {A,t,answer,c}=Q.cur;
   const caseHint=(!Q.cur.R&&c.hint)||`Fix the rarest ligand first and ask what can sit trans to it; then check each arrangement for a mirror plane.`;
+  if(t==='ion'){const F=Q.cur.fam;
+    if(val===A.stereo) return `That is the count for the original sphere only. Ligands and free ions can trade places: list every sphere that can form, then count the stereoisomers of each.`;
+    if(val===F.tally.spheres) return `${val} is the number of different spheres (ionisation isomers). Each sphere also has its own stereoisomers: count those and add them up.`;
+    return val<answer?`There are more than that. Write down every possible sphere (how many copies of each ligand are inside), then count each one's stereoisomers.`:`Too many: check that each sphere fills exactly the sites available, and count each sphere's stereoisomers separately.`;}
   if(t==='total'){const F=Q.cur.fam;
     if(val===A.stereo) return `That is the count when ${Q.cur.Xn} always bonds through the same atom. Now let the ${Q.cur.Xn} choose its atom: list the binding forms first.`;
     if(val===F.tally.forms) return `${val} is the number of binding forms (structural isomers). Each of them also has its own stereoisomers: count those and add them up.`;
@@ -3073,8 +3113,20 @@ function updateScore(){
   if(typeof mTop==='function'&&isMobile())mTop();
 }
 /* a binding form's title, with the real metal when the question uses real ligands */
+/* a real ion as a ligand the formula writer understands (the leaving ligand and the spare ion of an ionisation question) */
+const ION_CHARGE={Cl:-1,Br:-1,I:-1,NO3:-1,SO4:-2,H2O:0};
+const ionLig=x=>({key:x.key,name:x.name,html:x.html,text:x.text,charge:ION_CHARGE[x.key],donors:['O'],w:1});
+/* the formula of one sphere: metal, what is bonded to it, the charge that follows, and the free ions outside */
+function ionTitleReal({R,lr,N},inner){
+  const ks=l=>(inner[l]&&inner[l].k1)||0;
+  const parts=Object.keys(lr).filter(l=>ks(l)>0).map(l=>({r:lr[l],n:ks(l),order:lr[l].charge<0?2:1})).sort((a,b)=>a.order-b.order);
+  const charge=R.ox+parts.reduce((t,p)=>t+p.r.charge*p.n,0);
+  const outs=Object.keys(lr).filter(l=>(N[l]||0)>ks(l)).map(l=>`${N[l]-ks(l)>1?N[l]-ks(l):''}${lr[l].html}`).join('·');
+  return realFormula(R.metal,parts,charge)+(outs?`<span class="outer">·${outs}</span>`:'');
+}
 function qTitle(v){
   const R=Q.cur&&Q.cur.R; if(!R) return v.title;
+  if(Q.cur.ionR) return ionTitleReal(Q.cur.ionR,v.inner);
   if(!Q.cur.fam) return v.title.replace('[M','['+R.metal);
   // a binding form of the ambidentate ligand: the question's formula with that ligand split by donor atom
   const pk=Object.keys(AMBIDENTATE).find(k=>R.parts.some(p=>p.r.key===k)), d=AMBIDENTATE[pk].donors, at=R.parts.findIndex(p=>p.r.key===pk);
@@ -3163,14 +3215,15 @@ function buildFilters(){
     `<span class="dot-sep">·</span>`+
     G('Ligand type',[['mb','mono- & bidentate'],['tri','tridentate'],['tet','tetradentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join(''))+
     `<span class="dot-sep">·</span>`+
-    G('Question type',[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs'],['total','+ structural: ambidentate ligand']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}" ${k==='total'?'title="Also ask for the total number of isomers when one ligand can bond through either of two atoms (off unless chosen)"':''}>${l}</button>`).join(''))+
+    G('Question type',[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs'],['total','+ linkage isomers'],['ion','+ ionisation isomers']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}" ${QTYPE_TIP[k]?`title="${QTYPE_TIP[k]}"`:''}>${l}</button>`).join(''))+
     `<span class="dot-sep">·</span><span class="fl-d">ligands:</span>`+
     G('Ligands',[['real','real (exam style)'],['abstract','abstract letters (MA₄B₂)']].map(([k,l])=>`<button class="btn ${Q.lig===k?'on':''}" data-lig="${k}">${l}</button>`).join(''))+
     `<span class="keyhint">${Q.mode==='mc'?'keys 1–4 answer · Enter = next':'Enter = check, then Enter = next'}</span>`;
 }
 
 /* ---- the skill map (hidden until asked for) and the progress file ---- */
-const SK_TYPE={stereo:'Stereoisomers',geometric:'Geometric isomers',pairs:'Enantiomer pairs',total:'Total, with structural'};
+const QTYPE_TIP={total:'Also ask for the total number of isomers when one ligand can bond through either of two atoms, as in nitro/nitrito (off unless chosen)',ion:'Also ask for the total number of isomers when a ligand and a free ion can trade places, as in ionisation and hydrate isomers (off unless chosen)'};
+const SK_TYPE={stereo:'Stereoisomers',geometric:'Geometric isomers',pairs:'Enantiomer pairs',total:'Total, with linkage',ion:'Total, with ionisation'};
 const SK_LIG=Object.fromEntries(FAMS.map(f=>[f.id,f.name]));
 function skillLabel(k){const [g,v]=k.split(':');
   return g==='geom'?GEOMS[v].name:g==='lig'?SK_LIG[v]:g==='type'?SK_TYPE[v]:v==='yes'?'Counting chiral pairs':'Counting achiral arrangements';}
