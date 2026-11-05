@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEngine} from './load-engine.mjs';
 
-const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup']);
+const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL']);
 let fails=0;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   // arrays from the vm context have another prototype
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
@@ -211,6 +211,31 @@ test('unnamed families are unchanged by the new options (no names, no alt flags 
   const F=fam('Oh','AAAABB',[],'B');
   assert.ok(F.variants.every(v=>Object.values(v.skin).every(x=>x.text==='A'||x.text==='B'||x.text.startsWith('B'))));
   assert.ok(F.groups.every(g=>g.outerText===''));
+});
+
+
+/* ---- real ligands for exam-style quiz formulas ---- */
+test('real ligands: every realizable formula keeps its counts, gets distinct ligands, unique names and an integer charge',()=>{
+  let seed=11; const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+  const ok=E.BANK.filter(E.realizable); assert.ok(ok.length>=100,ok.length+' realizable');
+  for(const c of ok) for(let k=0;k<4;k++){
+    const R=E.realize(c,rnd); assert.ok(R,c.id);
+    const A=E.analyzeCase({...c,id:'real:'+c.id+':'+k},R.lbl), A0=E.ANALYSIS[c.id];
+    assert.equal(A.stereo,A0.stereo,c.id); assert.equal(A.geometric,A0.geometric,c.id); assert.equal(A.pairs,A0.pairs,c.id);
+    assert.equal(new Set(A.isomers.map(i=>i.label)).size,new Set(A0.isomers.map(i=>i.label)).size,c.id+' names stay distinct');
+    assert.equal(new Set(R.parts.map(p=>p.r.key)).size,R.parts.length,c.id+' one real ligand per abstract ligand');
+    assert.ok(Number.isInteger(R.charge)&&R.html.startsWith('['+R.metal),c.id);
+    assert.ok(E.REAL.metals[c.geom].some(([m,o])=>m===R.metal&&o===R.ox));
+  }
+});
+test('real ligands: a ligand keeps its symmetry type, and unknown types are left to the abstract mode',()=>{
+  for(const [p,list] of Object.entries(E.REAL.chel)) for(const r of list){
+    const L=p.split(':')[0]; assert.equal(r.donors.length,L.length,r.key);
+    for(let i=0;i<L.length;i++) for(let j=0;j<L.length;j++) if(L[i]===L[j]) assert.equal(r.donors[i],r.donors[j],r.key+': equivalent donors are the same element');}
+  assert.ok(!E.realizable({geom:'Oh',mono:'DDD',chel:['ABC:x']}),'an unsymmetrical tridentate has no listed real ligand');
+  assert.equal(E.realize({geom:'Oh',mono:'DDD',chel:['ABC:x']}),null);
+  const R=E.realize({geom:'Oh',mono:'AAAABB',chel:[]},Math.random,{B:{key:'NO2',html:'NO<sub>2</sub>',text:'NO₂',charge:-1,donors:['N'],w:1}});
+  assert.ok(/NO<sub>2<\/sub>/.test(R.html)&&R.names.B.text==='NO₂');
 });
 
 console.log(fails?`\n${fails} failed`:'\nall passed'); process.exit(fails?1:0);

@@ -11,7 +11,7 @@ Coordination-compound isomers drawn the way an exam paper draws them, which you 
 - **Compare** two drawings and test whether they superimpose, with a live mirror image.
 - **Build** a structure from an exam drawing and see which isomer it is.
 - **Complicate** an isomer: show a linkage, ionisation, hydrate or κ¹/κ² variant beside it, marked as altered (dashed frame, ringed ligand, the ion outside the sphere written under it). Only ligands that really show the behaviour are offered: nitrite, thiocyanate and cyanide for linkage; Cl⁻, Br⁻, I⁻, NO₃⁻, SO₄²⁻ and water for ionisation and hydrate; nitrate, acetate, carbonate and sulfate for κ¹/κ². Typing `[Co(NH3)4(NO2)(ONO)]` offers the linkage forms.
-- **Quiz** yourself on counting stereoisomers, and (if you switch it on) on the total number of isomers when one ligand can bond through either of two atoms.
+- **Learn**: the quiz plus lessons. The quiz asks about real, exam-style complexes such as [Co(en)₂Cl₂]⁺ by default: each abstract ligand is played by a real ligand of the same symmetry type (en, ox, gly, dien, terpy, tacn, trien, tren, cyclam, porphyrin, NH₃, Cl⁻ …), so the counts are unchanged. A switch brings back the abstract letters (MA₄B₂). It counts stereoisomers, geometric isomers or enantiomer pairs, and optionally the total when one ligand is ambidentate. Lessons is a scaffold of small modules (a ligand glossary and a key to abstract formulas so far; more are planned), linkable as `#learn/<id>`.
 
 The whole app is the single file `index.html`. It needs no server and works offline once loaded.
 
