@@ -46,18 +46,18 @@ This matters because the explanations are the teaching payload. Hiding them save
 - **Remove "Answer by" from the card**, or move it into the same sheet. It already exists in More.
 - **After answering, collapse the question card** to one line (formula, your answer, ✓/✗). Results start at the top with no scrolling.
 - **Pin "Next question →"** above the tab bar once answered, so it is never below the fold.
-- **Ligand gloss** (e.g. the terpy line): show name and denticity, rest behind a tap. See open question 1.
+- **Ligand gloss** (e.g. the terpy line): **decided: collapsed by default**, so students who already know the ligand can test themselves. Show a "What is terpy? ▾" tap target only; the gloss (denticity, donor atoms, rigidity hints) appears on tap. Remember the open state per session only, so it does not become permanently open after one curious tap.
 - Keep the keypad. It is the input, and 240px is its honest cost.
 
 ### Explore → isomer list
-- **Insight paragraph:** clamp to 2 lines with a "more" toggle.
+- **Insight paragraph:** collapse or clamp; see the open question below.
 - **Ligand chips + tally pills → one summary line** ("2 geometric · 1 enantiomeric pair · 3 total").
 - **"One substitution away" and "Complicate this" → collapsed disclosures** with counts in the header ("Related formulas (4) ▾").
 - Effect: isomer rows start near y≈150 instead of 290, and the list should fit about one screen. Estimate, to be measured.
 
 ### Explore → molecule
 - **Bug fix first:** make `#xStage` end where the sheet starts (or recentre the molecule above the sheet) so the FAB row never covers the molecule in `half`.
-- **Drop the duplicated insight** from `xInfoHTML`, or collapse it.
+- **Remove the duplicated insight** from `xInfoHTML` (it stays on the list screen).
 - FAB row: six buttons with labels is about 70px over the drawing. Lower priority and less certain: icon-only after first use, and let double-tap reset (already in the tour) replace the reset button. Do this last, and only if testing shows the row still gets in the way.
 
 ### Compare
@@ -94,7 +94,17 @@ A throwaway Playwright script (Chromium is available in the environment; not a r
 
 Re-run at 360×640 (small Android) and in landscape, where `body.land` has its own layout and some of these rules need an override. `node tests/engine.mjs` should be unaffected, but run it.
 
-## Open questions
+## Decided
 
-1. **Quiz ligand gloss** (e.g. "terpy … rigid and flat: mer only"). It currently sits above the answer and partly hints at it. Collapse it by default, or keep it open? Collapsing makes the quiz harder as well as shorter.
-2. **Insight paragraph default.** Two lines with "more" (my pick), fully collapsed, or open only on the first visit to each formula?
+- Quiz ligand gloss: collapsed by default (see Learn → quiz above).
+
+## Open question
+
+**Insight paragraph on the Explore list.** It is a hand-written paragraph per formula (36 in the source, e.g. line 1324 for M(AA)₂B₂) explaining *why* the isomer count and symmetry come out as they do. It is about the whole formula, not one isomer, which is why it is redundant on the molecule sheet.
+
+Options for the list screen:
+- (a) Clamp to 2 lines with "more". Cheap, but cuts mid-thought (for M(AA)₂B₂ the first two lines cover only trans).
+- (b) Collapse behind a question-style label ("Why these 3 isomers? ▾"), remembered globally: once a student opens it, it stays open for later formulas. My pick: it keeps the best teaching text, costs 1 line, and the label invites the tap.
+- (c) Leave open (today). Costs about 105px on every formula.
+
+Remove it from the molecule sheet in all cases.
