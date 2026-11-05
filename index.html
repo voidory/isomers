@@ -506,7 +506,10 @@ body.mobile .long{display:none} body.mobile .short{display:inline}
 .cx .btn{font-size:13px;padding:2px 9px}
 .cx .btn.on{background:var(--hl);color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink),2px 2px 0 var(--ink)}
 .cx-res .btn{border-color:var(--violet)}
-.cx-x{margin-left:auto}
+/* the close button must not read as one more option: red, a cross, set apart from the chips by a rule */
+.cx .btn.cx-x{margin-left:auto;background:#fdecea;border-color:var(--bad);color:var(--bad);box-shadow:2px 2px 0 var(--bad);display:inline-flex;align-items:center;gap:5px;position:relative}
+.cx .btn.cx-x::before{content:"";position:absolute;left:-9px;top:-1px;bottom:-1px;border-left:1.5px dashed var(--violet);opacity:.6}
+.cx .btn.cx-x b{font-size:17px;line-height:1;font-weight:700}
 .cx small{color:var(--ink2);font-size:12.5px}
 .cx-err{color:var(--bad);font-size:13px}
 .cx .step{padding:0 8px;min-width:26px}
@@ -514,7 +517,7 @@ body.mobile .cx{padding:6px 8px;gap:5px}
 body.mobile .cx-row{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
 body.mobile .cx .btn,body.mobile .cx .lab,body.mobile .cx .cx-t{flex:none;white-space:nowrap}
 body.mobile .cx .btn{min-height:36px}
-body.mobile .cx-x{margin-left:0}
+body.mobile .cx .btn.cx-x{margin-left:14px}
 .cstage-host{flex:1;min-height:0;position:relative}
 .cstage-host .vp-stage{position:absolute;inset:0;border:0;border-radius:0;min-height:0}
 .cmid{flex:none;display:flex;align-items:center;gap:8px;position:relative;min-height:42px}
@@ -2849,7 +2852,7 @@ function cxRender(){
   el.hidden=false;
   const b=CX.base, ltr=l=>`${l}${countOf(b.mono,l)>1?`<sub>${countOf(b.mono,l)}</sub>`:''}`;
   const chips=(attr,items,cur)=>items.map(([v,label])=>`<button class="btn ${v===cur?'on':''}" ${attr}="${v}" aria-pressed="${v===cur}">${label}</button>`).join('');
-  let h=`<div class="cx-row"><b class="cx-t">Complicate</b>${CX_KINDS.map(k=>`<button class="btn ${CX.kind===k?'on':''}" data-cxkind="${k}" ${cxAvailable(k,b)?'':'disabled'}>${CX_NAME[k]}</button>`).join('')}<button class="btn cx-x" data-cxclose title="Back to the base formula">✕ done</button></div>`;
+  let h=`<div class="cx-row"><b class="cx-t">Complicate</b>${CX_KINDS.map(k=>`<button class="btn ${CX.kind===k?'on':''}" data-cxkind="${k}" ${cxAvailable(k,b)?'':'disabled'}>${CX_NAME[k]}</button>`).join('')}<button class="btn cx-x" data-cxclose title="Close Complicate and go back to the base formula" aria-label="Close Complicate"><b aria-hidden="true">×</b>Close</button></div>`;
   if(CX.kind){
     const s=cxSel(), letters=chips('data-cxl',monoLetters(b).map(l=>[l,ltr(l)]),s.letter);
     if(CX.kind==='link') h+=`<div class="cx-row"><span class="lab">ligand</span>${letters}<span class="lab">is</span>${chips('data-cxi',VETTED.link.map(k=>[k,AMBIDENTATE[k].donors.map(d=>d.html).join(' / ')]),s.ident)}</div>`;
