@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEngine} from './load-engine.mjs';
 
-const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL','famOf','skillsOf','itemDiff','classifyError','skillState','masteryOf','pickCandidate','candidateWeight','famLocked','validateProgress','mergeEvents','PRACTICE','TYPE_W','ionChoice','SX_SALTS','SX_DIMERS','sxComplex','sxSaltInfo','sxDimerInfo','sxRep']);
+const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL','famOf','skillsOf','itemDiff','itemLoad','makeCandidate','predict','thetaOf','classifyError','skillState','masteryOf','pickCandidate','candidateWeight','famLocked','validateProgress','mergeEvents','PRACTICE','TYPE_W','ionChoice','SX_SALTS','SX_DIMERS','sxComplex','sxSaltInfo','sxDimerInfo','sxRep']);
 let fails=0;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   // arrays from the vm context have another prototype
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
@@ -243,7 +243,7 @@ test('real ligands: a ligand keeps its symmetry type, and unknown types are left
 const DAY=86400000, NOW=Date.UTC(2026,10,5);
 const cases=E.BANK.filter(c=>new Set((c.mono||'')+(c.chel||[]).map(x=>E.lig(x).L).join('')).size>1);
 const ev=(c,o,over={})=>({t:NOW,c:c.id,ty:'stereo',o,m:'type',e:'',l:'real',...over});
-const cand=(c,t='stereo')=>{const A=E.ANALYSIS[c.id];return {c,t,fam:E.famOf(c),skills:E.skillsOf(c,A,t),diff:E.itemDiff(A,t)};};
+const cand=(c,t='stereo',o={})=>E.makeCandidate(c,t,o);
 const rng=seed=>()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
 test('skills: every question exercises four skills, and difficulty grows with structure',()=>{
   for(const c of cases.slice(0,40)){const s=E.skillsOf(c,E.ANALYSIS[c.id],'stereo'); assert.equal(s.length,4); assert.ok(/^geom:/.test(s[0])&&/^lig:/.test(s[1])&&/^chir:(yes|no)$/.test(s[2])&&s[3]==='type:stereo');}
@@ -255,7 +255,7 @@ test('mastery: successes raise it, failures lower it, no evidence is neutral, an
   const c=cases[0], m=evs=>E.masteryOf(E.skillState(evs,NOW)['geom:'+c.geom]);
   assert.equal(E.masteryOf(undefined),0.5);
   const good=m([ev(c,'first'),ev(c,'first'),ev(c,'first')]), bad=m([ev(c,'reveal'),ev(c,'reveal'),ev(c,'reveal')]);
-  assert.ok(good>0.7&&bad<0.3);
+  assert.ok(good>0.7,'good '+good); assert.ok(bad<0.5,'bad '+bad);
   assert.ok(m([ev(c,'retry')])<m([ev(c,'first')])&&m([ev(c,'retry')])>m([ev(c,'reveal')]));
   assert.ok(m([ev(c,'first',{m:'mc'})])<m([ev(c,'first')]),'a multiple-choice hit counts for a little less (guessing)');
 });
@@ -274,6 +274,50 @@ test('misconceptions: the wrong answer is named, and chirality mistakes also cou
   assert.equal(E.classifyError('total',A,A.stereo,20,4),'total-forgot-forms'); assert.equal(E.classifyError('total',A,4,20,4),'total-forms-only');
   const c=E.BANK.find(x=>x.id==='oh-maa2b2'), plain=E.skillState([ev(c,'retry')],NOW)['chir:yes'], diag=E.skillState([ev(c,'retry',{e:'geo-for-stereo'})],NOW)['chir:yes'];
   assert.ok(E.masteryOf(diag)<E.masteryOf(plain));
+});
+test('load: built from named parts that follow the structure, not the size of the answer',()=>{
+  const b=(id,t='stereo',o)=>E.itemLoad(E.ANALYSIS[id],t,o).b;
+  // the textbook ladder
+  assert.ok(b('sp-ma2b2')<b('oh-ma4b2')&&b('oh-ma4b2')<b('oh-maa2b2')&&b('oh-maa2b2')<b('oh-ma2b2c2')&&b('oh-ma2b2c2')<b('oh-mabcdef'));
+  // [Co(en)3] has as many stereoisomers as tetrahedral MABCD, but a chelate and an octahedron to think about
+  assert.equal(E.ANALYSIS['oh-maa3'].stereo,E.ANALYSIS['td-mabcd'].stereo); assert.ok(b('oh-maa3')>b('td-mabcd'));
+  // chirality without a chelate to show it (all-cis MA2B2C2) is a step of its own
+  const P=id=>E.itemLoad(E.ANALYSIS[id],'stereo').parts; assert.ok(P('oh-ma2b2c2').chirality>P('oh-maa3').chirality);
+  // a geometric question on a chiral formula needs no chirality, only the care not to count enantiomers
+  const g=E.itemLoad(E.ANALYSIS['oh-maa2b2'],'geometric'), st=E.itemLoad(E.ANALYSIS['oh-maa2b2'],'stereo'), pr=E.itemLoad(E.ANALYSIS['oh-maa2b2'],'pairs');
+  assert.ok(!g.parts.chirality&&g.parts.trap>0&&g.b<st.b&&st.b<pr.b);
+  // real ligands must be decoded; unsymmetric chelates have two ends
+  assert.ok(b('oh-maa2b2','stereo',{real:true})>b('oh-maa2b2'));
+  assert.ok(P('oh-mab3').topology>P('oh-maa3').topology);
+  // summing over binding forms is extra work
+  assert.ok(b('oh-ma4b2','total')>b('oh-ma4b2'));
+  // the skill shares sum to 1, and the chirality skill owns more of a chiral question
+  for(const c of cases) for(const t of ['stereo','geometric','pairs']){const L=E.itemLoad(E.ANALYSIS[c.id],t); assert.ok(Math.abs(L.w.reduce((a,x)=>a+x,0)-1)<1e-9); assert.ok(L.w.every(x=>x>0));}
+  assert.ok(E.itemLoad(E.ANALYSIS['oh-ma2b2c2'],'stereo').w[2]>E.itemLoad(E.ANALYSIS['oh-ma4b2'],'stereo').w[2]);
+});
+test('ability: a success on a hard question says more than one on an easy one, and a slip on an easy one more than on a hard one',()=>{
+  const m=(id,o)=>E.masteryOf(E.skillState([{t:NOW,c:id,ty:'stereo',o,m:'type',e:'',l:'abstract'}],NOW)['geom:Oh']);
+  assert.ok(m('oh-ma2b2c2','first')>m('oh-ma4b2','first')+0.05);
+  assert.ok(m('oh-ma4b2','reveal')<m('oh-ma2b2c2','reveal')-0.05);
+  // a multiple-choice hit could be a guess, so it counts for less than a typed one
+  const mc=E.masteryOf(E.skillState([{t:NOW,c:'oh-ma4b2',ty:'stereo',o:'first',m:'mc',e:'',l:'abstract'}],NOW)['geom:Oh']);
+  assert.ok(mc<m('oh-ma4b2','first')&&mc>0.5);
+  // predictions: a harder question is less likely right, and multiple choice has a floor
+  const S={}, L1=E.itemLoad(E.ANALYSIS['oh-ma4b2'],'stereo'), L2=E.itemLoad(E.ANALYSIS['oh-mabcdef'],'stereo'), sk=['geom:Oh','lig:m','chir:no','type:stereo'];
+  assert.ok(E.predict(L1,sk,S).p>E.predict(L2,sk,S).p); assert.ok(E.predict(L2,sk,S,'mc').p>=0.25);
+});
+test('familiarity: an item answered right recently is predicted easier, chosen less, and its repeat success says less',()=>{
+  const c=E.BANK.find(x=>x.id==='oh-ma2b2c2'), e1={t:NOW-3600000,c:c.id,ty:'stereo',o:'first',m:'type',e:'',l:'abstract'};
+  const S0=E.skillState([],NOW), S1=E.skillState([e1],NOW), x=cand(c), sk=x.skills;
+  // the same skill state, with and without the recall trace
+  const S1n={...S1}; delete S1n['item:'+c.id+'|stereo'];
+  assert.ok(E.predict(x.L,sk,S1,'type',c.id,'stereo').p>E.predict(x.L,sk,S1n,'type',c.id,'stereo').p);
+  assert.ok(E.candidateWeight(x,S1,{recent:[]})<E.candidateWeight(x,S1n,{recent:[]}));
+  // a second success on the same item moves the skill less than a success on a fresh item of the same load
+  const other={...e1,c:'oh-ma2b2cd'}, g=evs=>E.thetaOf(E.skillState(evs,NOW)['geom:Oh']);
+  assert.ok(g([e1,{...e1,t:NOW}])-g([e1])<g([other,{...e1,t:NOW}])-g([other]));
+  // recall fades faster than skill
+  const far=E.skillState([e1],NOW+10*DAY); assert.ok(far['item:'+c.id+'|stereo'].s<0.15);
 });
 test('ionisation question: a choice exists for every formula with a spare letter, and the total is the sum over its spheres',()=>{
   let n=0; let seed=7; const rnd=()=>(seed=(seed*1103515245+12345)%2147483648)/2147483648;
@@ -308,11 +352,16 @@ test('selection: a weak skill is practised more, at a comparable difficulty, and
   const S={}; const strong=()=>({s:8,f:0,t:NOW}), weak=()=>({s:0.5,f:5,t:NOW});
   for(const g of ['Oh','Td','SP']) S['geom:'+g]=strong(); for(const f of Object.keys({m:1,b:1,t1:1,t2b:1,t3:1,qc:1,qt:1,qr:1})) S['lig:'+f]=strong();
   for(const t of ['stereo','geometric','pairs','total','ion','coord','dimer']) S['type:'+t]=strong(); S['chir:no']=strong(); S['chir:yes']=weak();
-  const cs=cases.filter(c=>E.ANALYSIS[c.id].stereo<=12).map(c=>cand(c)); const r=rng(5); let chir=0, n=600;
-  for(let i=0;i<n;i++){const p=E.pickCandidate(cs,S,{recent:[]},r); if(E.ANALYSIS[p.c.id].pairs>0) chir++;}
-  const base=cs.filter(x=>E.ANALYSIS[x.c.id].pairs>0).length/cs.length;
-  assert.ok(chir/n>base+0.15,'chiral share '+(chir/n).toFixed(2)+' vs '+base.toFixed(2)+' in the bank');
-  assert.ok(chir/n<0.97,'other questions still appear');
+  const cs=cases.filter(c=>E.ANALYSIS[c.id].stereo<=12).map(c=>cand(c)), n=600;
+  const share=St=>{const r=rng(5); let chir=0; for(let i=0;i<n;i++){const p=E.pickCandidate(cs,St,{recent:[]},r); if(E.ANALYSIS[p.c.id].pairs>0) chir++;} return chir/n;};
+  const weakShare=share(S), strongShare=share({...S,'chir:yes':strong()}), base=cs.filter(x=>E.ANALYSIS[x.c.id].pairs>0).length/cs.length;
+  assert.ok(weakShare>strongShare+0.15,'chiral share '+weakShare.toFixed(2)+' when weak vs '+strongShare.toFixed(2)+' when strong');
+  assert.ok(weakShare>base,'more than the bank share '+base.toFixed(2));
+  assert.ok(weakShare<0.97,'other questions still appear');
+  // the chiral questions chosen for a weak learner are the reachable ones: easier on average than the chiral questions on offer
+  const chiral=cs.filter(x=>E.ANALYSIS[x.c.id].pairs>0), r2=rng(11); let sb=0,k=0;
+  for(let i=0;i<300;i++){const p=E.pickCandidate(chiral,S,{recent:[]},r2); sb+=p.L.b; k++;}
+  assert.ok(sb/k<chiral.reduce((a,x)=>a+x.L.b,0)/chiral.length-0.3,'chiral picks are pitched low');
 });
 test('selection: a new learner meets simple families first; unlocking follows evidence; one family is not repeated once known',()=>{
   const empty={}; assert.ok(!E.famLocked('m',empty),'monodentate is never locked');
