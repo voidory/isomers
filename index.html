@@ -1916,22 +1916,24 @@ function realize(c,rand=Math.random,force={}){
 const PRACTICE={halfLifeDays:7,target:0.78,tolerance:0.18,maxEvents:4000,prior:[1,1]};
 const DAY_MS=86400000;
 const OUTCOME_W={first:[1,0],retry:[0.4,0.6],reveal:[0,1]};              // [success, failure] weight of one question
-const PRACTICE_TYPES=['stereo','geometric','pairs','total','ion'];
-const TYPE_W={stereo:3,geometric:1.4,pairs:1,total:2,ion:2};                  // how often each question type is asked, before skills are considered
+const PRACTICE_TYPES=['stereo','geometric','pairs','total','ion','coord','dimer'];
+const TYPE_W={stereo:3,geometric:1.4,pairs:1,total:2,ion:2,coord:1.5,dimer:1.5};                  // how often each question type is asked, before skills are considered
 const CHIR_ERRORS=new Set(['geo-for-stereo','stereo-for-geo','pairs-high','pairs-low']);
-const ERROR_KINDS=new Set([...CHIR_ERRORS,'low','high','total-forgot-forms','total-forms-only','ion-forgot-swaps','ion-spheres-only','']);
+const ERROR_KINDS=new Set([...CHIR_ERRORS,'low','high','total-forgot-forms','total-forms-only','ion-forgot-swaps','ion-spheres-only','coord-forgot-swap','coord-salts-only','dimer-ordered','dimer-one-half','']);
 const FAM_TIER={m:0,b:1,t1:2,t2b:2,t3:2,qc:3,qt:3,qr:3};
 const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
 /* the four skills a question exercises */
 const skillsOf=(c,A,t)=>['geom:'+c.geom,'lig:'+famOf(c),'chir:'+(A.pairs>0?'yes':'no'),'type:'+t];
 /* how hard a question is, from its structure alone (0 to 1), so a new learner needs no data first */
-const itemDiff=(A,t)=>clamp(0.12*Math.log2(Math.max(1,A.stereo))+(A.pairs>0?0.18:0)+0.05*Math.min((A.c.chel||[]).length,4)+({stereo:0,geometric:0.05,pairs:0.1,total:0.25,ion:0.25}[t]||0),0,1);
+const itemDiff=(A,t)=>clamp(0.12*Math.log2(Math.max(1,A.stereo))+(A.pairs>0?0.18:0)+0.05*Math.min((A.c.chel||[]).length,4)+({stereo:0,geometric:0.05,pairs:0.1,total:0.25,ion:0.25,coord:0.2,dimer:0.2}[t]||0),0,1);
 /* what an answer says about the person: the first wrong answer, as a misconception */
-function classifyError(t,A,val,answer,forms=0){
+function classifyError(t,A,val,answer,forms=0,alt=0){
   if(t==='stereo') return val===A.geometric&&A.pairs>0?'geo-for-stereo':val<answer?'low':'high';
   if(t==='geometric') return val===A.stereo&&A.pairs>0?'stereo-for-geo':val<answer?'low':'high';
   if(t==='pairs') return val>answer?'pairs-high':'pairs-low';
   if(t==='total') return val===A.stereo?'total-forgot-forms':val===forms?'total-forms-only':val<answer?'low':'high';
+  if(t==='coord') return val===alt&&val!==answer?'coord-forgot-swap':val===forms?'coord-salts-only':val<answer?'low':'high';
+  if(t==='dimer') return val===forms&&val!==answer?'dimer-ordered':val===alt&&val!==answer?'dimer-one-half':val<answer?'low':'high';
   if(t==='ion') return val===A.stereo?'ion-forgot-swaps':val===forms?'ion-spheres-only':val<answer?'low':'high';
   return val<answer?'low':'high';
 }
@@ -2060,6 +2062,11 @@ function sxSaltInfo(f){
 function sxDimerInfo(f){
   const [a,b]=f.halves.map(sxComplex), same=a===b, s1=a.stereo, s2=b.stereo;
   return {f,a,b,same,s1,s2,ordered:s1*s2,total:same?s1*(s1+1)/2:s1*s2};
+}
+/* the bank formula that stands for a salt or dimer in the skill record (progress files only know bank formulas) */
+function sxRep(list){
+  for(const C of list){const c=C.A.c, k=formulaKey(c.geom,c.mono||'',c.chel||[]), id=caseByKey[k]; if(id&&!id.startsWith('custom:')) return ANALYSIS[id];}
+  return null;
 }
 /*ENGINE-END*/
 /* =====================================================================
@@ -3133,7 +3140,39 @@ function setGloss(open){
   if(t){t.setAttribute('aria-expanded',open);t.textContent=open?'Hide ligand notes ▴':'About the ligands ▾';}
 }
 function setResolved(r){$('#qcard').classList.toggle('resolved',r);$('#learnQuiz').classList.toggle('resolved',r);}
-const TYPE_LBL={stereo:'stereoisomers',geometric:'geometrical isomers',pairs:'enantiomeric pairs',total:'isomers in total',ion:'isomers in total'};
+const TYPE_LBL={stereo:'stereoisomers',geometric:'geometrical isomers',pairs:'enantiomeric pairs',total:'isomers in total',ion:'isomers in total',coord:'isomers in total',dimer:'isomers in total'};
+/* salts and dimers as quiz items: the bank formula standing for each (for the skill record), or none, and the question itself */
+function sxQuizItems(ty){
+  const list=ty==='coord'?SX_SALTS:SX_DIMERS, out=[];
+  list.forEach(f=>{const cx=ty==='coord'?sxSaltInfo(f).ions:[sxDimerInfo(f).a,sxDimerInfo(f).b], rep=sxRep(cx); if(rep) out.push({id:f.id,rep});});
+  return out;
+}
+function sxCur(t,id,c){
+  const A=ANALYSIS[c.id], uniq=[], seen=new Set();
+  const entries=cx=>cx.flatMap(x=>x.A.groups.map(grp=>({grp,skin:x.skin,v:{title:x.title,desc:x.role||'',A:x.A}})));
+  let cur;
+  if(t==='coord'){
+    const I=sxSaltInfo(SX_SALT_BY[id]), n=I.salts.length, first=I.salts[0];
+    I.ions.forEach(i=>{i.role=I.salts.some(s=>s.cat===i)?'cation':'anion';});
+    cur={c,t,A,R:null,fHTML:first.title,answer:I.total,noGloss:true,chip:'salt of two complexes',alt:first.stereo,
+      qText:`How many <b>isomers in total</b> are possible for the salt`,
+      ambNote:`Count the coordination isomers (the two metals can swap their whole ligand sets; a swap that gives the same salt counts once), and for each salt every pairing of a cation stereoisomer with an anion stereoisomer, enantiomers counted separately.`,
+      fam:{tally:{forms:n,stereo:I.total}},resHead:`The ${I.ions.length} complex ion${I.ions.length>1?'s':''} involved, every stereoisomer drawn`,
+      cand:[first.stereo,n,first.cat.stereo+first.an.stereo,I.total+1,I.total-1,I.total+2,I.total*2,I.total+3],
+      explain:`${n>1?`Swapping the ligand sets gives <b>${n}</b> salts`:`Swapping the ligand sets gives the same salt, so there is just <b>1</b> salt`}: ${I.salts.map(x=>`${x.title} (${x.cat.stereo===1&&x.an.stereo===1?'1':x.cat.stereo+' × '+x.an.stereo})`).join('; ')}. Each cation stereoisomer pairs with each anion stereoisomer, so the total is ${I.salts.map(x=>x.stereo).join(' + ')} = <b>${I.total}</b>.`,
+      entries:entries(I.ions)};
+  } else {
+    const D=sxDimerInfo(SX_DIMER_BY[id]), halves=D.same?[D.a]:[D.a,D.b];
+    cur={c,t,A,R:null,fHTML:D.f.title,answer:D.total,noGloss:true,chip:'bridged dimer',alt:D.s1,
+      qText:`How many <b>isomers in total</b> (counting each enantiomer separately) are possible for the bridged dimer`,
+      ambNote:`The bridging ligand (μ) is a single atom or a straight rigid link, so the two halves turn freely about it and the bridge adds no isomerism of its own. Treat each half as an ordinary complex with the bridge as one more ligand.${D.f.real?'':' (An illustration of the counting rule.)'}`,
+      fam:{tally:{forms:D.ordered,stereo:D.total}},resHead:`The ${D.same?'half (both are the same)':'two halves'}, every stereoisomer drawn`,
+      cand:[D.ordered,D.s1,D.s1+D.s2,D.total+1,D.total-1,D.total+2,D.total*2,D.total+3],
+      explain:`Each half is a mononuclear complex with the bridge as one more ligand: ${D.same?`${D.a.titleNC} has <b>${D.s1}</b> stereoisomer${D.s1>1?'s':''}. Both halves are the same, so a pair is unordered (A with B is B with A): ${D.s1} × ${D.s1+1} ÷ 2 = <b>${D.total}</b>`:`${D.a.titleNC} has <b>${D.s1}</b> and ${D.b.titleNC} has <b>${D.s2}</b>. The halves differ, so every pairing counts: ${D.s1} × ${D.s2} = <b>${D.total}</b>`}.`,
+      entries:entries(halves)};
+  }
+  return cur;
+}
 function nextQuestion(){
   clearResults(); hidePop(); setResolved(false);
   const quizzable=c=>caseLetters(c).size>1;   // [MA6]-type formulas are too trivial to ask about
@@ -3142,11 +3181,14 @@ function nextQuestion(){
   const types=[...Q.types], real=Q.lig==='real';
   const ok=(c,ty)=>quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last&&Q.fams.has(fk(c))&&(!real||realizable(c))&&(ty!=='total'||(ambLetters(c).length>0&&(!real||!(c.chel||[]).length)))&&(ty!=='ion'||(monoLetters(c).length>0&&!!spareLetter(c)&&(!real||!(c.chel||[]).length)));
   const mk=(c,ty)=>{const A=ANALYSIS[c.id];return {c,t:ty,fam:famOf(c),skills:skillsOf(c,A,ty),diff:itemDiff(A,ty)};};
-  let cands=[]; for(const ty of types) for(const c of BANK) if(ok(c,ty)) cands.push(mk(c,ty));
-  if(!cands.length){const ty=types.find(x=>x!=='total'&&x!=='ion')||'stereo'; for(const c of BANK) if(quizzable(c)&&Q.geoms.has(c.geom)) cands.push(mk(c,ty));}   // nothing matches the filters: ask anything
+  let cands=[]; for(const ty of types) if(ty!=='coord'&&ty!=='dimer') for(const c of BANK) if(ok(c,ty)) cands.push(mk(c,ty));
+  for(const ty of types) if(ty==='coord'||ty==='dimer') for(const x of sxQuizItems(ty)){const c=x.rep.c; if(Q.geoms.has(c.geom)&&Q.fams.has(fk(c))&&x.id!==Q.lastSx) cands.push({...mk(c,ty),sx:x.id});}
+  if(!cands.length){const ty=types.find(x=>x!=='total'&&x!=='ion'&&x!=='coord'&&x!=='dimer')||'stereo'; for(const c of BANK) if(quizzable(c)&&Q.geoms.has(c.geom)) cands.push(mk(c,ty));}   // nothing matches the filters: ask anything
   const picked=pickCandidate(cands,skillState(PROG.events),{recent:Q.recent}), c=picked.c; let t=picked.t;
   const IC=t==='ion'?ionChoice(c):null; if(t==='ion'&&!IC) t='stereo';   // no sensible swap for this formula: ask the plain question
   Q.recent=[...Q.recent,picked.fam].slice(-3);
+  Q.lastSx=picked.sx||null;
+  if(picked.sx){Q.attempts=0;Q.resolved=false;Q.n++;Q.last=c.id;Q.tried=[];showQuestion(sxCur(t,picked.sx,c));return;}
   // a total question picks its ambidentate ligand first, so a real formula can name it (nitrite, thiocyanate, cyanide)
   const L0=t==='total'?ambLetters(c):[], X0=L0.length?L0[Math.floor(Math.random()*L0.length)]:null;
   let useReal=Q.lig==='real'&&realizable(c)&&((t!=='total'&&t!=='ion')||!(c.chel||[]).length);
@@ -3189,15 +3231,19 @@ function nextQuestion(){
       explain:`The ${x.name} in the sphere and the free ${yn} can trade places, so there ${F.tally.spheres===1?'is':'are'} <b>${F.tally.spheres}</b> possible coordination spheres (${hyd?'hydrate':'ionisation'} isomers): ${F.variants.map(v=>titleOf(v)+' ('+v.A.stereo+')').join('; ')}. Each is an ordinary stereo formula, so the total is ${parts.join(' + ')} = <b>${F.tally.stereo}</b>. The base sphere alone has ${A.stereo}.`,
       entries:F.variants.flatMap(v=>v.A.groups.map(grp=>({grp,skin:R?{...v.skin,__M:R.skin.__M}:v.skin,v})))};
   }
+  showQuestion(cur);
+}
+function showQuestion(cur){
+  const {c,t,A,R,fHTML,answer}=cur;
   Q.cur=cur; if(cur.R&&cur.fam) cur.fam.variants.forEach(v=>{v.A.c.titleHTML=qTitle(v);});
   Q.attempts=0; Q.resolved=false; Q.n++; Q.last=c.id; Q.tried=[];
-  $('#qMeta').innerHTML=`Question ${Q.n} <span class="chip">${GEOMS[c.geom].name} · ${GEOMS[c.geom].sym}</span>`;
-  $('#qText').innerHTML=`${TYPE_TEXT[t]} ${/^[aeiou]/i.test(GEOMS[c.geom].name)?'an':'a'} <i>${GEOMS[c.geom].name.toLowerCase()}</i> complex with the formula`;
+  $('#qMeta').innerHTML=`Question ${Q.n} <span class="chip">${cur.chip||GEOMS[c.geom].name+' · '+GEOMS[c.geom].sym}</span>`;
+  $('#qText').innerHTML=cur.qText||`${TYPE_TEXT[t]} ${/^[aeiou]/i.test(GEOMS[c.geom].name)?'an':'a'} <i>${GEOMS[c.geom].name.toLowerCase()}</i> complex with the formula`;
   $('#qFormula').innerHTML=fHTML;
-  const gl=R?realGloss(R,c):gloss(c);   // on the phone the ligand notes sit behind a tap, so people who know the ligands can test themselves
+  const gl=cur.noGloss?'':R?realGloss(R,c):gloss(c);   // on the phone the ligand notes sit behind a tap, so people who know the ligands can test themselves
   $('#qGloss').innerHTML=(cur.ambNote||'')+(gl?`<button type="button" class="gloss-tg" aria-expanded="false"></button><span class="gloss-body"><span class="gloss-sep">${cur.ambNote?' · ':''}</span>${gl}</span>`:'');
   setGloss(!!Q.glossOpen);
-  const min=t==='pairs'?0:1, cand=(t==='total'||t==='ion')?[A.stereo,cur.fam.tally.forms,cur.fam.tally.forms*A.stereo,answer+1,answer-1,answer+2,answer-2,answer*2,answer+3]:[A.geometric,A.stereo,A.pairs,answer+1,answer-1,answer*2,answer+2,A.geometric+A.stereo,answer+3,answer+4];
+  const min=t==='pairs'?0:1, cand=cur.cand?cur.cand:(t==='total'||t==='ion')?[A.stereo,cur.fam.tally.forms,cur.fam.tally.forms*A.stereo,answer+1,answer-1,answer+2,answer-2,answer*2,answer+3]:[A.geometric,A.stereo,A.pairs,answer+1,answer-1,answer*2,answer+2,A.geometric+A.stereo,answer+3,answer+4];
   const opts=[]; for(const x of cand) if(x!==answer&&x>=min&&!opts.includes(x)) opts.push(x);
   const pick=opts.slice(0,2).concat(opts.slice(2).sort(()=>Math.random()-.5)).slice(0,3);
   pick.push(answer); pick.sort((a,b)=>a-b);
@@ -3210,6 +3256,12 @@ function nextQuestion(){
 function hintFor(val){
   const {A,t,answer,c}=Q.cur;
   const caseHint=(!Q.cur.R&&c.hint)||`Fix the rarest ligand first and ask what can sit trans to it; then check each arrangement for a mirror plane.`;
+  if(t==='coord') return val===Q.cur.alt?`That is the count for the salt as drawn. The metals can swap their ligand sets, which gives another salt (unless the swap changes nothing): count that too.`
+    :val===Q.cur.fam.tally.forms?`${val} is the number of salts. Each salt also has stereoisomers: every cation stereoisomer pairs with every anion stereoisomer.`
+    :val<answer?`There are more than that. Count the salts first, then for each salt multiply the number of cation stereoisomers by the number of anion stereoisomers.`:`Too many: swapping the ligand sets gives only one other salt, and each ion's stereoisomers are those of an ordinary mononuclear complex.`;
+  if(t==='dimer') return val===Q.cur.fam.tally.forms&&val!==answer?`That counts A–B and B–A as different. The halves are the same, so swapping which half is which gives the same molecule: count unordered pairs.`
+    :val===Q.cur.alt?`That is the number of stereoisomers of one half. The dimer pairs a stereoisomer of one half with one of the other.`
+    :val<answer?`There are more than that. The bridge turns freely, so any stereoisomer of one half can sit with any stereoisomer of the other.`:`Too many: halves that are the same make unordered pairs, so a pair and its reverse are one molecule.`;
   if(t==='ion'){const F=Q.cur.fam;
     if(val===A.stereo) return `That is the count for the original sphere only. Ligands and free ions can trade places: list every sphere that can form, then count the stereoisomers of each.`;
     if(val===F.tally.spheres) return `${val} is the number of different spheres (ionisation isomers). Each sphere also has its own stereoisomers: count those and add them up.`;
@@ -3249,7 +3301,7 @@ function submit(val,btn){
   } else {
     if(btn){btn.classList.add('wrong');btn.disabled=true;}
     inp.classList.remove('wrong'); void inp.offsetWidth; inp.classList.add('wrong'); if(!isMobile())inp.select();
-    if(Q.attempts===1){Q.streak=0;Q.cur.err1=classifyError(Q.cur.t,Q.cur.A,val,Q.cur.answer,Q.cur.fam?Q.cur.fam.tally.forms:0);}
+    if(Q.attempts===1){Q.streak=0;Q.cur.err1=classifyError(Q.cur.t,Q.cur.A,val,Q.cur.answer,Q.cur.fam?Q.cur.fam.tally.forms:0,Q.cur.alt||0);}
     $('#tried').innerHTML='tried: '+Q.tried.map(v=>`<s>${v}</s>`).join(' ');
     $('#feedback').innerHTML=`<div class="note">${hintFor(val)}</div>`;
     if(Q.attempts>=2) $('#revealBtn').style.display='';
@@ -3320,7 +3372,7 @@ function showResults(){
     body+=card(e,gi);});
   body+='</div>';
   const n=fam?fam.tally.stereo:A.stereo;
-  $('#results').innerHTML=`<h3>All ${n} ${fam?'isomer':'stereoisomer'}${n>1?'s':''} of ${Q.cur.fHTML} <span class="chip">${GEOMS[c.geom].name}</span></h3>
+  $('#results').innerHTML=`<h3>${Q.cur.resHead||`All ${n} ${fam?'isomer':'stereoisomer'}${n>1?'s':''} of ${Q.cur.fHTML} <span class="chip">${GEOMS[c.geom].name}</span>`}</h3>
     <p class="explain">${fam?Q.cur.explain:((!R&&c.insight)||summaryHTML(A))}</p><p class="tapnote">${mob?'Tap a drawing to open it full size and turn it.':'Drag a drawing to turn it, or open it full size with ⤢.'}</p>${body}`;
   entries.forEach((e,gi)=>e.grp.forEach((iso,k)=>{
     const el=$(`[data-mi="${gi}-${k}"]`), v=new View(el,{mini:true});
@@ -3380,15 +3432,15 @@ function buildFilters(){
     `<span class="dot-sep">·</span>`+
     G('Ligand type',[['mb','mono- & bidentate'],['tri','tridentate'],['tet','tetradentate']].map(([k,l])=>`<button class="btn ${Q.fams.has(k)?'on':''}" data-fam="${k}">${l}</button>`).join(''))+
     `<span class="dot-sep">·</span>`+
-    G('Question type',[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs'],['total','+ linkage isomers'],['ion','+ ionisation isomers']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}" ${QTYPE_TIP[k]?`title="${QTYPE_TIP[k]}"`:''}>${l}</button>`).join(''))+
+    G('Question type',[['stereo','stereoisomers'],['geometric','geometric isomers'],['pairs','enantiomer pairs'],['total','+ linkage isomers'],['ion','+ ionisation isomers'],['coord','+ coordination isomers'],['dimer','+ bridged dimers']].map(([k,l])=>`<button class="btn ${Q.types.has(k)?'on':''}" data-type="${k}" ${QTYPE_TIP[k]?`title="${QTYPE_TIP[k]}"`:''}>${l}</button>`).join(''))+
     `<span class="dot-sep">·</span><span class="fl-d">ligands:</span>`+
     G('Ligands',[['real','real (exam style)'],['abstract','abstract letters (MA₄B₂)']].map(([k,l])=>`<button class="btn ${Q.lig===k?'on':''}" data-lig="${k}">${l}</button>`).join(''))+
     `<span class="keyhint">${Q.mode==='mc'?'keys 1–4 answer · Enter = next':'Enter = check, then Enter = next'}</span>`;
 }
 
 /* ---- the skill map (hidden until asked for) and the progress file ---- */
-const QTYPE_TIP={total:'Also ask for the total number of isomers when one ligand can bond through either of two atoms, as in nitro/nitrito (off unless chosen)',ion:'Also ask for the total number of isomers when a ligand and a free ion can trade places, as in ionisation and hydrate isomers (off unless chosen)'};
-const SK_TYPE={stereo:'Stereoisomers',geometric:'Geometric isomers',pairs:'Enantiomer pairs',total:'Total, with linkage',ion:'Total, with ionisation'};
+const QTYPE_TIP={total:'Also ask for the total number of isomers when one ligand can bond through either of two atoms, as in nitro/nitrito (off unless chosen)',coord:'Also ask for the total number of isomers of a salt whose two metals can swap ligand sets, as in [Co(NH3)6][Cr(CN)6] (off unless chosen)',dimer:'Also ask for the total number of isomers of a dimer joined by a freely turning bridge (off unless chosen)',ion:'Also ask for the total number of isomers when a ligand and a free ion can trade places, as in ionisation and hydrate isomers (off unless chosen)'};
+const SK_TYPE={stereo:'Stereoisomers',geometric:'Geometric isomers',pairs:'Enantiomer pairs',total:'Total, with linkage',ion:'Total, with ionisation',coord:'Total, coordination isomers',dimer:'Total, bridged dimers'};
 const SK_LIG=Object.fromEntries(FAMS.map(f=>[f.id,f.name]));
 function skillLabel(k){const [g,v]=k.split(':');
   return g==='geom'?GEOMS[v].name:g==='lig'?SK_LIG[v]:g==='type'?SK_TYPE[v]:v==='yes'?'Counting chiral pairs':'Counting achiral arrangements';}

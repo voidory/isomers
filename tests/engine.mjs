@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEngine} from './load-engine.mjs';
 
-const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL','famOf','skillsOf','itemDiff','classifyError','skillState','masteryOf','pickCandidate','candidateWeight','famLocked','validateProgress','mergeEvents','PRACTICE','TYPE_W','ionChoice','SX_SALTS','SX_DIMERS','sxComplex','sxSaltInfo','sxDimerInfo']);
+const E=loadEngine(['GEOMS','BANK','ANALYSIS','analyzeCase','analysisFor','speciesKey','canon','lig','structuralFamily','isoById','AMBIDENTATE','VETTED','cxPlan','cxAvailable','ionPartners','vettedIon','spareLetter','monoLetters','cxBaseGroup','realize','realizable','REAL','famOf','skillsOf','itemDiff','classifyError','skillState','masteryOf','pickCandidate','candidateWeight','famLocked','validateProgress','mergeEvents','PRACTICE','TYPE_W','ionChoice','SX_SALTS','SX_DIMERS','sxComplex','sxSaltInfo','sxDimerInfo','sxRep']);
 let fails=0;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);   // arrays from the vm context have another prototype
 const test=(name,fn)=>{try{fn();console.log('ok   '+name);}catch(e){fails++;console.log('FAIL '+name+'\n     '+e.message.split('\n').slice(0,6).join('\n     '));}};
@@ -249,7 +249,7 @@ test('skills: every question exercises four skills, and difficulty grows with st
   for(const c of cases.slice(0,40)){const s=E.skillsOf(c,E.ANALYSIS[c.id],'stereo'); assert.equal(s.length,4); assert.ok(/^geom:/.test(s[0])&&/^lig:/.test(s[1])&&/^chir:(yes|no)$/.test(s[2])&&s[3]==='type:stereo');}
   const easy=E.ANALYSIS['sp-ma2b2'], hard=E.ANALYSIS['oh-mabcdef'];
   assert.ok(E.itemDiff(hard,'stereo')>E.itemDiff(easy,'stereo')+0.2);
-  for(const c of cases) for(const t of ['stereo','geometric','pairs','total','ion']){const d=E.itemDiff(E.ANALYSIS[c.id],t); assert.ok(d>=0&&d<=1);}
+  for(const c of cases) for(const t of ['stereo','geometric','pairs','total','ion','coord','dimer']){const d=E.itemDiff(E.ANALYSIS[c.id],t); assert.ok(d>=0&&d<=1);}
 });
 test('mastery: successes raise it, failures lower it, no evidence is neutral, and evidence is weighted by how the answer went',()=>{
   const c=cases[0], m=evs=>E.masteryOf(E.skillState(evs,NOW)['geom:'+c.geom]);
@@ -296,11 +296,18 @@ test('salts and dimers: ions are neutral together, charges of dimers add up, and
     assert.equal(ox+q-bridges,f.charge,'charge of '+f.id);}
   assert.equal(E.sxComplex(E.SX_SALTS[1].members[0][0]).stereo,2); assert.equal(E.sxComplex(E.SX_SALTS[1].members[0][0]).A.pairs,1);
 });
+test('salts and dimers: each has a bank formula to stand for it in the skill record (or is left out of the quiz)',()=>{
+  let n=0; for(const f of E.SX_SALTS){if(E.sxRep(E.sxSaltInfo(f).ions)) n++;} for(const f of E.SX_DIMERS){const D=E.sxDimerInfo(f); if(E.sxRep([D.a,D.b])) n++;}
+  assert.ok(n>=6,'only '+n+' items can be asked');
+  const A=E.ANALYSIS['oh-maa2b2'];
+  assert.equal(E.classifyError('dimer',A,9,6,9,3),'dimer-ordered'); assert.equal(E.classifyError('dimer',A,3,6,9,3),'dimer-one-half');
+  assert.equal(E.classifyError('coord',A,4,8,2,4),'coord-forgot-swap'); assert.equal(E.classifyError('coord',A,2,8,2,4),'coord-salts-only');
+});
 test('selection: a weak skill is practised more, at a comparable difficulty, and the pick is never degenerate',()=>{
   // strong on everything except chiral pairs
   const S={}; const strong=()=>({s:8,f:0,t:NOW}), weak=()=>({s:0.5,f:5,t:NOW});
   for(const g of ['Oh','Td','SP']) S['geom:'+g]=strong(); for(const f of Object.keys({m:1,b:1,t1:1,t2b:1,t3:1,qc:1,qt:1,qr:1})) S['lig:'+f]=strong();
-  for(const t of ['stereo','geometric','pairs','total','ion']) S['type:'+t]=strong(); S['chir:no']=strong(); S['chir:yes']=weak();
+  for(const t of ['stereo','geometric','pairs','total','ion','coord','dimer']) S['type:'+t]=strong(); S['chir:no']=strong(); S['chir:yes']=weak();
   const cs=cases.filter(c=>E.ANALYSIS[c.id].stereo<=12).map(c=>cand(c)); const r=rng(5); let chir=0, n=600;
   for(let i=0;i<n;i++){const p=E.pickCandidate(cs,S,{recent:[]},r); if(E.ANALYSIS[p.c.id].pairs>0) chir++;}
   const base=cs.filter(x=>E.ANALYSIS[x.c.id].pairs>0).length/cs.length;

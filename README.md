@@ -32,8 +32,13 @@ Place the ligands on a drawn octahedron, square plane or tetrahedron. The app id
 - **Hydrate (solvate) isomers:** water inside or outside the sphere, as in the CrCl₃·6H₂O series.
 - **Denticity (κ¹/κ²) isomers:** nitrate, acetate, carbonate or sulfate bonding through one oxygen or two.
 
+### Coordination isomers and bridged dimers
+Under **Salts & bridged dimers** in the formula list:
+- **Coordination isomers:** textbook pairs such as [Co(NH₃)₆][Cr(CN)₆] / [Cr(NH₃)₆][Co(CN)₆] and [Co(en)₃][Cr(ox)₃] / [Cr(en)₃][Co(ox)₃], where the two metals swap their whole ligand sets. The cation sits in Viewport 1 and the anion in Viewport 2; the count is the number of salts times every pairing of a cation stereoisomer with an anion stereoisomer. A series where swapping changes nothing ([Pt(NH₃)₄][PtCl₄]) is included to show that case.
+- **Bridged dimers, simple cases only:** a single-atom or rigid straight bridge (μ-OH, μ-O, μ-pyrazine) that turns freely adds no isomerism, so each half is an ordinary complex with the bridge as one more ligand (ringed in the drawing), and the count is the number of pairings of half stereoisomers (unordered when the halves are identical). Three examples are named compounds; three are marked as illustrations of the counting rule.
+
 ### Learn: an isomer-counting quiz and lessons
-- **Quiz:** "How many stereoisomers does … have?", plus geometric isomers, enantiomer pairs, and two optional structural types (off until chosen under "ask about"): **+ linkage isomers** (total isomers when a ligand such as nitrite can bond through either of two atoms) and **+ ionisation isomers** (total isomers when a ligand and a free ion, or water and a halide, can trade places). Both draw every isomer of every form after you answer.
+- **Quiz:** "How many stereoisomers does … have?", plus geometric isomers, enantiomer pairs, and two optional structural types (off until chosen under "ask about"): **+ linkage isomers** (total isomers when a ligand such as nitrite can bond through either of two atoms) and **+ ionisation isomers** (total isomers when a ligand and a free ion, or water and a halide, can trade places). Two more optional types, **+ coordination isomers** and **+ bridged dimers**, ask for the total over the examples above. All four structural types draw every ion, half or form after you answer.
 - **Adaptive practice:** the quiz follows how you have been answering. Each question exercises four skills (shape, ligand family, chiral pairs, question type); evidence about each fades over about a week, so skills you have not practised come back, and ones you keep missing come up more, at a difficulty where you should get roughly three in four right. New ligand families are introduced in order, and a wrong answer is diagnosed (for example, counting geometric instead of stereoisomers also counts against the chirality skill). A **Skill map** button shows where you stand; it is hidden until you ask. **Save progress** downloads a small `isomer-progress.json` and **Load progress** merges one back in, so you can move between devices. Everything stays on your device.
 - Questions use **real, exam-style complexes** with real ligands and charges, such as [Co(en)₂Cl₂]⁺, [Pt(NH₃)₂Cl₂] or [Co(trien)(gly)]²⁺. You can switch to **abstract formulas** (MA₄B₂, M(AA)₂B₂) instead.
 - After each answer, every isomer is drawn and explained. You can send any of them to the Compare viewports.
@@ -60,6 +65,9 @@ Each one can be opened, turned and checked in the app.
 The app uses a clean **rigid-body model**. Every complex is an idealised, fixed polyhedron (octahedron, square plane or tetrahedron), and the app counts *configurations*: which donor atom sits at which vertex, up to rotation. That is how isomers are counted in exams and textbooks.
 
 It does not model:
+- **edge- or face-sharing bridges** (di-μ-halido dimers such as Al₂Cl₆, di-μ-hydroxo): two bridges lock the geometry and couple the two halves, which adds isomerism this app does not count. Only freely turning single-bridge dimers are included, pending whether a module needs more
+- **partial ligand redistribution** between two complexes, and **polymerisation isomerism** ([Pt(NH₃)₂Cl₂] versus [Pt(NH₃)₄][PtCl₄] and its relatives); coordination isomers here are the whole-set swap only
+- **ligand isomerism** (isomeric ligands)
 - conformers (chelate-ring pucker, chain twists)
 - N–H configurations at coordinated amines
 - ring strain
