@@ -1899,13 +1899,34 @@ function realize(c,rand=Math.random,force={}){
 
 /* =====================================================================
    1f. ADAPTIVE PRACTICE — which question next, from how someone has been answering
-   Small on purpose: one person answers dozens of questions, not thousands, so this is a count-based estimate per skill
-   (a Beta(1,1) prior, evidence that decays with a half-life) and a scorer, not a fitted model. The pieces, and why:
+   Small on purpose: one person answers dozens of questions, not thousands, so this is an online estimate per skill and a
+   scorer, not a fitted model. The pieces, and why:
    - SKILLS, not formulas: 239 formulas are far too many to learn about one by one. Each question is tagged with four skills
      the engine already knows (shape, ligand family, whether chiral pairs are involved, question type).
+   - LOAD, not answer size: how hard a question is comes from what the counting asks a person to hold in mind and check
+     (element interactivity, in cognitive-load terms), split into named parts, each owned by one of the four skills:
+       shape:  3-D octahedron vs a flat square or a tetrahedron;
+       enumeration: how many geometric arrangements must be found, how many kinds of donor must be kept apart, and how many
+               of them have so little symmetry that two drawings of one isomer are easy to count twice;
+       ligand topology: what each chelate can do (an unsymmetric chelate has two ends, a flexible tridentate fac and mer, a
+               flexible tetradentate chain trans, cis-α and cis-β), and decoding real ligands (en is AA, gly is AB);
+       chirality: whether any isomer is chiral, whether that chirality is "hidden" (monodentates only, no propeller to see),
+               and whether each isomer must be checked separately (some chiral, some not). A geometric-isomer question on a
+               chiral formula carries a smaller TRAP term instead (enantiomers are not to be counted);
+       question:  the extra step a question type adds (summing over binding forms or spheres, pairing two ions or halves).
+     The parts add up to a difficulty b on a logit scale. The weights are a judgement from how these questions go wrong,
+     not fitted to data; each learner's own abilities absorb a constant error, and a per-skill one in part.
+   - The learner: one ability θ per skill on the same scale, updated Elo-style (Pelánek 2016, "Applications of the Elo
+     rating system in adaptive educational systems"): after an answer each skill moves by K·(outcome − expected), shared out
+     by how much of the question's load that skill owns, so success on a hard question says more than success on an easy
+     one, and a slip on an easy one more than a slip on a hard one. K shrinks as evidence builds and grows back as it fades.
+     Expected success = guess + (1 − guess)·σ(Σ wₖθₖ − b): a multiple-choice question can be guessed (one in four).
    - The record is a list of ATTEMPTS (events). State is recomputed from them, so two records merge by union and the
-     method can change later without invalidating anyone's history.
-   - Forgetting: evidence halves every 7 days, so a skill not practised for a while looks shakier and comes back (spacing).
+     method can change later (as it has) without invalidating anyone's history.
+   - Forgetting: evidence and ability shrink towards the neutral prior with a 7-day half-life, so a skill not practised
+     for a while looks shakier and comes back (spacing).
+   - Familiarity: the same formula and question answered right recently may be recalled rather than worked out, so its
+     effective difficulty drops (a success on it then says little) and it is chosen less.
    - Difficulty fit: aim near 78% expected success, inside the 70–85% band the optimal-error-rate work suggests (a heuristic:
      that result is theoretical, for gradient-learning models).
    - Interleaving once a ligand family is no longer new; new families are met in blocks first, and unlocked in order
@@ -1913,7 +1934,11 @@ function realize(c,rand=Math.random,force={}){
    - Wrong answers are diagnosed: counting geometric for stereo isomers (or the reverse) and pair mistakes also count against
      the chirality skill, because that is the misconception they show.
    ===================================================================== */
-const PRACTICE={halfLifeDays:7,target:0.78,tolerance:0.18,maxEvents:4000,prior:[1,1]};
+const PRACTICE={halfLifeDays:7,recallHalfLifeDays:3,target:0.78,tolerance:0.18,maxEvents:4000,prior:[1,1],
+  k:[1.0,0.2],               // Elo step K = k0/(1 + k1·evidence), in logits
+  guess:{mc:0.25,type:0},    // chance of a right answer with no skill: four choices, or a typed number
+  offset:1.6,                // b = load − offset, so a first textbook question (MA₄B₂) sits near −1 (≈ 73% for a new learner)
+  share:0.3};                // every skill gets at least this much of a question's load when credit is shared
 const DAY_MS=86400000;
 const OUTCOME_W={first:[1,0],retry:[0.4,0.6],reveal:[0,1]};              // [success, failure] weight of one question
 const PRACTICE_TYPES=['stereo','geometric','pairs','total','ion','coord','dimer'];
@@ -1922,10 +1947,45 @@ const CHIR_ERRORS=new Set(['geo-for-stereo','stereo-for-geo','pairs-high','pairs
 const ERROR_KINDS=new Set([...CHIR_ERRORS,'low','high','total-forgot-forms','total-forms-only','ion-forgot-swaps','ion-spheres-only','coord-forgot-swap','coord-salts-only','dimer-ordered','dimer-one-half','']);
 const FAM_TIER={m:0,b:1,t1:2,t2b:2,t3:2,qc:3,qt:3,qr:3};
 const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
-/* the four skills a question exercises */
+const sigmoid=z=>1/(1+Math.exp(-z)), logit=p=>Math.log(p/(1-p));
+/* the four skills a question exercises (the order is the order of the load shares below) */
 const skillsOf=(c,A,t)=>['geom:'+c.geom,'lig:'+famOf(c),'chir:'+(A.pairs>0?'yes':'no'),'type:'+t];
-/* how hard a question is, from its structure alone (0 to 1), so a new learner needs no data first */
-const itemDiff=(A,t)=>clamp(0.12*Math.log2(Math.max(1,A.stereo))+(A.pairs>0?0.18:0)+0.05*Math.min((A.c.chel||[]).length,4)+({stereo:0,geometric:0.05,pairs:0.1,total:0.25,ion:0.25,coord:0.2,dimer:0.2}[t]||0),0,1);
+/* what one ligand's own shape asks of the counter: how many ways it can sit, and whether its two ends differ */
+const TOPO_LOAD={2:{'':0.25},3:{x:0.7,m:0.35,f:0.35,c:0.3},4:{x:1.0,p:0.55,f:0.6,t:0.6,r:0.65,rp:0.3}};
+const SHAPE_LOAD={SP:0,Td:0.15,Oh:0.5};
+const CHIRAL_TYPES=new Set(['stereo','pairs','total','ion','coord','dimer']);   // every type that counts enantiomers separately
+/* the cognitive load of a question, from its structure (and how it is shown), in named parts; b and the skill shares follow */
+const LOAD_CACHE=new Map();
+function itemLoad(A,t,o={}){
+  const real=!!o.real, key=A.c.id+'|'+t+'|'+(real?1:0);
+  if(LOAD_CACHE.has(key)) return LOAD_CACHE.get(key);
+  const c=A.c, mono=c.mono||'', chel=c.chel||[], letters=new Set(mono+chel.map(x=>lig(x).L).join(''));
+  const P={};
+  P.shape=SHAPE_LOAD[c.geom]||0;
+  P.enumerate=0.5*Math.log2(Math.max(1,A.geometric));                                    // arrangements to find and confirm distinct
+  P.variety=0.2*Math.max(0,letters.size-2);                                              // kinds of donor to keep apart
+  const low=A.isomers.filter(i=>(i.sym&&i.sym.order||1)<=2).length/Math.max(1,A.isomers.length);
+  P.duplicates=A.geometric>1?0.4*low:0;                                                  // low symmetry: easy to draw one isomer twice
+  // ligand topology: the first ligand of a kind costs in full, repeats half (a second en is a smaller step than the first)
+  const seen=new Set(); P.topology=0;
+  for(const x of chel){const {L,mode}=lig(x), d=L.length, kind=d+':'+mode+':'+(new Set(L).size>1);
+    let v=((TOPO_LOAD[d]||{})[d===2?'':mode]||0.5)+0.2*(new Set(L).size-1);             // each extra kind of donor in it adds an orientation
+    P.topology+=seen.has(kind)?v/2:v; seen.add(kind);}
+  P.decode=real?0.15+0.15*new Set(chel.map(x=>lig(x).L.length+lig(x).mode)).size+(chel.some(x=>new Set(lig(x).L).size>1)?0.2:0):0;
+  // chirality: present at all; hidden (an octahedron with no chelate to make a propeller); mixed (each geometric isomer must be checked)
+  if(CHIRAL_TYPES.has(t)&&A.pairs>0) P.chirality=0.4+0.25*Math.log2(1+A.pairs)+(chel.length||c.geom!=='Oh'?0:0.5)+(A.pairs<A.geometric?0.25:0);   // a tetrahedral stereocentre is familiar, not hidden
+  else if(t==='geometric'&&A.pairs>0) P.trap=0.3;                                       // enantiomers are not geometric isomers
+  else if(CHIRAL_TYPES.has(t)&&chel.length&&c.geom==='Oh') P.chirality=0.15;            // chelates, yet nothing chiral: easy to overcount
+  if(t==='pairs') P.chirality=(P.chirality||0)*1.2+0.1;
+  const amb=[...new Set(mono)].filter(l=>countOf(mono,l)>=2), forms=amb.length?amb.reduce((s,l)=>s+countOf(mono,l)+1,0)/amb.length:2;
+  P.question={stereo:0,geometric:0,pairs:0.1,total:0.5+0.35*Math.log2(forms),ion:0.6+0.35,coord:0.8,dimer:0.8}[t]||0;
+  const bySkill=[P.shape+P.enumerate+P.variety+P.duplicates, P.topology+P.decode, (P.chirality||0)+(P.trap||0), P.question];
+  const total=bySkill.reduce((a,b)=>a+b,0), raw=bySkill.map(x=>PRACTICE.share+x), rs=raw.reduce((a,b)=>a+b,0);
+  const out={parts:P,bySkill,load:total,b:total-PRACTICE.offset,w:raw.map(x=>x/rs)};
+  LOAD_CACHE.set(key,out); return out;
+}
+/* the old name: difficulty from 0 to 1 (σ of b), for anything that wants a plain scale */
+const itemDiff=(A,t,o)=>sigmoid(itemLoad(A,t,o).b);
 /* what an answer says about the person: the first wrong answer, as a misconception */
 function classifyError(t,A,val,answer,forms=0,alt=0){
   if(t==='stereo') return val===A.geometric&&A.pairs>0?'geo-for-stereo':val<answer?'low':'high';
@@ -1937,37 +1997,55 @@ function classifyError(t,A,val,answer,forms=0,alt=0){
   if(t==='ion') return val===A.stereo?'ion-forgot-swaps':val===forms?'ion-spheres-only':val<answer?'low':'high';
   return val<answer?'low':'high';
 }
-/* replay the attempts into one {s,f,t} per skill, evidence decayed to `now` */
+/* a skill's ability: kept explicitly, or (for a hand-made state) read off its counts */
+const thetaOf=e=>!e?0:Number.isFinite(e.th)?e.th:logit((e.s+PRACTICE.prior[0])/(e.s+e.f+PRACTICE.prior[0]+PRACTICE.prior[1]));
+const evidenceOf=e=>e?e.s+e.f:0;
+const masteryOf=e=>sigmoid(thetaOf(e));                 // the chance on a question of middling difficulty (b = 0)
+const stepK=e=>PRACTICE.k[0]/(1+PRACTICE.k[1]*evidenceOf(e));
+const itemKey=(id,t)=>'item:'+id+'|'+t;
+/* how likely a right first answer is: the skills weighted by their share of the load, less recall, plus guessing */
+function predict(L,skills,S,mode='type',itemId,t){
+  const z=skills.reduce((a,k,i)=>a+L.w[i]*thetaOf(S[k]),0)-(L.b-recallOf(S,itemId,t)), g=PRACTICE.guess[mode]||0;
+  return {z,p:g+(1-g)*sigmoid(z)};
+}
+const recallOf=(S,id,t)=>{const r=id&&S[itemKey(id,t)]; return r?0.9*(1-Math.exp(-r.s)):0;};
+/* replay the attempts into one {th,s,f,t} per skill (and a recall trace per item), decayed to `now` */
 function skillState(events,now=Date.now()){
-  const S={}, decay=(e,t)=>{if(t>e.t){const d=Math.pow(0.5,(t-e.t)/(PRACTICE.halfLifeDays*DAY_MS));e.s*=d;e.f*=d;}e.t=Math.max(e.t,t);};
-  const add=(k,t,ws,wf)=>{const e=S[k]||(S[k]={s:0,f:0,t});decay(e,t);e.s+=ws;e.f+=wf;};
+  const S={};
+  const decay=(e,t,hl=PRACTICE.halfLifeDays)=>{if(t>e.t){const d=Math.pow(0.5,(t-e.t)/(hl*DAY_MS));e.s*=d;e.f*=d;if('th' in e)e.th*=d;}e.t=Math.max(e.t,t);};
+  const get=(k,t)=>{const e=S[k]||(S[k]={th:0,s:0,f:0,t});decay(e,t);return e;};
   for(const ev of events){
     const A=ANALYSIS[ev.c]; if(!A) continue;
-    let [ws,wf]=OUTCOME_W[ev.o]; if(ev.o==='first'&&ev.m==='mc'){ws=0.85;wf=0.15;}     // a multiple-choice hit can be a guess
-    for(const k of skillsOf(A.c,A,ev.ty)) add(k,ev.t,ws,wf);
-    if(CHIR_ERRORS.has(ev.e)) add('chir:yes',ev.t,0,0.5);
+    const skills=skillsOf(A.c,A,ev.ty), L=itemLoad(A,ev.ty,{real:ev.l==='real'}), es=skills.map(k=>get(k,ev.t));
+    const ik=itemKey(ev.c,ev.ty), it=S[ik]; if(it) decay(it,ev.t,PRACTICE.recallHalfLifeDays);
+    const {p}=predict(L,skills,S,ev.m,ev.c,ev.ty), [ws,wf]=OUTCOME_W[ev.o], gap=ws-p;
+    es.forEach((e,i)=>{const share=Math.min(1.5,L.w[i]*skills.length);                   // 1 for an even share
+      e.th+=stepK(e)*share*gap; e.s+=ws; e.f+=wf;});                                      // evidence counts answers; ability moves by share
+    if(CHIR_ERRORS.has(ev.e)){const e=get('chir:yes',ev.t), pc=sigmoid(e.th-(L.bySkill[2]-0.5)); e.th-=stepK(e)*0.5*pc; e.f+=0.5;}
+    if(ev.o==='first'){const r=S[ik]||(S[ik]={s:0,f:0,t:ev.t}); r.s+=1;}
   }
-  for(const k of Object.keys(S)) decay(S[k],now);
+  for(const k of Object.keys(S)) decay(S[k],now,k.startsWith('item:')?PRACTICE.recallHalfLifeDays:PRACTICE.halfLifeDays);
   return S;
 }
-const masteryOf=e=>(((e&&e.s)||0)+PRACTICE.prior[0])/(((e&&e.s)||0)+((e&&e.f)||0)+PRACTICE.prior[0]+PRACTICE.prior[1]);
-const evidenceOf=e=>e?e.s+e.f:0;
 /* a tier is established when its families have enough evidence and look solid; the next tier is weighted down until then */
 function tierEstablished(tier,S){
-  let s=0,f=0; for(const [fam,t] of Object.entries(FAM_TIER)) if(t===tier&&S['lig:'+fam]){s+=S['lig:'+fam].s;f+=S['lig:'+fam].f;}
-  return s+f>=4&&(s+1)/(s+f+2)>=0.6;
+  let n=0,th=0; for(const [fam,t] of Object.entries(FAM_TIER)) if(t===tier&&S['lig:'+fam]){const e=S['lig:'+fam],v=evidenceOf(e); n+=v; th+=v*thetaOf(e);}
+  return n>=4&&th/n>=logit(0.6);
 }
 const famLocked=(fam,S)=>FAM_TIER[fam]>0&&!tierEstablished(FAM_TIER[fam]-1,S);
-/* weight of one candidate {c,t,fam,skills,diff}; ctx.recent = ligand families of the last questions */
+/* weight of one candidate {c,t,fam,skills,L,id}; ctx.recent = ligand families of the last questions, ctx.mode = mc or type */
 function candidateWeight(cand,S,ctx){
-  const sk=cand.skills.map(k=>S[k]), ms=sk.map(masteryOf), mbar=ms.reduce((a,b)=>a+b,0)/ms.length;
-  const need=sk.reduce((a,e,i)=>a+(1-ms[i])*0.75+0.25/(1+evidenceOf(e)),0)/sk.length;       // weak, or not yet known
-  const phat=clamp(mbar-(cand.diff-0.3)*0.5,0.05,0.95), fit=Math.exp(-Math.pow((phat-PRACTICE.target)/PRACTICE.tolerance,2));
-  let w=(0.1+need)*(0.2+fit)*Math.sqrt(TYPE_W[cand.t]||1);
+  const sk=cand.skills.map(k=>S[k]), L=cand.L;
+  const need=sk.reduce((a,e,i)=>a+L.w[i]*((1-masteryOf(e))*0.75+0.25/(1+evidenceOf(e))),0);   // weak, or not yet known, where the load is
+  const phat=clamp(predict(L,cand.skills,S,ctx.mode||'type',cand.c.id,cand.t).p,0.02,0.98), fit=Math.exp(-Math.pow((phat-PRACTICE.target)/PRACTICE.tolerance,2));
+  let w=Math.pow(0.03+need,1.5)*(0.15+fit)*Math.sqrt(TYPE_W[cand.t]||1);
+  w*=1-0.6*recallOf(S,cand.c.id,cand.t);                                                      // little to learn from an answer remembered
   if(ctx.recent.slice(-2).includes(cand.fam)&&evidenceOf(S['lig:'+cand.fam])>=2) w*=0.4;     // interleave, once the family is no longer brand new
   if(famLocked(cand.fam,S)) w*=0.2;
   return w;
 }
+/* a candidate question: the formula, its type, and its load as it will be shown */
+const makeCandidate=(c,t,o={})=>{const A=ANALYSIS[c.id];return {c,t,fam:famOf(c),skills:skillsOf(c,A,t),L:itemLoad(A,t,o)};};
 /* choose one: a ligand family first (so the many tri- and tetradentate formulas do not crowd the rest), then a candidate in it */
 function pickCandidate(cands,S,ctx,rand=Math.random){
   if(!cands.length) return null;
@@ -3180,11 +3258,11 @@ function nextQuestion(){
   // which question next: from how the answers have been going (see 1f), within the filters chosen below the question
   const types=[...Q.types], real=Q.lig==='real';
   const ok=(c,ty)=>quizzable(c)&&Q.geoms.has(c.geom)&&c.id!==Q.last&&Q.fams.has(fk(c))&&(!real||realizable(c))&&(ty!=='total'||(ambLetters(c).length>0&&(!real||!(c.chel||[]).length)))&&(ty!=='ion'||(monoLetters(c).length>0&&!!spareLetter(c)&&(!real||!(c.chel||[]).length)));
-  const mk=(c,ty)=>{const A=ANALYSIS[c.id];return {c,t:ty,fam:famOf(c),skills:skillsOf(c,A,ty),diff:itemDiff(A,ty)};};
+  const mk=(c,ty,shown)=>makeCandidate(c,ty,{real:shown!==undefined?shown:real&&realizable(c)&&((ty!=='total'&&ty!=='ion')||!(c.chel||[]).length)});   // load as it will be shown: real ligands need decoding
   let cands=[]; for(const ty of types) if(ty!=='coord'&&ty!=='dimer') for(const c of BANK) if(ok(c,ty)) cands.push(mk(c,ty));
-  for(const ty of types) if(ty==='coord'||ty==='dimer') for(const x of sxQuizItems(ty)){const c=x.rep.c; if(Q.geoms.has(c.geom)&&Q.fams.has(fk(c))&&x.id!==Q.lastSx) cands.push({...mk(c,ty),sx:x.id});}
+  for(const ty of types) if(ty==='coord'||ty==='dimer') for(const x of sxQuizItems(ty)){const c=x.rep.c; if(Q.geoms.has(c.geom)&&Q.fams.has(fk(c))&&x.id!==Q.lastSx) cands.push({...mk(c,ty,true),sx:x.id});}
   if(!cands.length){const ty=types.find(x=>x!=='total'&&x!=='ion'&&x!=='coord'&&x!=='dimer')||'stereo'; for(const c of BANK) if(quizzable(c)&&Q.geoms.has(c.geom)) cands.push(mk(c,ty));}   // nothing matches the filters: ask anything
-  const picked=pickCandidate(cands,skillState(PROG.events),{recent:Q.recent}), c=picked.c; let t=picked.t;
+  const picked=pickCandidate(cands,skillState(PROG.events),{recent:Q.recent,mode:Q.mode==='mc'?'mc':'type'}), c=picked.c; let t=picked.t;
   const IC=t==='ion'?ionChoice(c):null; if(t==='ion'&&!IC) t='stereo';   // no sensible swap for this formula: ask the plain question
   Q.recent=[...Q.recent,picked.fam].slice(-3);
   Q.lastSx=picked.sx||null;
@@ -3449,10 +3527,10 @@ function renderSkillMap(){
   const row=k=>{const e=S[k],ev=evidenceOf(e),m=masteryOf(e);
     return `<div class="smr"><span>${skillLabel(k)}</span>${ev<1?'<span class="smb none"></span>':`<span class="smb"><i class="${m<0.5?'lo':m<0.75?'mid':'hi'}" style="width:${Math.round(m*100)}%"></i></span>`}<span class="smv">${ev<1?'not tried yet':ev<3?'few answers':Math.round(m*100)+'%'}</span></div>`;};
   const grp=(t,keys)=>`<div class="sm-g"><h4>${t}</h4>${keys.map(row).join('')}</div>`;
-  const known=Object.keys(S).filter(k=>evidenceOf(S[k])>=2).sort((a,b)=>masteryOf(S[a])-masteryOf(S[b])).slice(0,2);
+  const known=Object.keys(S).filter(k=>!k.startsWith('item:')&&evidenceOf(S[k])>=2).sort((a,b)=>masteryOf(S[a])-masteryOf(S[b])).slice(0,2);
   const focus=n<5?'Answer a few questions and the questions will start to follow what you find hard.':
     known.length?`Next focus: <b>${known.map(skillLabel).join('</b> and <b>')}</b>.`:'Keep going: not enough answers yet to tell what to focus on.';
-  el.innerHTML=`<h3>Your skill map</h3><p class="sm-sub">The estimated chance of getting a question on this skill right first time. It fades if you stop practising it, and the quiz leans towards what is low or long unseen.</p>
+  el.innerHTML=`<h3>Your skill map</h3><p class="sm-sub">The estimated chance of getting a middling question on this skill right first time. Hard questions answered well raise it more than easy ones. It fades if you stop practising it, and the quiz leans towards what is low or long unseen.</p>
     <div class="sm-grid">${grp('Shape',['Oh','SP','Td'].map(g=>'geom:'+g))}${grp('Ligands',['m','b','t1','t2b','t3','qc','qt','qr'].map(f=>'lig:'+f))}${grp('Chirality',['chir:yes','chir:no'])}${grp('Question',PRACTICE_TYPES.map(t=>'type:'+t))}</div>
     <p class="sm-focus">${focus}</p>
     <div class="sm-tools"><button class="btn" id="smSave">Save progress</button><button class="btn" id="smLoad">Load progress</button><button class="btn" id="smReset">Reset</button>
