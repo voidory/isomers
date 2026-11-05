@@ -623,6 +623,9 @@ body.mobile.land #bHost .bmain{grid-template-columns:1.2fr 1fr}
 body.mobile.land #bHost .bstage{height:62vh}
 body.mobile.land #bHost .blayouts{grid-template-columns:repeat(4,1fr)}
 
+/* phone: no double-tap zoom on controls or text (pinch still works). :where() keeps this at zero specificity, so the
+   canvases' own touch-action:none and the sheet handle's keep winning */
+:where(body.mobile *){touch-action:manipulation}
 /* ---------- phone: progressive disclosure (see docs/phone-disclosure-plan.md) ---------- */
 .dis{flex:none;border-top:2px dashed var(--grid2);padding-top:2px}
 .dis>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;font-family:var(--hand);font-size:14px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink2)}
@@ -3437,7 +3440,7 @@ function tourDots(){const sl=$('#tourSlides'),i=Math.round(sl.scrollLeft/Math.ma
 
 function mInit(){
   document.addEventListener('pointerdown',e=>{const t=$('#mToast');if(t.classList.contains('show')&&!e.target.closest('#cAlign,#cHelp,.fab,[data-xact]'))t.classList.remove('show');},true);
-  $('#mTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)mTab(b.dataset.tab);});
+  $('#mTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b&&b.dataset.tab!==M.tab)mTab(b.dataset.tab);});
   $('#mBack').addEventListener('click',xBack);
   $('#mTopRight').addEventListener('click',e=>{if(e.target.closest('#cHelp'))toast('Turn either molecule with your finger. <b>Superimpose</b> turns slot 2 to match slot 1, and circles anything that still disagrees. <b>⋯</b> has the mirror tools.',6000);});
   mountFinder($('#xHome'),{mobile:true,onPick:id=>xPush({t:'case',id})});
